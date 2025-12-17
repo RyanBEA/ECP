@@ -14,6 +14,8 @@ export default function WallSection({
   studDepth = '2x6',      // '2x4' or '2x6'
   studSpacing = 16,       // 16 or 24 inches
   continuousIns = 0,      // inches of continuous insulation
+  cavityInsLabel = null,  // Full label like "2x6 R20"
+  continuousInsLabel = null, // Full label like "2\" XPS" or "None"
   width = 600,
 }) {
   // Use consistent scale for proper proportions
@@ -333,11 +335,17 @@ export default function WallSection({
           {/* Dimension labels on the right side - offset with leader lines */}
           {(() => {
             // Calculate layer midpoints for leader line targets
+            // Use user's selections for labels when available
+            const cavityLabel = cavityInsLabel || `${studDepth} stud`
+            const contInsDisplayLabel = continuousInsLabel && continuousInsLabel !== 'None'
+              ? continuousInsLabel
+              : `${continuousIns}" cont. ins.`
+
             const layers = [
               { name: '½" drywall', midY: drywallY + drywallThickness * scale / 2 },
-              { name: `${studDepth} stud`, midY: studCavityY + studDepthInches * scale / 2 },
+              { name: cavityLabel, midY: studCavityY + studDepthInches * scale / 2 },
               { name: '7/16" sheathing', midY: sheathingY + sheathingThickness * scale / 2 },
-              ...(continuousIns > 0 ? [{ name: `${continuousIns}" cont. ins.`, midY: contInsY + continuousIns * scale / 2 }] : []),
+              ...(continuousIns > 0 ? [{ name: contInsDisplayLabel, midY: contInsY + continuousIns * scale / 2 }] : []),
               { name: '½" cladding', midY: claddingY + claddingThickness * scale / 2 },
             ]
 

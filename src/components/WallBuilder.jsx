@@ -192,6 +192,8 @@ export default function WallBuilder({ selection, onSelect }) {
               studDepth={getStudDepth(cavityIns)}
               studSpacing={getStudSpacingNum(studSpacing)}
               continuousIns={getContinuousInsThickness(continuousIns)}
+              cavityInsLabel={cavityIns}
+              continuousInsLabel={continuousIns}
             />
           </div>
 
