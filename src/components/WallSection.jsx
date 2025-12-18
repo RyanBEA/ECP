@@ -30,8 +30,8 @@ export default function WallSection({
   const studDepthInches = studDepth === '2x4' ? 3.5 : 5.5
   const studWidthInches = 1.5 // actual width of a 2x stud
 
-  // Wall length to show (inches) - enough to see multiple studs
-  const wallLengthInches = studSpacing * 4
+  // Wall length to show (inches) - 1.5 stud bays (2.5 studs visible)
+  const wallLengthInches = studSpacing * 1.5
 
   // Calculate total wall thickness
   const totalThickness =
