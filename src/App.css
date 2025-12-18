@@ -85,22 +85,20 @@ h1, h2, h3, h4, h5, h6 {
   gap: 1rem;
 }
 
-.header-title {
-  flex-grow: 1;
-}
-
-.app-header h1 {
-  font-size: 1.5rem;
-  color: var(--primary);
-  margin-bottom: 0.25rem;
+.header-logo {
+  height: 40px;
+  width: auto;
 }
 
 .tier-selector {
+  flex-grow: 1;
   display: flex;
+  justify-content: center;
   align-items: center;
   gap: 0.4rem;
-  color: var(--gray-500);
-  font-size: 0.875rem;
+  color: var(--text-primary);
+  font-size: 1.1rem;
+  font-weight: 600;
 }
 
 .tier-selector select {

@@ -93,22 +93,24 @@ export default function App() {
   return (
     <div className={`app ${darkMode ? 'dark' : ''}`}>
       <header className="app-header">
-        <div className="header-title">
-          <h1>ECP Calculator</h1>
-          <div className="tier-selector">
-            <span>NBC 2020</span>
-            <select
-              value={selectedTierId}
-              onChange={e => setSelectedTierId(Number(e.target.value))}
-            >
-              {tiers.map(tier => (
-                <option key={tier.id} value={tier.id}>
-                  {tier.label}
-                </option>
-              ))}
-            </select>
-            <span>Compliance</span>
-          </div>
+        <img
+          src={darkMode ? '/logodarkmode.png' : '/logolightmode.png'}
+          alt="BEA Logo"
+          className="header-logo"
+        />
+        <div className="tier-selector">
+          <span>NBC 2020</span>
+          <select
+            value={selectedTierId}
+            onChange={e => setSelectedTierId(Number(e.target.value))}
+          >
+            {tiers.map(tier => (
+              <option key={tier.id} value={tier.id}>
+                {tier.label}
+              </option>
+            ))}
+          </select>
+          <span>Compliance</span>
         </div>
         <button
           className="dark-toggle"
