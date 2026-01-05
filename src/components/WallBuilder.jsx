@@ -24,11 +24,11 @@ const getStudSpacingNum = (studSpacing) => {
   return parseInt(studSpacing.replace('"', ''), 10)
 }
 
-// Helper to extract continuous insulation thickness (e.g., '1" XPS' -> 1, 'None' -> 0)
+// Helper to extract continuous insulation thickness (e.g., '1" XPS' -> 1, '1.5" XPS' -> 1.5, 'None' -> 0)
 const getContinuousInsThickness = (continuousIns) => {
   if (!continuousIns || continuousIns === 'None') return 0
-  const match = continuousIns.match(/^(\d+)"/)
-  return match ? parseInt(match[1], 10) : 0
+  const match = continuousIns.match(/^([\d.]+)"/)
+  return match ? parseFloat(match[1]) : 0
 }
 
 export default function WallBuilder({ selection, onSelect }) {
