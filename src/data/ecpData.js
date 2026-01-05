@@ -18,10 +18,13 @@ export const cavityInsulationOptions = [
 export const continuousInsulationOptions = [
   { label: 'None', rsi: 0 },
   { label: '1" XPS', rsi: 0.88 },
+  { label: '1.5" XPS', rsi: 1.28 },
   { label: '2" XPS', rsi: 1.68 },
   { label: '1" EPS', rsi: 0.65 },
+  { label: '1.5" EPS', rsi: 0.98 },
   { label: '2" EPS', rsi: 1.3 },
   { label: '1" PIC', rsi: 0.97 },
+  { label: '1.5" PIC', rsi: 1.39 },
   { label: '2" PIC', rsi: 1.8 }
 ];
 
