@@ -1,53 +1,231 @@
-// Stud spacing options - determines framing fraction
+// Wall type options
+export const wallTypes = [
+  { id: 'wood', label: 'Wood Frame' },
+  { id: 'steel', label: 'Steel Frame' },
+  { id: 'icf', label: 'ICF' }
+]
+
+// Stud spacing options
 export const studSpacingOptions = [
-  { label: '16"', fraction: 0.23 },
-  { label: '19"', fraction: 0.215 },
-  { label: '24"', fraction: 0.2 }
-];
+  { label: '16"' },
+  { label: '19"' },
+  { label: '24"' }
+]
 
-// Cavity insulation options - provides Cavity and Framing R-values
-export const cavityInsulationOptions = [
-  { label: '2x4 R12', cavity: 2.11, framing: 0.75565 },
-  { label: '2x4 R14', cavity: 2.46, framing: 0.75565 },
-  { label: '2x6 R20', cavity: 3.34, framing: 1.18745 },
-  { label: '2x6 R22', cavity: 3.87, framing: 1.18745 },
-  { label: '2x6 R24', cavity: 4.23, framing: 1.18745 }
-];
+// Cavity insulation materials
+export const cavityMaterials = [
+  'Fiberglass Batt',
+  'Mineral Wool Batt',
+  'Loose Fill Cellulose',
+  'Dense Pack Cellulose',
+  'Loose Fill Fiberglass'
+]
 
-// Continuous insulation options - adds to total RSI
-export const continuousInsulationOptions = [
-  { label: 'None', rsi: 0 },
-  { label: '1" XPS', rsi: 0.88 },
-  { label: '1.5" XPS', rsi: 1.28 },
-  { label: '2" XPS', rsi: 1.68 },
-  { label: '1" EPS', rsi: 0.65 },
-  { label: '1.5" EPS', rsi: 0.98 },
-  { label: '2" EPS', rsi: 1.3 },
-  { label: '1" PIC', rsi: 0.97 },
-  { label: '1.5" PIC', rsi: 1.39 },
-  { label: '2" PIC', rsi: 1.8 }
-];
+// Cavity insulation types (stud size + nominal R-value)
+export const cavityTypes = [
+  '2x4 R12', '2x4 R14', '2x6 R20', '2x6 R22', '2x6 R24'
+]
 
-// Base RSI constant (interior + exterior air films, sheathing, etc.)
-const BASE_RSI = 0.44547;
+// Continuous insulation types
+export const continuousInsTypes = ['EPS', 'XPS', 'PIC', 'Mineral Wool']
 
-// Calculate wall RSI from selections
-// Formula: RSI = 1/(Fraction/Framing + (1-Fraction)/Cavity) + RSI + 0.44547
-export function calculateWallRsi(studSpacing, cavityIns, continuousIns) {
-  const spacing = studSpacingOptions.find(s => s.label === studSpacing);
-  const cavity = cavityInsulationOptions.find(c => c.label === cavityIns);
-  const continuous = continuousInsulationOptions.find(c => c.label === continuousIns);
+// Continuous insulation thicknesses
+export const continuousInsThicknesses = [
+  'None', '1"', '1-1/2"', '2"', '2-1/2"', '3"'
+]
 
-  if (!spacing || !cavity || !continuous) return null;
+// ICF form thickness options (per side)
+export const icfFormOptions = ['2.5"', '3-1/8"', '4-1/4"']
 
-  const { fraction } = spacing;
-  const { cavity: cavityR, framing: framingR } = cavity;
-  const { rsi: continuousR } = continuous;
+// Parallel path pre-computed RSI lookup
+// wallType -> spacing -> cavityMaterial -> cavityType -> RSI
+// Values for wood + Fiberglass Batt computed from existing parallel path formula.
+// All other combinations are null (pending data from Ryan).
+export const framedWallRsi = {
+  wood: {
+    '16"': {
+      'Fiberglass Batt': {
+        '2x4 R12': 1.56, '2x4 R14': 1.75, '2x6 R20': 2.36,
+        '2x6 R22': 2.63, '2x6 R24': 2.81
+      },
+      'Mineral Wool Batt': {
+        '2x4 R12': null, '2x4 R14': null, '2x6 R20': null,
+        '2x6 R22': null, '2x6 R24': null
+      },
+      'Loose Fill Cellulose': {
+        '2x4 R12': null, '2x4 R14': null, '2x6 R20': null,
+        '2x6 R22': null, '2x6 R24': null
+      },
+      'Dense Pack Cellulose': {
+        '2x4 R12': null, '2x4 R14': null, '2x6 R20': null,
+        '2x6 R22': null, '2x6 R24': null
+      },
+      'Loose Fill Fiberglass': {
+        '2x4 R12': null, '2x4 R14': null, '2x6 R20': null,
+        '2x6 R22': null, '2x6 R24': null
+      }
+    },
+    '19"': {
+      'Fiberglass Batt': {
+        '2x4 R12': 1.59, '2x4 R14': 1.79, '2x6 R20': 2.42,
+        '2x6 R22': 2.70, '2x6 R24': 2.89
+      },
+      'Mineral Wool Batt': {
+        '2x4 R12': null, '2x4 R14': null, '2x6 R20': null,
+        '2x6 R22': null, '2x6 R24': null
+      },
+      'Loose Fill Cellulose': {
+        '2x4 R12': null, '2x4 R14': null, '2x6 R20': null,
+        '2x6 R22': null, '2x6 R24': null
+      },
+      'Dense Pack Cellulose': {
+        '2x4 R12': null, '2x4 R14': null, '2x6 R20': null,
+        '2x6 R22': null, '2x6 R24': null
+      },
+      'Loose Fill Fiberglass': {
+        '2x4 R12': null, '2x4 R14': null, '2x6 R20': null,
+        '2x6 R22': null, '2x6 R24': null
+      }
+    },
+    '24"': {
+      'Fiberglass Batt': {
+        '2x4 R12': 1.64, '2x4 R14': 1.85, '2x6 R20': 2.51,
+        '2x6 R22': 2.81, '2x6 R24': 3.01
+      },
+      'Mineral Wool Batt': {
+        '2x4 R12': null, '2x4 R14': null, '2x6 R20': null,
+        '2x6 R22': null, '2x6 R24': null
+      },
+      'Loose Fill Cellulose': {
+        '2x4 R12': null, '2x4 R14': null, '2x6 R20': null,
+        '2x6 R22': null, '2x6 R24': null
+      },
+      'Dense Pack Cellulose': {
+        '2x4 R12': null, '2x4 R14': null, '2x6 R20': null,
+        '2x6 R22': null, '2x6 R24': null
+      },
+      'Loose Fill Fiberglass': {
+        '2x4 R12': null, '2x4 R14': null, '2x6 R20': null,
+        '2x6 R22': null, '2x6 R24': null
+      }
+    }
+  },
+  steel: {
+    '16"': {
+      'Fiberglass Batt': {
+        '2x4 R12': null, '2x4 R14': null, '2x6 R20': null,
+        '2x6 R22': null, '2x6 R24': null
+      },
+      'Mineral Wool Batt': {
+        '2x4 R12': null, '2x4 R14': null, '2x6 R20': null,
+        '2x6 R22': null, '2x6 R24': null
+      },
+      'Loose Fill Cellulose': {
+        '2x4 R12': null, '2x4 R14': null, '2x6 R20': null,
+        '2x6 R22': null, '2x6 R24': null
+      },
+      'Dense Pack Cellulose': {
+        '2x4 R12': null, '2x4 R14': null, '2x6 R20': null,
+        '2x6 R22': null, '2x6 R24': null
+      },
+      'Loose Fill Fiberglass': {
+        '2x4 R12': null, '2x4 R14': null, '2x6 R20': null,
+        '2x6 R22': null, '2x6 R24': null
+      }
+    },
+    '19"': {
+      'Fiberglass Batt': {
+        '2x4 R12': null, '2x4 R14': null, '2x6 R20': null,
+        '2x6 R22': null, '2x6 R24': null
+      },
+      'Mineral Wool Batt': {
+        '2x4 R12': null, '2x4 R14': null, '2x6 R20': null,
+        '2x6 R22': null, '2x6 R24': null
+      },
+      'Loose Fill Cellulose': {
+        '2x4 R12': null, '2x4 R14': null, '2x6 R20': null,
+        '2x6 R22': null, '2x6 R24': null
+      },
+      'Dense Pack Cellulose': {
+        '2x4 R12': null, '2x4 R14': null, '2x6 R20': null,
+        '2x6 R22': null, '2x6 R24': null
+      },
+      'Loose Fill Fiberglass': {
+        '2x4 R12': null, '2x4 R14': null, '2x6 R20': null,
+        '2x6 R22': null, '2x6 R24': null
+      }
+    },
+    '24"': {
+      'Fiberglass Batt': {
+        '2x4 R12': null, '2x4 R14': null, '2x6 R20': null,
+        '2x6 R22': null, '2x6 R24': null
+      },
+      'Mineral Wool Batt': {
+        '2x4 R12': null, '2x4 R14': null, '2x6 R20': null,
+        '2x6 R22': null, '2x6 R24': null
+      },
+      'Loose Fill Cellulose': {
+        '2x4 R12': null, '2x4 R14': null, '2x6 R20': null,
+        '2x6 R22': null, '2x6 R24': null
+      },
+      'Dense Pack Cellulose': {
+        '2x4 R12': null, '2x4 R14': null, '2x6 R20': null,
+        '2x6 R22': null, '2x6 R24': null
+      },
+      'Loose Fill Fiberglass': {
+        '2x4 R12': null, '2x4 R14': null, '2x6 R20': null,
+        '2x6 R22': null, '2x6 R24': null
+      }
+    }
+  }
+}
 
-  // Parallel path calculation for framed wall
-  const framedWallRsi = 1 / (fraction / framingR + (1 - fraction) / cavityR);
+// Continuous insulation RSI lookup: type -> thickness -> RSI
+export const continuousInsRsi = {
+  'EPS': {
+    'None': 0, '1"': 0.65, '1-1/2"': 0.98, '2"': 1.30, '2-1/2"': 1.63, '3"': 1.95
+  },
+  'XPS': {
+    'None': 0, '1"': 0.88, '1-1/2"': 1.28, '2"': 1.68, '2-1/2"': 2.10, '3"': 2.52
+  },
+  'PIC': {
+    'None': 0, '1"': 0.97, '1-1/2"': 1.39, '2"': 1.80, '2-1/2"': 2.22, '3"': 2.64
+  },
+  'Mineral Wool': {
+    'None': 0, '1"': null, '1-1/2"': null, '2"': null, '2-1/2"': null, '3"': null
+  }
+}
 
-  return framedWallRsi + continuousR + BASE_RSI;
+// ICF total RSI lookup: formThickness -> total RSI (fully pre-computed)
+export const icfRsi = {
+  '2.5"': null,
+  '3-1/8"': null,
+  '4-1/4"': null
+}
+
+// Base RSI constant (interior + exterior air films, drywall, sheathing)
+const BASE_RSI = 0.44547
+
+// Calculate wall RSI from selections (lookup-based)
+export function calculateWallRsi({ wallType, studSpacing, cavityMaterial, cavityType, contInsType, contInsThickness, icfFormThickness } = {}) {
+  // ICF path — single lookup, fully pre-computed
+  if (wallType === 'icf') {
+    return icfRsi[icfFormThickness] ?? null
+  }
+
+  // Wood/Steel path — parallel path lookup + isothermal planes sum
+  const framed = framedWallRsi[wallType]?.[studSpacing]?.[cavityMaterial]?.[cavityType]
+  if (framed == null) return null
+
+  // If no continuous insulation selected, just framed + base
+  if (!contInsType || contInsThickness === 'None') {
+    return framed + BASE_RSI
+  }
+
+  const contIns = continuousInsRsi[contInsType]?.[contInsThickness]
+  if (contIns == null) return null
+
+  return framed + contIns + BASE_RSI
 }
 
 // RSI thresholds for above-grade walls and their point values
