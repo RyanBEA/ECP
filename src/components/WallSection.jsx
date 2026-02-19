@@ -3,19 +3,19 @@ import React from 'react'
 /**
  * WallSection - Top-down cross-section of a wall assembly (rotated 90°)
  *
- * Layers (inside to outside, top to bottom):
- * 1. Drywall (1/2" fixed)
- * 2. Studs + cavity insulation (dynamic: 2x4=3.5", 2x6=5.5")
- * 3. Sheathing (1/2" fixed)
- * 4. Continuous insulation (dynamic: 0-4")
- * 5. Cladding (1/2" fixed)
+ * Three rendering modes:
+ * - Wood frame: studs with X pattern, cavity insulation, sheathing, optional continuous insulation
+ * - Steel frame: C-channel studs, cavity insulation, sheathing, optional continuous insulation
+ * - ICF: drywall -> EPS foam -> concrete -> EPS foam -> cladding
  */
 export default function WallSection({
-  studDepth = '2x6',      // '2x4' or '2x6'
-  studSpacing = 16,       // 16 or 24 inches
-  continuousIns = 0,      // inches of continuous insulation
-  cavityInsLabel = null,  // Full label like "2x6 R20"
-  continuousInsLabel = null, // Full label like "2\" XPS" or "None"
+  wallType = 'wood',           // 'wood', 'steel', or 'icf'
+  studDepth = '2x6',           // '2x4' or '2x6'
+  studSpacing = 16,            // 16, 19, or 24 inches
+  continuousIns = 0,           // inches of continuous insulation
+  cavityInsLabel = null,       // Full label like "2x6 R20"
+  continuousInsLabel = null,   // Full label like "2\" XPS" or "None"
+  icfFormThickness = 0,        // ICF only: inches per side
   width = 600,
 }) {
   // Use consistent scale for proper proportions
@@ -26,42 +26,12 @@ export default function WallSection({
   const sheathingThickness = 7 / 16  // 7/16" is common wall sheathing
   const claddingThickness = 0.5
 
-  // Dynamic dimensions
-  const studDepthInches = studDepth === '2x4' ? 3.5 : 5.5
-  const studWidthInches = 1.5 // actual width of a 2x stud
-
-  // Wall length to show (inches) - 1.5 stud bays (2.5 studs visible)
-  const wallLengthInches = studSpacing * 1.5
-
-  // Calculate total wall thickness
-  const totalThickness =
-    drywallThickness +
-    studDepthInches +
-    sheathingThickness +
-    continuousIns +
-    claddingThickness
-
-  // SVG dimensions - use same scale for both directions
-  const wallWidthPx = wallLengthInches * scale
-  const svgWidth = wallWidthPx + 180 // room for offset labels with leader lines
-  const svgHeight = totalThickness * scale + 80
-
-  // Calculate layer positions (y coordinates, top to bottom)
-  const startY = 30
-  const drywallY = startY
-  const studCavityY = startY + drywallThickness * scale
-  const sheathingY = startY + (drywallThickness + studDepthInches) * scale
-  const contInsY = startY + (drywallThickness + studDepthInches + sheathingThickness) * scale
-  const claddingY = startY + (drywallThickness + studDepthInches + sheathingThickness + continuousIns) * scale
-
-  // Calculate stud positions
-  const numStuds = Math.ceil(wallLengthInches / studSpacing) + 1
-
   // Colors
   const colors = {
     drywall: '#e5e7eb',
-    stud: '#d4a574',    // Light brown for wood
-    cavity: '#fce7f3',  // Pink to match continuous insulation
+    stud: '#d4a574',       // Light brown for wood
+    steelStud: '#94a3b8',  // Slate gray for steel
+    cavity: '#fce7f3',     // Pink to match continuous insulation
     sheathing: '#d1d5db',
     contIns: '#fce7f3',
     cladding: '#9ca3af',
@@ -79,8 +49,6 @@ export default function WallSection({
     const r = h * 0.20
 
     // Offset inward so semicircles stay within cavity
-    // Top semicircles drawn at topY, bulge UP by r -> topY must be at cavityTop + r
-    // Bottom semicircles drawn at bottomY, bulge DOWN by r -> bottomY must be at cavityBottom - r
     const topY = cavityTop + r
     const bottomY = cavityBottom - r
 
@@ -93,7 +61,6 @@ export default function WallSection({
     // Generate one instance of the pattern
     const generatePath = (offsetX) => {
       const numSegments = Math.ceil((cavityWidth + period * 2) / (period / 2)) + 4
-      // Start from negative offset to fill from left edge
       let x = startX + offsetX - period
       let d = `M ${x} ${topY}`
 
@@ -101,17 +68,13 @@ export default function WallSection({
         if (x > startX + cavityWidth + period) break
 
         if (i % 2 === 0) {
-          // Top semicircle - curves DOWN into cavity
           d += ` A ${r} ${r} 0 1 1 ${x + 2 * r} ${topY}`
           x += 2 * r
-          // Diagonal line down-right to bottom
           d += ` L ${x + r} ${bottomY}`
           x += r
         } else {
-          // Bottom semicircle - curves UP into cavity
           d += ` A ${r} ${r} 0 1 0 ${x + 2 * r} ${bottomY}`
           x += 2 * r
-          // Diagonal line up-right to top
           d += ` L ${x + r} ${topY}`
           x += r
         }
@@ -119,7 +82,6 @@ export default function WallSection({
       return d
     }
 
-    // Three overlapping paths, clipped to cavity bounds
     return (
       <g>
         <defs>
@@ -137,11 +99,10 @@ export default function WallSection({
   }
 
   // Generate continuous insulation pattern - staggered vertical lines
-  // Lines from inside surface to mid-depth, offset lines from outside surface to mid-depth
-  const generateContInsPattern = (startX, width, startY, height) => {
+  const generateContInsPattern = (startX, patternWidth, startY, height) => {
     const midY = startY + height / 2
-    const spacing = 8 // horizontal spacing between lines
-    const numLines = Math.ceil(width / spacing) + 1
+    const spacing = 8
+    const numLines = Math.ceil(patternWidth / spacing) + 1
 
     const paths = []
 
@@ -149,29 +110,19 @@ export default function WallSection({
       const x = startX + i * spacing
 
       if (i % 2 === 0) {
-        // Even lines: from top (inside surface) to mid-depth
         paths.push(
           <line
             key={`cont-ins-${i}`}
-            x1={x}
-            y1={startY}
-            x2={x}
-            y2={midY}
-            stroke="#db2777"
-            strokeWidth="1"
+            x1={x} y1={startY} x2={x} y2={midY}
+            stroke="#db2777" strokeWidth="1"
           />
         )
       } else {
-        // Odd lines: from bottom (outside surface) to mid-depth
         paths.push(
           <line
             key={`cont-ins-${i}`}
-            x1={x}
-            y1={startY + height}
-            x2={x}
-            y2={midY}
-            stroke="#db2777"
-            strokeWidth="1"
+            x1={x} y1={startY + height} x2={x} y2={midY}
+            stroke="#db2777" strokeWidth="1"
           />
         )
       }
@@ -180,7 +131,152 @@ export default function WallSection({
     return <g>{paths}</g>
   }
 
-  // Pattern IDs (kept for reference but not used for continuous insulation)
+  // --- ICF Rendering ---
+  if (wallType === 'icf') {
+    const epsThickness = icfFormThickness  // inches per side
+    const concreteThickness = 8  // inches, fixed
+    const icfTotalThickness = drywallThickness + epsThickness + concreteThickness + epsThickness + claddingThickness
+    const icfWallLength = 24  // fixed display width in inches
+    const icfWallWidthPx = icfWallLength * scale
+    const icfSvgWidth = icfWallWidthPx + 180
+    const icfSvgHeight = icfTotalThickness * scale + 80
+
+    const icfStartY = 30
+    const icfDrywallY = icfStartY
+    const icfEpsIntY = icfStartY + drywallThickness * scale
+    const icfConcreteY = icfEpsIntY + epsThickness * scale
+    const icfEpsExtY = icfConcreteY + concreteThickness * scale
+    const icfCladdingY = icfEpsExtY + epsThickness * scale
+
+    const icfLayers = [
+      { name: '1/2" drywall', midY: icfDrywallY + drywallThickness * scale / 2 },
+      { name: `${icfFormThickness}" EPS (interior)`, midY: icfEpsIntY + epsThickness * scale / 2 },
+      { name: '8" concrete', midY: icfConcreteY + concreteThickness * scale / 2 },
+      { name: `${icfFormThickness}" EPS (exterior)`, midY: icfEpsExtY + epsThickness * scale / 2 },
+      { name: '1/2" cladding', midY: icfCladdingY + claddingThickness * scale / 2 },
+    ]
+
+    // Deterministic speckle positions for concrete
+    const concreteSpeckles = Array.from({ length: 40 }).map((_, i) => ({
+      x: ((i * 17 + 7) % 100) / 100,
+      y: ((i * 31 + 13) % 100) / 100
+    }))
+
+    return (
+      <div className="wall-section" style={{ width: '100%', overflowX: 'auto' }}>
+        <svg
+          width="100%"
+          viewBox={`0 0 ${icfSvgWidth} ${icfSvgHeight}`}
+          preserveAspectRatio="xMidYMid meet"
+          style={{ background: '#fff', border: '1px solid #e5e7eb', borderRadius: '8px', maxHeight: '250px' }}
+        >
+          <text x={icfSvgWidth / 2} y="18" textAnchor="middle" fontSize="11" fill="#6b7280" fontWeight="500">
+            INTERIOR
+          </text>
+
+          <g transform="translate(20, 0)">
+            {/* Drywall */}
+            <rect x={0} y={icfDrywallY} width={icfWallWidthPx}
+              height={drywallThickness * scale} fill={colors.drywall} stroke="#9ca3af" strokeWidth="1" />
+
+            {/* EPS interior */}
+            <rect x={0} y={icfEpsIntY} width={icfWallWidthPx}
+              height={epsThickness * scale} fill="#fce7f3" stroke="#db2777" strokeWidth="1" />
+            {generateContInsPattern(0, icfWallWidthPx, icfEpsIntY, epsThickness * scale)}
+
+            {/* Concrete core */}
+            <rect x={0} y={icfConcreteY} width={icfWallWidthPx}
+              height={concreteThickness * scale} fill="#6b7280" stroke="#374151" strokeWidth="1" />
+            {/* Aggregate speckle pattern — deterministic */}
+            {concreteSpeckles.map((sp, i) => (
+              <circle
+                key={`speckle-${i}`}
+                cx={sp.x * icfWallWidthPx}
+                cy={icfConcreteY + sp.y * concreteThickness * scale}
+                r={1.5}
+                fill="#9ca3af"
+                opacity={0.5}
+              />
+            ))}
+
+            {/* EPS exterior */}
+            <rect x={0} y={icfEpsExtY} width={icfWallWidthPx}
+              height={epsThickness * scale} fill="#fce7f3" stroke="#db2777" strokeWidth="1" />
+            {generateContInsPattern(0, icfWallWidthPx, icfEpsExtY, epsThickness * scale)}
+
+            {/* Cladding */}
+            <rect x={0} y={icfCladdingY} width={icfWallWidthPx}
+              height={claddingThickness * scale} fill={colors.cladding} stroke="#4b5563" strokeWidth="1" />
+
+            {/* Labels */}
+            {(() => {
+              const labelSpacing = 14
+              const labelStartY = icfStartY + 5
+              const labelX = icfWallWidthPx + 80
+
+              return (
+                <g>
+                  {icfLayers.map((layer, i) => {
+                    const labelY = labelStartY + i * labelSpacing
+                    return (
+                      <g key={layer.name}>
+                        <path
+                          d={`M ${icfWallWidthPx + 20} ${layer.midY}
+                              L ${icfWallWidthPx + 40} ${layer.midY}
+                              L ${labelX - 5} ${labelY}`}
+                          fill="none" stroke="#9ca3af" strokeWidth="1" />
+                        <circle cx={icfWallWidthPx + 20} cy={layer.midY} r="2" fill="#9ca3af" />
+                        <text x={labelX} y={labelY + 3} fontSize="9" fill="#6b7280">{layer.name}</text>
+                      </g>
+                    )
+                  })}
+                </g>
+              )
+            })()}
+          </g>
+
+          <text x={icfSvgWidth / 2} y={icfCladdingY + claddingThickness * scale + 25}
+            textAnchor="middle" fontSize="11" fill="#6b7280" fontWeight="500">
+            EXTERIOR
+          </text>
+        </svg>
+      </div>
+    )
+  }
+
+  // --- Wood/Steel Framed Wall Rendering ---
+
+  // Dynamic dimensions
+  const studDepthInches = studDepth === '2x4' ? 3.5 : 5.5
+  const studWidthInches = 1.5
+
+  // Wall length to show (inches) - 1.5 stud bays (2.5 studs visible)
+  const wallLengthInches = studSpacing * 1.5
+
+  // Calculate total wall thickness
+  const totalThickness =
+    drywallThickness +
+    studDepthInches +
+    sheathingThickness +
+    continuousIns +
+    claddingThickness
+
+  // SVG dimensions
+  const wallWidthPx = wallLengthInches * scale
+  const svgWidth = wallWidthPx + 180
+  const svgHeight = totalThickness * scale + 80
+
+  // Calculate layer positions (y coordinates, top to bottom)
+  const startY = 30
+  const drywallY = startY
+  const studCavityY = startY + drywallThickness * scale
+  const sheathingY = startY + (drywallThickness + studDepthInches) * scale
+  const contInsY = startY + (drywallThickness + studDepthInches + sheathingThickness) * scale
+  const claddingY = startY + (drywallThickness + studDepthInches + sheathingThickness + continuousIns) * scale
+
+  // Calculate stud positions
+  const numStuds = Math.ceil(wallLengthInches / studSpacing) + 1
+
   const contInsPatternId = 'continuous-insulation-pattern'
 
   return (
@@ -193,16 +289,13 @@ export default function WallSection({
       >
         {/* Pattern definitions */}
         <defs>
-          {/* Continuous insulation - staggered vertical dashes */}
           <pattern
             id={contInsPatternId}
             patternUnits="userSpaceOnUse"
             width="8"
             height="10"
           >
-            {/* Row 1 - line at 1/4 position */}
             <line x1="2" y1="0" x2="2" y2="5" stroke="#db2777" strokeWidth="1" />
-            {/* Row 2 - line at 3/4 position (offset by half width) */}
             <line x1="6" y1="5" x2="6" y2="10" stroke="#db2777" strokeWidth="1" />
           </pattern>
         </defs>
@@ -215,24 +308,16 @@ export default function WallSection({
         <g transform="translate(20, 0)">
           {/* 1. Drywall layer */}
           <rect
-            x={0}
-            y={drywallY}
-            width={wallWidthPx}
+            x={0} y={drywallY} width={wallWidthPx}
             height={drywallThickness * scale}
-            fill={colors.drywall}
-            stroke="#9ca3af"
-            strokeWidth="1"
+            fill={colors.drywall} stroke="#9ca3af" strokeWidth="1"
           />
 
           {/* 2. Stud cavity background */}
           <rect
-            x={0}
-            y={studCavityY}
-            width={wallWidthPx}
+            x={0} y={studCavityY} width={wallWidthPx}
             height={studDepthInches * scale}
-            fill={colors.cavity}
-            stroke="#9ca3af"
-            strokeWidth="1"
+            fill={colors.cavity} stroke="#9ca3af" strokeWidth="1"
           />
 
           {/* Cavity insulation pattern between studs */}
@@ -248,7 +333,7 @@ export default function WallSection({
             )
           })}
 
-          {/* Studs with X pattern */}
+          {/* Studs — wood or steel */}
           {Array.from({ length: numStuds }).map((_, i) => {
             const studX = i * studSpacing * scale
             const studW = studWidthInches * scale
@@ -257,85 +342,81 @@ export default function WallSection({
             const actualW = Math.min(studW, wallWidthPx - studX)
             return (
               <g key={`stud-${i}`}>
-                {/* Stud rectangle */}
-                <rect
-                  x={studX}
-                  y={studCavityY}
-                  width={actualW}
-                  height={studH}
-                  fill={colors.stud}
-                  stroke="#333"
-                  strokeWidth="1"
-                />
-                {/* X pattern for wood - only if full stud visible */}
-                {actualW >= studW - 1 && (
+                {/* Wood stud: solid rectangle + X pattern */}
+                {wallType === 'wood' && (
                   <>
-                    <line
-                      x1={studX + 1}
-                      y1={studCavityY + 1}
-                      x2={studX + studW - 1}
-                      y2={studCavityY + studH - 1}
-                      stroke="#333"
-                      strokeWidth="1"
+                    <rect
+                      x={studX} y={studCavityY} width={actualW} height={studH}
+                      fill={colors.stud} stroke="#333" strokeWidth="1"
                     />
-                    <line
-                      x1={studX + studW - 1}
-                      y1={studCavityY + 1}
-                      x2={studX + 1}
-                      y2={studCavityY + studH - 1}
-                      stroke="#333"
-                      strokeWidth="1"
-                    />
+                    {actualW >= studW - 1 && (
+                      <>
+                        <line
+                          x1={studX + 1} y1={studCavityY + 1}
+                          x2={studX + studW - 1} y2={studCavityY + studH - 1}
+                          stroke="#333" strokeWidth="1"
+                        />
+                        <line
+                          x1={studX + studW - 1} y1={studCavityY + 1}
+                          x2={studX + 1} y2={studCavityY + studH - 1}
+                          stroke="#333" strokeWidth="1"
+                        />
+                      </>
+                    )}
                   </>
                 )}
+
+                {/* Steel stud: C-channel (top flange, bottom flange, web) */}
+                {wallType === 'steel' && actualW >= studW - 1 && (() => {
+                  const flangeW = studW
+                  const webThickness = 1.5
+                  const flangeThickness = 1.5
+                  return (
+                    <>
+                      {/* Top flange */}
+                      <rect x={studX} y={studCavityY} width={flangeW} height={flangeThickness}
+                        fill={colors.steelStud} stroke="#475569" strokeWidth="0.5" />
+                      {/* Bottom flange */}
+                      <rect x={studX} y={studCavityY + studH - flangeThickness} width={flangeW} height={flangeThickness}
+                        fill={colors.steelStud} stroke="#475569" strokeWidth="0.5" />
+                      {/* Web (left edge) */}
+                      <rect x={studX} y={studCavityY} width={webThickness} height={studH}
+                        fill={colors.steelStud} stroke="#475569" strokeWidth="0.5" />
+                    </>
+                  )
+                })()}
               </g>
             )
           })}
 
           {/* 3. Sheathing layer */}
           <rect
-            x={0}
-            y={sheathingY}
-            width={wallWidthPx}
+            x={0} y={sheathingY} width={wallWidthPx}
             height={sheathingThickness * scale}
-            fill={colors.sheathing}
-            stroke="#6b7280"
-            strokeWidth="1"
+            fill={colors.sheathing} stroke="#6b7280" strokeWidth="1"
           />
 
           {/* 4. Continuous insulation (if any) */}
           {continuousIns > 0 && (
             <g>
-              {/* Background */}
               <rect
-                x={0}
-                y={contInsY}
-                width={wallWidthPx}
+                x={0} y={contInsY} width={wallWidthPx}
                 height={continuousIns * scale}
-                fill="#fce7f3"
-                stroke="#db2777"
-                strokeWidth="1"
+                fill="#fce7f3" stroke="#db2777" strokeWidth="1"
               />
-              {/* Staggered line pattern */}
               {generateContInsPattern(0, wallWidthPx, contInsY, continuousIns * scale)}
             </g>
           )}
 
           {/* 5. Cladding layer */}
           <rect
-            x={0}
-            y={claddingY}
-            width={wallWidthPx}
+            x={0} y={claddingY} width={wallWidthPx}
             height={claddingThickness * scale}
-            fill={colors.cladding}
-            stroke="#4b5563"
-            strokeWidth="1"
+            fill={colors.cladding} stroke="#4b5563" strokeWidth="1"
           />
 
-          {/* Dimension labels on the right side - offset with leader lines */}
+          {/* Dimension labels on the right side */}
           {(() => {
-            // Calculate layer midpoints for leader line targets
-            // Use user's selections for labels when available
             const cavityLabel = cavityInsLabel || `${studDepth} stud`
             const contInsDisplayLabel = continuousInsLabel && continuousInsLabel !== 'None'
               ? continuousInsLabel
@@ -349,10 +430,9 @@ export default function WallSection({
               { name: '½" cladding', midY: claddingY + claddingThickness * scale / 2 },
             ]
 
-            // Fixed label spacing to prevent overlap
             const labelSpacing = 14
             const labelStartY = startY + 5
-            const labelX = wallWidthPx + 80 // offset labels further right
+            const labelX = wallWidthPx + 80
 
             return (
               <g>
@@ -362,18 +442,13 @@ export default function WallSection({
 
                   return (
                     <g key={layer.name}>
-                      {/* Leader line: horizontal from wall edge, then angled to label */}
                       <path
                         d={`M ${wallWidthPx + 20} ${layerMidY}
                             L ${wallWidthPx + 40} ${layerMidY}
                             L ${labelX - 5} ${labelY}`}
-                        fill="none"
-                        stroke="#9ca3af"
-                        strokeWidth="1"
+                        fill="none" stroke="#9ca3af" strokeWidth="1"
                       />
-                      {/* Small dot at layer */}
                       <circle cx={wallWidthPx + 20} cy={layerMidY} r="2" fill="#9ca3af" />
-                      {/* Label text */}
                       <text x={labelX} y={labelY + 3} fontSize="9" fill="#6b7280">{layer.name}</text>
                     </g>
                   )
