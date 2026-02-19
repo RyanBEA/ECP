@@ -376,6 +376,20 @@ h1, h2, h3, h4, h5, h6 {
   border-left: 3px solid var(--gray-400);
 }
 
+.wall-selectors-group {
+  margin-bottom: 1rem;
+}
+
+.wall-selectors-group-label {
+  display: block;
+  font-size: 0.7rem;
+  font-weight: 700;
+  color: var(--gray-500);
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+  margin-bottom: 0.25rem;
+}
+
 .wall-selectors {
   display: grid;
   grid-template-columns: repeat(auto-fit, minmax(140px, 1fr));
