@@ -1,9 +1,14 @@
 import React, { useState } from 'react'
 import {
   categories,
+  wallTypes,
   studSpacingOptions,
-  cavityInsulationOptions,
-  continuousInsulationOptions,
+  cavityMaterials,
+  cavityTypes,
+  continuousInsTypes,
+  continuousInsThicknesses,
+  icfFormOptions,
+  framedWallRsi,
   calculateWallRsi,
   getWallPoints
 } from '../data/ecpData'
@@ -12,56 +17,79 @@ import WallSection from './WallSection'
 
 const wallCategory = categories.find(c => c.id === 'aboveGroundWalls')
 
-// Helper to extract stud depth from cavity insulation label (e.g., "2x6 R20" -> "2x6")
-const getStudDepth = (cavityIns) => {
-  if (!cavityIns) return '2x6'
-  return cavityIns.startsWith('2x4') ? '2x4' : '2x6'
+// Extract stud depth from cavity type label (e.g., "2x6 R20" -> "2x6")
+const getStudDepth = (cavityType) => {
+  if (!cavityType) return '2x6'
+  return cavityType.startsWith('2x4') ? '2x4' : '2x6'
 }
 
-// Helper to extract stud spacing as number (e.g., '16"' -> 16)
+// Extract stud spacing as number (e.g., '16"' -> 16)
 const getStudSpacingNum = (studSpacing) => {
   if (!studSpacing) return 16
   return parseInt(studSpacing.replace('"', ''), 10)
 }
 
-// Helper to extract continuous insulation thickness (e.g., '1" XPS' -> 1, '1.5" XPS' -> 1.5, 'None' -> 0)
-const getContinuousInsThickness = (continuousIns) => {
-  if (!continuousIns || continuousIns === 'None') return 0
-  const match = continuousIns.match(/^([\d.]+)"/)
-  return match ? parseFloat(match[1]) : 0
+// Get continuous insulation thickness in inches from thickness label
+const getContInsThicknessNum = (thickness) => {
+  if (!thickness || thickness === 'None') return 0
+  // Handle fractions: '1-1/2"' -> 1.5, '2-1/2"' -> 2.5
+  const cleaned = thickness.replace('"', '')
+  if (cleaned.includes('-')) {
+    const [whole, frac] = cleaned.split('-')
+    const [num, den] = frac.split('/')
+    return parseInt(whole) + parseInt(num) / parseInt(den)
+  }
+  return parseFloat(cleaned)
+}
+
+// Get available cavity types for current selection (filters by lookup table)
+const getAvailableCavityTypes = (wallType, studSpacing, cavityMaterial) => {
+  if (!wallType || wallType === 'icf' || !studSpacing || !cavityMaterial) return cavityTypes
+  const lookup = framedWallRsi[wallType]?.[studSpacing]?.[cavityMaterial]
+  if (!lookup) return []
+  return cavityTypes.filter(ct => lookup[ct] != null)
 }
 
 export default function WallBuilder({ selection, onSelect }) {
-  const [mode, setMode] = useState('builder') // 'simple' or 'builder'
+  const [mode, setMode] = useState('builder')
 
-  const { studSpacing, cavityIns, continuousIns, simpleIndex } = selection || {}
+  const {
+    wallType, studSpacing, cavityMaterial, cavityType,
+    contInsType, contInsThickness, icfFormThickness, simpleIndex
+  } = selection || {}
 
-  const rsi = calculateWallRsi(studSpacing, cavityIns, continuousIns)
+  const rsi = calculateWallRsi(selection || {})
   const builderPoints = getWallPoints(rsi)
 
-  // Points from simple selection
   const simplePoints = simpleIndex !== undefined && simpleIndex !== null
     ? wallCategory.options[simpleIndex].points
     : 0
 
   const handleModeChange = (newMode) => {
     setMode(newMode)
-    onSelect({}) // Clear selection when switching modes
+    onSelect({})
   }
 
-  const handleBuilderChange = (field, value) => {
+  const handleFieldChange = (field, value) => {
+    if (field === 'wallType') {
+      // Wall type change clears everything
+      onSelect({ wallType: value || undefined })
+      return
+    }
     onSelect({
       ...selection,
-      simpleIndex: undefined, // Clear simple selection
+      simpleIndex: undefined,
       [field]: value || undefined
     })
   }
 
   const handleSimpleSelect = (index) => {
-    onSelect({
-      simpleIndex: index
-    })
+    onSelect({ simpleIndex: index })
   }
+
+  const isFramedWall = wallType === 'wood' || wallType === 'steel'
+  const isIcf = wallType === 'icf'
+  const availableCavityTypes = getAvailableCavityTypes(wallType, studSpacing, cavityMaterial)
 
   return (
     <div className="category-card wall-builder">
@@ -117,56 +145,135 @@ export default function WallBuilder({ selection, onSelect }) {
       ) : (
         <>
           <p className="category-description">
-            Build your wall assembly by selecting stud spacing, cavity insulation, and continuous insulation
-          </p>
-          <p className="wall-builder-disclaimer">
-            Assumes 1/2" drywall, 7/16" OSB sheathing, and vinyl cladding.
+            Build your wall assembly to calculate effective RSI and points
           </p>
 
+          {/* Wall Type Selector — always visible */}
           <div className="wall-selectors">
             <div className="wall-selector">
-              <label htmlFor="studSpacing">Stud Spacing</label>
+              <label htmlFor="wallType">Wall Type</label>
               <select
-                id="studSpacing"
-                value={studSpacing || ''}
-                onChange={e => handleBuilderChange('studSpacing', e.target.value)}
+                id="wallType"
+                value={wallType || ''}
+                onChange={e => handleFieldChange('wallType', e.target.value)}
               >
                 <option value="">Select...</option>
-                {studSpacingOptions.map(opt => (
-                  <option key={opt.label} value={opt.label}>{opt.label} o.c.</option>
-                ))}
-              </select>
-            </div>
-
-            <div className="wall-selector">
-              <label htmlFor="cavityIns">Cavity Insulation</label>
-              <select
-                id="cavityIns"
-                value={cavityIns || ''}
-                onChange={e => handleBuilderChange('cavityIns', e.target.value)}
-              >
-                <option value="">Select...</option>
-                {cavityInsulationOptions.map(opt => (
-                  <option key={opt.label} value={opt.label}>{opt.label}</option>
-                ))}
-              </select>
-            </div>
-
-            <div className="wall-selector">
-              <label htmlFor="continuousIns">Continuous Insulation</label>
-              <select
-                id="continuousIns"
-                value={continuousIns || ''}
-                onChange={e => handleBuilderChange('continuousIns', e.target.value)}
-              >
-                <option value="">Select...</option>
-                {continuousInsulationOptions.map(opt => (
-                  <option key={opt.label} value={opt.label}>{opt.label}</option>
+                {wallTypes.map(wt => (
+                  <option key={wt.id} value={wt.id}>{wt.label}</option>
                 ))}
               </select>
             </div>
           </div>
 
+          {/* Wood/Steel framing fields */}
+          {isFramedWall && (
+            <>
+              <p className="wall-builder-disclaimer">
+                Assumes 1/2" drywall, 7/16" OSB sheathing, and vinyl cladding.
+              </p>
+
+              <div className="wall-selectors-group">
+                <label className="wall-selectors-group-label">Framing</label>
+                <div className="wall-selectors">
+                  <div className="wall-selector">
+                    <label htmlFor="studSpacing">Stud Spacing</label>
+                    <select
+                      id="studSpacing"
+                      value={studSpacing || ''}
+                      onChange={e => handleFieldChange('studSpacing', e.target.value)}
+                    >
+                      <option value="">Select...</option>
+                      {studSpacingOptions.map(opt => (
+                        <option key={opt.label} value={opt.label}>{opt.label} o.c.</option>
+                      ))}
+                    </select>
+                  </div>
+
+                  <div className="wall-selector">
+                    <label htmlFor="cavityMaterial">Cavity Insulation</label>
+                    <select
+                      id="cavityMaterial"
+                      value={cavityMaterial || ''}
+                      onChange={e => handleFieldChange('cavityMaterial', e.target.value)}
+                    >
+                      <option value="">Select...</option>
+                      {cavityMaterials.map(mat => (
+                        <option key={mat} value={mat}>{mat}</option>
+                      ))}
+                    </select>
+                  </div>
+
+                  <div className="wall-selector">
+                    <label htmlFor="cavityType">Cavity Size</label>
+                    <select
+                      id="cavityType"
+                      value={cavityType || ''}
+                      onChange={e => handleFieldChange('cavityType', e.target.value)}
+                    >
+                      <option value="">Select...</option>
+                      {availableCavityTypes.map(ct => (
+                        <option key={ct} value={ct}>{ct}</option>
+                      ))}
+                    </select>
+                  </div>
+                </div>
+              </div>
+
+              <div className="wall-selectors-group">
+                <label className="wall-selectors-group-label">Continuous Insulation</label>
+                <div className="wall-selectors">
+                  <div className="wall-selector">
+                    <label htmlFor="contInsType">Type</label>
+                    <select
+                      id="contInsType"
+                      value={contInsType || ''}
+                      onChange={e => handleFieldChange('contInsType', e.target.value)}
+                    >
+                      <option value="">Select...</option>
+                      {continuousInsTypes.map(t => (
+                        <option key={t} value={t}>{t}</option>
+                      ))}
+                    </select>
+                  </div>
+
+                  <div className="wall-selector">
+                    <label htmlFor="contInsThickness">Thickness</label>
+                    <select
+                      id="contInsThickness"
+                      value={contInsThickness || ''}
+                      onChange={e => handleFieldChange('contInsThickness', e.target.value)}
+                    >
+                      <option value="">Select...</option>
+                      {continuousInsThicknesses.map(th => (
+                        <option key={th} value={th}>{th}</option>
+                      ))}
+                    </select>
+                  </div>
+                </div>
+              </div>
+            </>
+          )}
+
+          {/* ICF field */}
+          {isIcf && (
+            <div className="wall-selectors">
+              <div className="wall-selector">
+                <label htmlFor="icfFormThickness">EPS Form Thickness (per side)</label>
+                <select
+                  id="icfFormThickness"
+                  value={icfFormThickness || ''}
+                  onChange={e => handleFieldChange('icfFormThickness', e.target.value)}
+                >
+                  <option value="">Select...</option>
+                  {icfFormOptions.map(opt => (
+                    <option key={opt} value={opt}>{opt}</option>
+                  ))}
+                </select>
+              </div>
+            </div>
+          )}
+
+          {/* Results */}
           <div className="wall-result">
             {rsi ? (
               <>
@@ -179,25 +286,47 @@ export default function WallBuilder({ selection, onSelect }) {
                   <span className="value">+{builderPoints}</span>
                 </div>
               </>
+            ) : wallType ? (
+              <div className="wall-prompt">
+                {rsi === null && wallType && (isFramedWall
+                  ? (studSpacing && cavityMaterial && cavityType
+                    ? 'No data for this combination'
+                    : 'Select framing options to calculate RSI')
+                  : 'Select form thickness to calculate RSI'
+                )}
+              </div>
             ) : (
               <div className="wall-prompt">
-                Select all three options to calculate RSI and points
+                Select a wall type to begin
               </div>
             )}
           </div>
 
-          {/* Wall Section Diagram */}
-          <div className="wall-section-container">
-            <WallSection
-              studDepth={getStudDepth(cavityIns)}
-              studSpacing={getStudSpacingNum(studSpacing)}
-              continuousIns={getContinuousInsThickness(continuousIns)}
-              cavityInsLabel={cavityIns}
-              continuousInsLabel={continuousIns}
-            />
-          </div>
+          {/* Wall Section Diagram — only when we have enough info */}
+          {isFramedWall && studSpacing && cavityType && (
+            <div className="wall-section-container">
+              <WallSection
+                wallType={wallType}
+                studDepth={getStudDepth(cavityType)}
+                studSpacing={getStudSpacingNum(studSpacing)}
+                continuousIns={getContInsThicknessNum(contInsThickness)}
+                cavityInsLabel={cavityType}
+                continuousInsLabel={contInsType && contInsThickness !== 'None' ? `${contInsThickness} ${contInsType}` : null}
+              />
+            </div>
+          )}
 
-          {(studSpacing || cavityIns || continuousIns) && (
+          {isIcf && icfFormThickness && (
+            <div className="wall-section-container">
+              <WallSection
+                wallType="icf"
+                icfFormThickness={getContInsThicknessNum(icfFormThickness)}
+              />
+            </div>
+          )}
+
+          {/* Clear button */}
+          {wallType && (
             <button
               className="option-button clear-button"
               onClick={() => onSelect({})}
