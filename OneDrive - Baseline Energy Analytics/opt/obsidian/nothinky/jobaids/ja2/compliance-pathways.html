@@ -1,0 +1,1078 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Energy Compliance Pathways - Part 9 Buildings</title>
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Archivo+Black&family=Source+Sans+3:wght@300;400;600;700;900&display=swap" rel="stylesheet">
+    <style>
+        @page {
+            size: letter;
+            margin: 0;
+        }
+
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        :root {
+            --green-dark: #2d3b28;
+            --green-primary: #0d9448;
+            --green-light: #a8d14f;
+            --green-pale: #e8f5e0;
+            --purple: #5b1fd6;
+            --purple-light: #8257e6;
+            --purple-pale: #f3effe;
+            --grey-dark: #3d3d3d;
+            --grey: #6b7280;
+            --grey-light: #e5e7eb;
+            --black: #1a1a1a;
+            --white: #ffffff;
+        }
+
+        html, body {
+            margin: 0;
+            padding: 0;
+            background: white;
+        }
+
+        body {
+            font-family: 'Source Sans 3', sans-serif;
+            font-weight: 400;
+            font-size: 9pt;
+            line-height: 1.4;
+            color: var(--black);
+        }
+
+        .page {
+            width: 8.5in;
+            height: 11in;
+            overflow: hidden;
+            page-break-after: always;
+            position: relative;
+            background: var(--white);
+        }
+
+        .page:last-child {
+            page-break-after: avoid;
+        }
+
+        /* ========================================
+           PAGE 1: THE TWO PATHWAYS
+           ======================================== */
+
+        /* Top bar - minimal, just date */
+        .topbar {
+            background: var(--green-dark);
+            color: var(--white);
+            padding: 6px 24px;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            font-size: 8pt;
+            font-weight: 600;
+            letter-spacing: 0.05em;
+        }
+
+        .topbar-date {
+            text-transform: uppercase;
+        }
+
+        /* Hero section with giant number */
+        .hero {
+            display: grid;
+            grid-template-columns: 140px 1fr;
+            min-height: 120px;
+            border-bottom: 4px solid var(--green-dark);
+        }
+
+        .hero-number {
+            background: var(--green-dark);
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            position: relative;
+        }
+
+        .hero-number span {
+            font-family: 'Archivo Black', sans-serif;
+            font-size: 96pt;
+            color: var(--green-light);
+            line-height: 1;
+        }
+
+        .hero-content {
+            padding: 16px 24px;
+            display: flex;
+            flex-direction: column;
+            justify-content: center;
+        }
+
+        .hero-title {
+            font-family: 'Archivo Black', sans-serif;
+            font-size: 32pt;
+            color: var(--green-dark);
+            line-height: 1;
+            letter-spacing: -0.02em;
+            margin-bottom: 4px;
+        }
+
+        .hero-subtitle {
+            font-size: 11pt;
+            color: var(--grey);
+            font-weight: 400;
+        }
+
+        .hero-tagline {
+            margin-top: 8px;
+            font-size: 10pt;
+            color: var(--black);
+            font-weight: 600;
+            padding: 6px 12px;
+            background: var(--green-pale);
+            display: inline-block;
+            border-left: 4px solid var(--green-primary);
+        }
+
+        /* Three-column comparison - VERTICAL strips */
+        .comparison-strips {
+            display: grid;
+            grid-template-columns: 1fr 1fr 1fr;
+            height: 195px;
+            border-bottom: 3px solid var(--grey-light);
+        }
+
+        .strip {
+            padding: 12px 14px;
+            display: flex;
+            flex-direction: column;
+            position: relative;
+        }
+
+        .strip-traditional {
+            background: repeating-linear-gradient(
+                -45deg,
+                #f5f5f5,
+                #f5f5f5 8px,
+                #ececec 8px,
+                #ececec 16px
+            );
+            color: var(--grey);
+        }
+
+        .strip-traditional::after {
+            content: '';
+            position: absolute;
+            top: 0;
+            left: 0;
+            right: 0;
+            bottom: 0;
+            background: linear-gradient(135deg, transparent 45%, rgba(150,150,150,0.3) 50%, transparent 55%);
+            pointer-events: none;
+        }
+
+        .strip-prescriptive {
+            background: linear-gradient(180deg, var(--green-pale) 0%, #f0fae8 100%);
+            border-left: 5px solid var(--green-primary);
+            border-right: 1px solid var(--green-primary);
+        }
+
+        .strip-performance {
+            background: linear-gradient(180deg, var(--purple-pale) 0%, #f8f4ff 100%);
+            border-left: 5px solid var(--purple);
+        }
+
+        .strip-label {
+            font-size: 7pt;
+            font-weight: 700;
+            text-transform: uppercase;
+            letter-spacing: 0.1em;
+            margin-bottom: 4px;
+        }
+
+        .strip-traditional .strip-label { color: #999; }
+        .strip-prescriptive .strip-label { color: var(--green-primary); }
+        .strip-performance .strip-label { color: var(--purple); }
+
+        .strip-title {
+            font-family: 'Archivo Black', sans-serif;
+            font-size: 13pt;
+            line-height: 1.1;
+            margin-bottom: 6px;
+        }
+
+        .strip-traditional .strip-title { color: #888; }
+        .strip-prescriptive .strip-title { color: var(--green-dark); }
+        .strip-performance .strip-title { color: var(--purple); }
+
+        .strip-badge {
+            display: inline-block;
+            font-size: 6.5pt;
+            font-weight: 700;
+            padding: 2px 8px;
+            border-radius: 2px;
+            text-transform: uppercase;
+            letter-spacing: 0.05em;
+            margin-bottom: 8px;
+            width: fit-content;
+        }
+
+        .badge-inactive {
+            background: transparent;
+            border: 1.5px dashed #aaa;
+            color: #888;
+        }
+
+        .badge-new {
+            background: var(--green-dark);
+            color: var(--white);
+        }
+
+        .badge-new-purple {
+            background: var(--purple);
+            color: var(--white);
+        }
+
+        .strip-content {
+            font-size: 8pt;
+            line-height: 1.45;
+            flex: 1;
+        }
+
+        .strip-content strong {
+            font-weight: 700;
+        }
+
+        .strip-prescriptive .strip-content strong { color: var(--green-dark); }
+        .strip-performance .strip-content strong { color: var(--purple); }
+
+        .strip-footer {
+            margin-top: auto;
+            padding-top: 6px;
+            border-top: 1px solid rgba(0,0,0,0.1);
+            font-size: 7.5pt;
+            font-weight: 600;
+        }
+
+        /* Decision flowchart section */
+        .flowchart-section {
+            padding: 10px 20px 8px 20px;
+        }
+
+        .section-label {
+            font-size: 8pt;
+            font-weight: 700;
+            text-transform: uppercase;
+            letter-spacing: 0.15em;
+            color: var(--grey);
+            margin-bottom: 8px;
+            display: flex;
+            align-items: center;
+            gap: 10px;
+        }
+
+        .section-label::after {
+            content: '';
+            flex: 1;
+            height: 1px;
+            background: var(--grey-light);
+        }
+
+        .flowchart-container {
+            display: flex;
+            gap: 16px;
+            align-items: flex-start;
+        }
+
+        .flowchart-questions {
+            flex: 1;
+            display: flex;
+            flex-direction: column;
+            gap: 6px;
+        }
+
+        .flow-question {
+            display: grid;
+            grid-template-columns: 20px 1fr auto;
+            align-items: center;
+            gap: 8px;
+            padding: 7px 10px;
+            background: #fafafa;
+            border: 1.5px solid var(--grey-light);
+            border-radius: 4px;
+            font-size: 8.5pt;
+        }
+
+        .flow-num {
+            width: 20px;
+            height: 20px;
+            background: var(--grey-light);
+            border-radius: 50%;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 8pt;
+            font-weight: 700;
+            color: var(--grey-dark);
+        }
+
+        .flow-text {
+            font-weight: 500;
+        }
+
+        .flow-yes {
+            font-size: 7pt;
+            font-weight: 700;
+            text-transform: uppercase;
+            padding: 3px 8px;
+            border-radius: 10px;
+            background: var(--purple);
+            color: var(--white);
+        }
+
+        .flow-arrow {
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            color: var(--grey);
+            font-size: 8pt;
+            padding: 2px 0;
+        }
+
+        .flow-result {
+            display: flex;
+            gap: 8px;
+            margin-top: 4px;
+        }
+
+        .flow-result-box {
+            flex: 1;
+            padding: 10px 12px;
+            text-align: center;
+            font-family: 'Archivo Black', sans-serif;
+            font-size: 11pt;
+            border-radius: 4px;
+        }
+
+        .flow-result-prescriptive {
+            background: var(--green-primary);
+            color: var(--white);
+            border: 3px solid var(--green-dark);
+        }
+
+        .flow-result-performance {
+            background: var(--purple);
+            color: var(--white);
+        }
+
+        .flow-result-label {
+            font-size: 6.5pt;
+            font-weight: 700;
+            text-transform: uppercase;
+            letter-spacing: 0.1em;
+            opacity: 0.8;
+            margin-bottom: 2px;
+            font-family: 'Source Sans 3', sans-serif;
+        }
+
+        .flowchart-legend {
+            width: 140px;
+            padding: 10px;
+            background: #f8f8f8;
+            border: 1.5px solid var(--grey-light);
+            border-radius: 4px;
+            font-size: 7.5pt;
+        }
+
+        .legend-title {
+            font-weight: 700;
+            font-size: 8pt;
+            margin-bottom: 6px;
+            color: var(--grey-dark);
+        }
+
+        .legend-item {
+            display: flex;
+            align-items: center;
+            gap: 6px;
+            margin-bottom: 4px;
+        }
+
+        .legend-color {
+            width: 12px;
+            height: 12px;
+            border-radius: 2px;
+        }
+
+        .legend-prescriptive {
+            background: var(--green-primary);
+            border: 2px solid var(--green-dark);
+        }
+        .legend-performance { background: var(--purple); }
+
+        /* Key message bar */
+        .key-message {
+            background: var(--green-dark);
+            color: var(--white);
+            padding: 8px 20px;
+            font-size: 9pt;
+            text-align: center;
+        }
+
+        .key-message strong {
+            color: var(--green-light);
+        }
+
+        /* Footer */
+        .footer {
+            position: absolute;
+            bottom: 0;
+            left: 0;
+            right: 0;
+            background: var(--green-dark);
+            padding: 8px 20px;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            font-size: 7pt;
+            color: var(--white);
+        }
+
+        .footer::before {
+            content: '';
+            position: absolute;
+            top: 0;
+            left: 0;
+            right: 0;
+            height: 3px;
+            background: var(--green-light);
+        }
+
+        /* ========================================
+           PAGE 2: HOW TO COMPLY
+           ======================================== */
+
+        .page2-header {
+            background: var(--green-dark);
+            padding: 12px 24px;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+        }
+
+        .page2-title {
+            font-family: 'Archivo Black', sans-serif;
+            font-size: 24pt;
+            color: var(--white);
+        }
+
+        .page2-meta {
+            text-align: right;
+            color: var(--white);
+            font-size: 8pt;
+        }
+
+        .page2-meta-label {
+            font-size: 7pt;
+            opacity: 0.7;
+            text-transform: uppercase;
+            letter-spacing: 0.1em;
+        }
+
+        /* Documentation section */
+        .doc-section {
+            padding: 12px 20px;
+        }
+
+        .pathway-columns {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 16px;
+            margin-bottom: 12px;
+        }
+
+        .pathway-card {
+            border-radius: 0;
+            overflow: hidden;
+        }
+
+        .pathway-card-header {
+            padding: 10px 14px;
+            color: var(--white);
+            position: relative;
+        }
+
+        .pathway-card-header.green {
+            background: var(--green-primary);
+        }
+
+        .pathway-card-header.green::before {
+            content: '';
+            position: absolute;
+            bottom: 0;
+            left: 0;
+            right: 0;
+            height: 5px;
+            background: repeating-linear-gradient(
+                90deg,
+                var(--green-dark) 0px,
+                var(--green-dark) 6px,
+                transparent 6px,
+                transparent 12px
+            );
+        }
+
+        .pathway-card-header.purple {
+            background: var(--purple);
+        }
+
+        .pathway-card-header.purple::before {
+            content: '';
+            position: absolute;
+            bottom: 0;
+            left: 0;
+            right: 0;
+            height: 5px;
+            background: repeating-linear-gradient(
+                0deg,
+                var(--purple-light) 0px,
+                var(--purple-light) 3px,
+                transparent 3px,
+                transparent 6px
+            );
+        }
+
+        .pathway-card-title {
+            font-family: 'Archivo Black', sans-serif;
+            font-size: 14pt;
+        }
+
+        .pathway-card-body {
+            padding: 12px 14px;
+            border: 2px solid;
+            border-top: none;
+            font-size: 8.5pt;
+            line-height: 1.5;
+        }
+
+        .pathway-card-body.green {
+            border-color: var(--green-primary);
+            background: linear-gradient(180deg, var(--green-pale) 0%, var(--white) 50%);
+        }
+
+        .pathway-card-body.purple {
+            border-color: var(--purple);
+            background: linear-gradient(180deg, var(--purple-pale) 0%, var(--white) 50%);
+        }
+
+        .doc-stage {
+            margin-bottom: 10px;
+        }
+
+        .doc-stage-title {
+            font-weight: 700;
+            font-size: 9pt;
+            margin-bottom: 4px;
+        }
+
+        .pathway-card-body.green .doc-stage-title { color: var(--green-dark); }
+        .pathway-card-body.purple .doc-stage-title { color: var(--purple); }
+
+        .doc-list {
+            margin: 0;
+            padding-left: 16px;
+        }
+
+        .doc-list li {
+            margin-bottom: 3px;
+        }
+
+        .qr-block {
+            display: flex;
+            align-items: center;
+            gap: 10px;
+            margin-top: 10px;
+            padding-top: 10px;
+            border-top: 2px dashed var(--grey-light);
+        }
+
+        .qr-code {
+            width: 50px;
+            height: 50px;
+            border: 2px solid var(--grey-light);
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 7pt;
+            color: #999;
+            background: #f9f9f9;
+        }
+
+        .qr-text {
+            font-size: 8pt;
+            line-height: 1.4;
+        }
+
+        .qr-text strong {
+            display: block;
+            margin-bottom: 2px;
+        }
+
+        /* Role sections */
+        .role-section {
+            padding: 0 20px 10px 20px;
+        }
+
+        .role-header {
+            font-size: 8pt;
+            font-weight: 700;
+            text-transform: uppercase;
+            letter-spacing: 0.15em;
+            color: var(--grey);
+            margin-bottom: 8px;
+            display: flex;
+            align-items: center;
+            gap: 10px;
+        }
+
+        .role-header::after {
+            content: '';
+            flex: 1;
+            height: 1px;
+            background: var(--grey-light);
+        }
+
+        .role-grid {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 12px;
+        }
+
+        .role-card {
+            padding: 10px 12px;
+            border: 2px solid;
+            position: relative;
+        }
+
+        .role-card.green {
+            border-color: var(--green-primary);
+            background: var(--green-pale);
+        }
+
+        .role-card.purple {
+            border-color: var(--purple);
+            background: var(--purple-pale);
+        }
+
+        .role-card.green::before {
+            content: '';
+            position: absolute;
+            left: 0;
+            top: 0;
+            bottom: 0;
+            width: 6px;
+            background: repeating-linear-gradient(
+                45deg,
+                var(--green-primary) 0px,
+                var(--green-primary) 4px,
+                var(--green-dark) 4px,
+                var(--green-dark) 8px
+            );
+        }
+
+        .role-card.purple::before {
+            content: '';
+            position: absolute;
+            left: 0;
+            top: 0;
+            bottom: 0;
+            width: 6px;
+            background: repeating-linear-gradient(
+                0deg,
+                var(--purple) 0px,
+                var(--purple) 4px,
+                var(--purple-light) 4px,
+                var(--purple-light) 8px
+            );
+        }
+
+        .role-title {
+            font-family: 'Archivo Black', sans-serif;
+            font-size: 11pt;
+            margin-bottom: 6px;
+            padding-left: 10px;
+        }
+
+        .role-card.green .role-title { color: var(--green-dark); }
+        .role-card.purple .role-title { color: var(--purple); }
+
+        .role-content {
+            font-size: 8pt;
+            line-height: 1.5;
+            padding-left: 10px;
+        }
+
+        .role-content ul {
+            margin: 0;
+            padding-left: 14px;
+        }
+
+        .role-content li {
+            margin-bottom: 2px;
+        }
+
+        /* Energy Advisor special section */
+        .ea-section {
+            padding: 0 20px 8px 20px;
+        }
+
+        .ea-card {
+            background: var(--purple-pale);
+            border: 2px solid var(--purple);
+            padding: 10px 14px;
+            display: grid;
+            grid-template-columns: 1fr 90px;
+            gap: 14px;
+        }
+
+        .ea-header {
+            font-family: 'Archivo Black', sans-serif;
+            font-size: 11pt;
+            color: var(--purple);
+            margin-bottom: 6px;
+        }
+
+        .ea-badge {
+            display: inline-block;
+            font-size: 6.5pt;
+            font-weight: 700;
+            padding: 2px 8px;
+            background: var(--purple);
+            color: var(--white);
+            text-transform: uppercase;
+            letter-spacing: 0.05em;
+            margin-left: 8px;
+            vertical-align: middle;
+        }
+
+        .ea-content {
+            font-size: 8pt;
+            line-height: 1.5;
+        }
+
+        .ea-content p {
+            margin-bottom: 6px;
+        }
+
+        .ea-content ul {
+            margin: 0 0 6px 0;
+            padding-left: 16px;
+        }
+
+        .ea-content li {
+            margin-bottom: 2px;
+        }
+
+        .ea-content strong {
+            color: var(--purple);
+        }
+
+        .ea-qr {
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+            padding-left: 14px;
+            border-left: 2px solid var(--purple);
+        }
+
+        .ea-qr .qr-code {
+            width: 65px;
+            height: 65px;
+            border-color: var(--purple);
+        }
+
+        .ea-qr-label {
+            font-size: 7pt;
+            font-weight: 700;
+            text-align: center;
+            margin-top: 4px;
+            color: var(--purple);
+        }
+
+        @media print {
+            .page {
+                width: 8.5in;
+                height: 11in;
+            }
+        }
+    </style>
+</head>
+<body>
+
+<!-- ============================================
+     PAGE 1: THE TWO PATHWAYS
+     ============================================ -->
+<div class="page">
+    <div class="topbar">
+        <span>Nova Scotia Building Code — Part 9 Residential</span>
+        <span class="topbar-date">Effective April 1, 2026</span>
+    </div>
+
+    <div class="hero">
+        <div class="hero-number">
+            <span>2</span>
+        </div>
+        <div class="hero-content">
+            <div class="hero-title">PATHWAYS</div>
+            <div class="hero-subtitle">to Tier 2 Energy Compliance</div>
+            <div class="hero-tagline">Both achieve the same performance outcome. Choose based on your business.</div>
+        </div>
+    </div>
+
+    <div class="comparison-strips">
+        <div class="strip strip-traditional">
+            <div class="strip-label">Legacy Approach</div>
+            <div class="strip-title">Traditional Prescriptive</div>
+            <div class="strip-badge badge-inactive">No Longer Available</div>
+            <div class="strip-content">
+                Meet specific minimum requirements for each building component. No flexibility — each component must meet its specific minimum.
+            </div>
+            <div class="strip-footer">
+                No third party required
+            </div>
+        </div>
+
+        <div class="strip strip-prescriptive">
+            <div class="strip-label">New Option</div>
+            <div class="strip-title">Tiered Prescriptive</div>
+            <div class="strip-badge badge-new">New for 2026</div>
+            <div class="strip-content">
+                Meet baseline code, then earn <strong>10 points</strong> by selecting upgrades from a menu. Some flexibility — pick from set options, predictable choices.
+            </div>
+            <div class="strip-footer">
+                <strong>No third party required</strong>
+            </div>
+        </div>
+
+        <div class="strip strip-performance">
+            <div class="strip-label">New Option</div>
+            <div class="strip-title">Tiered Performance</div>
+            <div class="strip-badge badge-new-purple">New for 2026</div>
+            <div class="strip-content">
+                Use <strong>energy modeling</strong> software to prove your design meets targets. Full flexibility — trade off between any components.
+            </div>
+            <div class="strip-footer">
+                <strong>Energy Advisor</strong> required
+            </div>
+        </div>
+    </div>
+
+    <div class="flowchart-section">
+        <div class="section-label">Which Path Is Right for You?</div>
+
+        <div class="flowchart-container">
+            <div class="flowchart-questions">
+                <div class="flow-question">
+                    <div class="flow-num">1</div>
+                    <div class="flow-text">Does the homeowner want an EnerGuide label, or is one required?</div>
+                    <div class="flow-yes">Yes &rarr;</div>
+                </div>
+                <div class="flow-question">
+                    <div class="flow-num">2</div>
+                    <div class="flow-text">Do you build custom or unconventional designs?</div>
+                    <div class="flow-yes">Yes &rarr;</div>
+                </div>
+                <div class="flow-question">
+                    <div class="flow-num">3</div>
+                    <div class="flow-text">Do you want modeling to optimize costs or energy use?</div>
+                    <div class="flow-yes">Yes &rarr;</div>
+                </div>
+                <div class="flow-question">
+                    <div class="flow-num">4</div>
+                    <div class="flow-text">Do you want blower door feedback for continuous improvement?</div>
+                    <div class="flow-yes">Yes &rarr;</div>
+                </div>
+                <div class="flow-question">
+                    <div class="flow-num">5</div>
+                    <div class="flow-text">Do your designs NOT fit standard prescriptive options?</div>
+                    <div class="flow-yes">Yes &rarr;</div>
+                </div>
+
+                <div class="flow-result">
+                    <div class="flow-result-box flow-result-prescriptive">
+                        <div class="flow-result-label">All "No" Answers</div>
+                        Tiered Prescriptive
+                    </div>
+                    <div class="flow-result-box flow-result-performance">
+                        <div class="flow-result-label">Any "Yes" Answer</div>
+                        Tiered Performance
+                    </div>
+                </div>
+            </div>
+
+            <div class="flowchart-legend">
+                <div class="legend-title">Path Indicators</div>
+                <div class="legend-item">
+                    <div class="legend-color legend-prescriptive"></div>
+                    <span>Prescriptive</span>
+                </div>
+                <div class="legend-item">
+                    <div class="legend-color legend-performance"></div>
+                    <span>Performance</span>
+                </div>
+                <div style="margin-top: 10px; font-size: 7pt; line-height: 1.4; color: var(--grey);">
+                    <strong>Either way:</strong> Both paths result in a home that meets Tier 2 energy requirements.
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <div class="key-message">
+        <strong>Traditional prescriptive compliance is no longer available in Nova Scotia.</strong> All new Part 9 buildings must use one of the tiered approaches.
+    </div>
+
+    <div class="footer">
+        <div>Version 0.5</div>
+        <div>Contact: email@buildingtozero.ca</div>
+        <div>Page 1 of 2</div>
+    </div>
+</div>
+
+<!-- ============================================
+     PAGE 2: HOW TO COMPLY
+     ============================================ -->
+<div class="page">
+    <div class="page2-header">
+        <div class="page2-title">HOW TO COMPLY</div>
+        <div class="page2-meta">
+            <div class="page2-meta-label">Documentation & Roles</div>
+            <div>Energy Compliance Pathways</div>
+        </div>
+    </div>
+
+    <div class="doc-section">
+        <div class="section-label">Documentation Requirements by Path</div>
+
+        <div class="pathway-columns">
+            <div class="pathway-card">
+                <div class="pathway-card-header green">
+                    <div class="pathway-card-title">Tiered Prescriptive</div>
+                </div>
+                <div class="pathway-card-body green">
+                    <div class="doc-stage">
+                        <div class="doc-stage-title">Before Construction</div>
+                        <p>Determine how you will achieve 10 points before breaking ground.</p>
+                    </div>
+                    <div class="doc-stage">
+                        <div class="doc-stage-title">Required Documentation</div>
+                        <ul class="doc-list">
+                            <li>Wall detail drawings (at building permit)</li>
+                            <li>Building plans showing volume (at building permit)</li>
+                            <li>Window schedule with specs (at framing)</li>
+                            <li>Equipment submittals for HRV/water heater (at final)</li>
+                            <li>EnerGuide report if claiming airtightness (at final)</li>
+                        </ul>
+                    </div>
+                    <p style="font-weight: 600; margin-top: 8px;">No third-party reports required unless claiming airtightness points.</p>
+
+                    <div class="qr-block">
+                        <div class="qr-code">[QR]</div>
+                        <div class="qr-text">
+                            <strong>See Job Aid #1:</strong>
+                            Prescriptive Tier 2 Compliance — Points tables and documentation checklist
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <div class="pathway-card">
+                <div class="pathway-card-header purple">
+                    <div class="pathway-card-title">Tiered Performance</div>
+                </div>
+                <div class="pathway-card-body purple">
+                    <div class="doc-stage">
+                        <div class="doc-stage-title">Pre-Construction</div>
+                        <ul class="doc-list">
+                            <li>Engage an Energy Advisor to model your design</li>
+                            <li>Review model results to confirm compliance</li>
+                            <li>Submit EnerGuide pre-construction report to AHJ</li>
+                        </ul>
+                    </div>
+                    <div class="doc-stage">
+                        <div class="doc-stage-title">At Project Completion</div>
+                        <ul class="doc-list">
+                            <li>Blower door test (site assessment)</li>
+                            <li>Final EnerGuide Full House Report</li>
+                            <li>Performance Path Completion Form</li>
+                        </ul>
+                    </div>
+                    <p style="font-weight: 600; margin-top: 8px; color: var(--purple);">Energy Advisor involvement is required throughout.</p>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <div class="role-section">
+        <div class="role-header">Building Official Role</div>
+        <p style="font-size: 8.5pt; margin-bottom: 10px;">Energy compliance fits within your existing inspection process. The key is knowing which path the builder is using.</p>
+
+        <div class="role-grid">
+            <div class="role-card green">
+                <div class="role-title">For Prescriptive</div>
+                <div class="role-content">
+                    <ul>
+                        <li>Collect documentation at each inspection stage</li>
+                        <li>Verify installed upgrades match documented point selections</li>
+                        <li>No third-party reports to review (unless airtightness claimed)</li>
+                    </ul>
+                </div>
+            </div>
+            <div class="role-card purple">
+                <div class="role-title">For Performance</div>
+                <div class="role-content">
+                    <ul>
+                        <li>Receive the Performance Path Completion Form at project end</li>
+                        <li>You do <strong>not</strong> review the energy model itself</li>
+                        <li>Confirm form is complete and signed by certified EA</li>
+                    </ul>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <div class="ea-section">
+        <div class="ea-card">
+            <div>
+                <div class="ea-header">Energy Advisor Role <span class="ea-badge">Performance Path Only</span></div>
+                <div class="ea-content">
+                    <p>Energy Advisors are energy efficiency and modeling experts. They:</p>
+                    <ul>
+                        <li>Create HOT2000 models to demonstrate compliance</li>
+                        <li>Help identify changes if initial design doesn't pass</li>
+                        <li>Conduct blower door tests and produce EnerGuide reports</li>
+                        <li>Complete the Performance Path Completion Form</li>
+                    </ul>
+                    <p><strong>Engage your Energy Advisor early</strong> — ideally at design stage. Early modeling catches issues before they become expensive mid-build changes.</p>
+                </div>
+            </div>
+            <div class="ea-qr">
+                <div class="qr-code">[QR]</div>
+                <div class="ea-qr-label">Find an Energy<br>Advisor</div>
+            </div>
+        </div>
+    </div>
+
+    <div class="footer">
+        <div>Version 0.5 | Effective April 1, 2026</div>
+        <div>Contact: email@buildingtozero.ca</div>
+        <div>Page 2 of 2</div>
+    </div>
+</div>
+
+</body>
+</html>

@@ -1,0 +1,1153 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Tier 2 Prescriptive Path - Nova Scotia</title>
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Archivo+Black&family=Source+Sans+3:wght@300;400;600;700;900&display=swap" rel="stylesheet">
+    <style>
+        @page {
+            size: letter;
+            margin: 0;
+        }
+
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        :root {
+            --green-dark: #2d3b28;
+            --green-primary: #0d9448;
+            --green-light: #a8d14f;
+            --green-pale: #e8f5e0;
+            --purple: #5b1fd6;
+            --purple-light: #8257e6;
+            --purple-pale: #f3effe;
+            --grey-dark: #3d3d3d;
+            --grey: #6b7280;
+            --grey-light: #e5e7eb;
+            --black: #1a1a1a;
+            --white: #ffffff;
+        }
+
+        html, body {
+            margin: 0;
+            padding: 0;
+            background: white;
+        }
+
+        body {
+            font-family: 'Source Sans 3', sans-serif;
+            font-weight: 400;
+            font-size: 9pt;
+            line-height: 1.4;
+            color: var(--black);
+        }
+
+        .page {
+            width: 8.5in;
+            height: 11in;
+            overflow: hidden;
+            page-break-after: always;
+            position: relative;
+            background: var(--white);
+        }
+
+        .page:last-child {
+            page-break-after: avoid;
+        }
+
+        /* ========================================
+           PAGE 1: THE 10 POINTS
+           ======================================== */
+
+        .topbar {
+            background: var(--green-dark);
+            color: var(--white);
+            padding: 6px 24px;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            font-size: 8pt;
+            font-weight: 600;
+            letter-spacing: 0.05em;
+        }
+
+        /* Hero with massive 10 */
+        .hero-split {
+            display: grid;
+            grid-template-columns: 200px 1fr;
+            border-bottom: 5px solid var(--green-light);
+        }
+
+        .hero-badge {
+            background: var(--green-dark);
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+            padding: 14px;
+            position: relative;
+        }
+
+        .hero-badge::after {
+            content: '';
+            position: absolute;
+            right: 0;
+            top: 20%;
+            bottom: 20%;
+            width: 5px;
+            background: repeating-linear-gradient(
+                0deg,
+                var(--green-light) 0px,
+                var(--green-light) 8px,
+                transparent 8px,
+                transparent 16px
+            );
+        }
+
+        .badge-number {
+            font-family: 'Archivo Black', sans-serif;
+            font-size: 100pt;
+            color: var(--green-light);
+            line-height: 0.85;
+            letter-spacing: -0.05em;
+        }
+
+        .badge-label {
+            font-family: 'Archivo Black', sans-serif;
+            font-size: 16pt;
+            color: var(--white);
+            text-transform: uppercase;
+            letter-spacing: 0.1em;
+            margin-top: -5px;
+        }
+
+        .badge-sublabel {
+            font-size: 9pt;
+            color: var(--green-light);
+            opacity: 0.9;
+            margin-top: 4px;
+        }
+
+        .hero-content {
+            padding: 12px 24px;
+            display: flex;
+            flex-direction: column;
+            justify-content: center;
+        }
+
+        .hero-title {
+            font-family: 'Archivo Black', sans-serif;
+            font-size: 28pt;
+            color: var(--green-dark);
+            line-height: 1;
+            margin-bottom: 6px;
+        }
+
+        .hero-subtitle {
+            font-size: 11pt;
+            color: var(--grey);
+            margin-bottom: 10px;
+        }
+
+        .hero-tagline {
+            font-size: 10pt;
+            color: var(--black);
+            font-weight: 600;
+            padding: 8px 12px;
+            background: var(--green-pale);
+            border-left: 4px solid var(--green-primary);
+        }
+
+        /* Section labels */
+        .section-label {
+            font-size: 8pt;
+            font-weight: 700;
+            text-transform: uppercase;
+            letter-spacing: 0.15em;
+            color: var(--grey);
+            margin-bottom: 8px;
+            display: flex;
+            align-items: center;
+            gap: 10px;
+        }
+
+        .section-label::after {
+            content: '';
+            flex: 1;
+            height: 1px;
+            background: var(--grey-light);
+        }
+
+        /* Three options */
+        .options-section {
+            padding: 8px 20px;
+        }
+
+        .options-grid {
+            display: grid;
+            grid-template-columns: repeat(3, 1fr);
+            gap: 10px;
+        }
+
+        .option-card {
+            border: 2px solid var(--green-primary);
+            overflow: hidden;
+            background: var(--white);
+        }
+
+        .option-header {
+            background: var(--green-primary);
+            color: var(--white);
+            padding: 8px 10px;
+            position: relative;
+        }
+
+        .option-header::after {
+            content: '';
+            position: absolute;
+            bottom: 0;
+            left: 0;
+            right: 0;
+            height: 4px;
+            background: var(--green-dark);
+        }
+
+        .option-num {
+            font-family: 'Archivo Black', sans-serif;
+            font-size: 9pt;
+            opacity: 0.7;
+        }
+
+        .option-title {
+            font-family: 'Archivo Black', sans-serif;
+            font-size: 11pt;
+            line-height: 1.1;
+        }
+
+        .option-tagline {
+            font-size: 7pt;
+            opacity: 0.85;
+            font-style: italic;
+        }
+
+        .option-body {
+            padding: 8px 10px;
+            font-size: 7.5pt;
+            background: linear-gradient(180deg, var(--green-pale) 0%, var(--white) 100%);
+        }
+
+        .option-row {
+            display: flex;
+            justify-content: space-between;
+            padding: 4px 0;
+            border-bottom: 1px solid var(--grey-light);
+        }
+
+        .option-row:last-child {
+            border-bottom: none;
+        }
+
+        .option-item {
+            flex: 1;
+        }
+
+        .option-pts {
+            font-family: 'Archivo Black', sans-serif;
+            font-size: 10pt;
+            color: var(--green-dark);
+            min-width: 40px;
+            text-align: right;
+        }
+
+        .option-total {
+            background: var(--green-dark);
+            color: var(--white);
+            padding: 6px 10px;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            font-weight: 700;
+        }
+
+        .option-total-pts {
+            font-family: 'Archivo Black', sans-serif;
+            font-size: 14pt;
+            color: var(--green-light);
+        }
+
+        /* Wall assembly showcase */
+        .wall-showcase {
+            padding: 6px 20px;
+        }
+
+        .wall-card {
+            display: grid;
+            grid-template-columns: 55% 1fr;
+            gap: 16px;
+            background: #f8f8f8;
+            border: 2px solid var(--grey-light);
+            padding: 8px 16px;
+            align-items: center;
+        }
+
+        .wall-diagram {
+            display: flex;
+            align-items: center;
+            justify-content: center;
+        }
+
+        .wall-diagram img {
+            width: 100%;
+            height: auto;
+            max-height: 115px;
+        }
+
+        .wall-info {
+            display: flex;
+            flex-direction: column;
+            justify-content: center;
+        }
+
+        .wall-title {
+            font-family: 'Archivo Black', sans-serif;
+            font-size: 10pt;
+            color: var(--green-dark);
+            margin-bottom: 6px;
+        }
+
+        .wall-specs {
+            display: grid;
+            grid-template-columns: repeat(3, 1fr);
+            gap: 6px;
+        }
+
+        .spec-item {
+            text-align: center;
+            padding: 5px;
+            background: var(--white);
+            border: 1px solid var(--grey-light);
+        }
+
+        .spec-value {
+            font-family: 'Archivo Black', sans-serif;
+            font-size: 13pt;
+            color: var(--green-dark);
+        }
+
+        .spec-label {
+            font-size: 6pt;
+            text-transform: uppercase;
+            letter-spacing: 0.05em;
+            color: var(--grey);
+        }
+
+        .wall-note {
+            font-size: 6.5pt;
+            color: var(--grey);
+            font-style: italic;
+            margin-top: 4px;
+        }
+
+        /* Documentation checklist */
+        .docs-section {
+            padding: 6px 20px;
+        }
+
+        .docs-grid {
+            display: grid;
+            grid-template-columns: 180px 1fr;
+            gap: 12px;
+        }
+
+        .docs-callout {
+            background: var(--purple-pale);
+            border: 2px solid var(--purple);
+            padding: 10px 12px;
+            font-size: 8pt;
+            line-height: 1.5;
+        }
+
+        .docs-callout-title {
+            font-family: 'Archivo Black', sans-serif;
+            font-size: 10pt;
+            color: var(--purple);
+            margin-bottom: 4px;
+        }
+
+        .docs-table {
+            width: 100%;
+            border-collapse: collapse;
+            font-size: 7.5pt;
+        }
+
+        .docs-table th {
+            background: var(--green-dark);
+            color: var(--white);
+            padding: 5px 8px;
+            text-align: left;
+            font-size: 7pt;
+            text-transform: uppercase;
+            letter-spacing: 0.05em;
+        }
+
+        .docs-table td {
+            padding: 4px 8px;
+            border-bottom: 1px solid var(--grey-light);
+        }
+
+        .docs-table tr:nth-child(even) td {
+            background: #f9f9f9;
+        }
+
+        /* Airtightness section */
+        .air-section {
+            padding: 6px 20px;
+        }
+
+        .air-grid {
+            display: grid;
+            grid-template-columns: 1fr 200px;
+            gap: 12px;
+        }
+
+        .air-table-wrap {
+            display: flex;
+            flex-direction: column;
+        }
+
+        .air-header {
+            font-family: 'Archivo Black', sans-serif;
+            font-size: 10pt;
+            color: var(--green-dark);
+            margin-bottom: 4px;
+        }
+
+        .air-subheader {
+            font-size: 7.5pt;
+            color: var(--grey);
+            margin-bottom: 6px;
+        }
+
+        .air-table {
+            width: 100%;
+            border-collapse: collapse;
+            font-size: 7.5pt;
+        }
+
+        .air-table th {
+            background: var(--grey-light);
+            padding: 4px 6px;
+            text-align: left;
+            font-size: 7pt;
+            text-transform: uppercase;
+        }
+
+        .air-table td {
+            padding: 3px 6px;
+            border-bottom: 1px solid var(--grey-light);
+        }
+
+        .air-table .pts {
+            font-weight: 700;
+            color: var(--green-dark);
+        }
+
+        .air-callout {
+            background: var(--purple-pale);
+            border: 2px solid var(--purple);
+            padding: 10px 12px;
+            font-size: 8pt;
+        }
+
+        .air-callout-title {
+            font-family: 'Archivo Black', sans-serif;
+            font-size: 10pt;
+            color: var(--purple);
+            margin-bottom: 4px;
+        }
+
+        .air-callout-value {
+            font-family: 'Archivo Black', sans-serif;
+            font-size: 24pt;
+            color: var(--purple);
+            line-height: 1;
+        }
+
+        .air-callout-label {
+            font-size: 8pt;
+            color: var(--grey-dark);
+            margin-top: 4px;
+        }
+
+        /* Footer */
+        .footer {
+            position: absolute;
+            bottom: 0;
+            left: 0;
+            right: 0;
+            background: var(--green-dark);
+            padding: 8px 20px;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            font-size: 7pt;
+            color: var(--white);
+        }
+
+        .footer::before {
+            content: '';
+            position: absolute;
+            top: 0;
+            left: 0;
+            right: 0;
+            height: 3px;
+            background: var(--green-light);
+        }
+
+        /* ========================================
+           PAGE 2: REFERENCE TABLES
+           ======================================== */
+
+        .page2-header {
+            background: var(--green-dark);
+            padding: 10px 24px;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+        }
+
+        .page2-title {
+            font-family: 'Archivo Black', sans-serif;
+            font-size: 20pt;
+            color: var(--white);
+        }
+
+        .page2-meta {
+            text-align: right;
+            color: var(--white);
+            font-size: 8pt;
+        }
+
+        /* QR + Understanding section */
+        .understand-section {
+            display: grid;
+            grid-template-columns: 150px 1fr;
+            gap: 16px;
+            padding: 10px 20px;
+            border-bottom: 2px solid var(--grey-light);
+            align-items: end;
+        }
+
+        .qr-block {
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+        }
+
+        .qr-code {
+            width: 140px;
+            height: 140px;
+            border: 2px solid var(--grey-light);
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 7pt;
+            color: #999;
+            background: #f9f9f9;
+        }
+
+        .qr-code img {
+            width: 100%;
+            height: 100%;
+            object-fit: contain;
+        }
+
+        .qr-label {
+            font-size: 6.5pt;
+            text-align: center;
+            margin-top: 4px;
+            color: var(--grey);
+            font-weight: 600;
+        }
+
+        .understand-content h3 {
+            font-family: 'Archivo Black', sans-serif;
+            font-size: 11pt;
+            color: var(--green-dark);
+            margin-bottom: 4px;
+        }
+
+        .understand-content p {
+            font-size: 8pt;
+            line-height: 1.5;
+            margin-bottom: 6px;
+        }
+
+        .understand-content strong {
+            color: var(--green-dark);
+        }
+
+        .example-table {
+            width: 100%;
+            border-collapse: collapse;
+            font-size: 7.5pt;
+            margin-top: 4px;
+        }
+
+        .example-table th {
+            background: var(--grey-light);
+            padding: 4px 6px;
+            text-align: left;
+            font-size: 7pt;
+        }
+
+        .example-table td {
+            padding: 3px 6px;
+            border-bottom: 1px solid var(--grey-light);
+        }
+
+        /* Point tables grid */
+        .tables-section {
+            padding: 8px 20px 6px 20px;
+        }
+
+        .tables-intro {
+            font-size: 8pt;
+            margin-bottom: 8px;
+            color: var(--grey-dark);
+        }
+
+        .tables-grid {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 12px;
+        }
+
+        .point-table-card {
+            border: 2px solid var(--green-primary);
+            overflow: hidden;
+        }
+
+        .point-table-header {
+            background: var(--green-primary);
+            color: var(--white);
+            padding: 6px 10px;
+            font-family: 'Archivo Black', sans-serif;
+            font-size: 9pt;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+        }
+
+        .point-table-ref {
+            font-family: 'Source Sans 3', sans-serif;
+            font-size: 7pt;
+            opacity: 0.8;
+        }
+
+        .point-table {
+            width: 100%;
+            border-collapse: collapse;
+            font-size: 7pt;
+        }
+
+        .point-table th {
+            background: var(--green-pale);
+            padding: 3px 6px;
+            text-align: left;
+            font-size: 6.5pt;
+            text-transform: uppercase;
+            border-bottom: 1px solid var(--green-primary);
+        }
+
+        .point-table td {
+            padding: 2px 6px;
+            border-bottom: 1px solid var(--grey-light);
+        }
+
+        .point-table tr:nth-child(even) td {
+            background: #fafafa;
+        }
+
+        /* Visual bar for points */
+        .pts-cell {
+            position: relative;
+            width: 60px;
+        }
+
+        .pts-bar {
+            position: absolute;
+            left: 0;
+            top: 2px;
+            bottom: 2px;
+            background: linear-gradient(90deg, rgba(13, 148, 72, 0.15) 0%, rgba(168, 209, 79, 0.25) 100%);
+            border-right: 2px solid var(--green-primary);
+        }
+
+        .pts-value {
+            position: relative;
+            font-weight: 700;
+            color: var(--green-dark);
+            z-index: 1;
+        }
+
+        .pts-cell-lg .pts-value {
+            font-size: 9pt;
+        }
+
+        /* Quick reference callout */
+        .ref-callout {
+            margin-top: 8px;
+            background: var(--purple-pale);
+            border: 2px solid var(--purple);
+            padding: 10px 12px;
+        }
+
+        .ref-callout-header {
+            font-family: 'Archivo Black', sans-serif;
+            font-size: 10pt;
+            color: var(--purple);
+            margin-bottom: 8px;
+        }
+
+        .ref-grid {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 12px;
+        }
+
+        .ref-block h4 {
+            font-size: 8pt;
+            font-weight: 700;
+            color: var(--purple);
+            margin-bottom: 4px;
+            text-transform: uppercase;
+            letter-spacing: 0.05em;
+        }
+
+        .ref-table {
+            width: 100%;
+            border-collapse: collapse;
+            font-size: 7pt;
+        }
+
+        .ref-table th {
+            background: rgba(91, 31, 214, 0.1);
+            padding: 3px 5px;
+            text-align: left;
+            font-size: 6.5pt;
+        }
+
+        .ref-table td {
+            padding: 2px 5px;
+            border-bottom: 1px solid rgba(91, 31, 214, 0.2);
+        }
+
+        .formula-box {
+            background: var(--white);
+            border: 1px solid var(--purple);
+            padding: 4px 8px;
+            font-family: 'Consolas', 'Monaco', monospace;
+            font-size: 8pt;
+            color: var(--purple);
+            display: inline-block;
+            margin-top: 4px;
+        }
+
+        .note {
+            font-size: 6.5pt;
+            color: var(--grey);
+            font-style: italic;
+            margin-top: 3px;
+        }
+
+        @media print {
+            .page {
+                width: 8.5in;
+                height: 11in;
+            }
+
+            .pts-bar {
+                -webkit-print-color-adjust: exact;
+                print-color-adjust: exact;
+            }
+        }
+    </style>
+</head>
+<body>
+
+<!-- ============================================
+     PAGE 1: THE 10 POINTS
+     ============================================ -->
+<div class="page">
+    <div class="topbar">
+        <span>Nova Scotia Building Code — Part 9 Residential</span>
+        <span>Effective April 1, 2026</span>
+    </div>
+
+    <div class="hero-split">
+        <div class="hero-badge">
+            <div class="badge-number">10</div>
+            <div class="badge-label">Points</div>
+            <div class="badge-sublabel">Required for Tier 2</div>
+        </div>
+        <div class="hero-content">
+            <div class="hero-title">PRESCRIPTIVE PATH</div>
+            <div class="hero-subtitle">Tiered Energy Compliance — Zone 6 Nova Scotia</div>
+            <div class="hero-tagline">Contractors are closer to Tier 2 than they realize. Many builders need just one or two upgrades.</div>
+        </div>
+    </div>
+
+    <div class="options-section">
+        <div class="section-label">Three Ways to Reach 10 Points</div>
+        <div class="options-grid">
+            <div class="option-card">
+                <div class="option-header">
+                    <div class="option-num">Option 1</div>
+                    <div class="option-title">One and Done</div>
+                    <div class="option-tagline">Fastest path</div>
+                </div>
+                <div class="option-body">
+                    <div class="option-row">
+                        <div class="option-item">2×6, 16" OC, R-20 batt + 2" polyiso</div>
+                        <div class="option-pts">10.6</div>
+                    </div>
+                </div>
+                <div class="option-total">
+                    <span>TOTAL</span>
+                    <span class="option-total-pts">10.6</span>
+                </div>
+            </div>
+
+            <div class="option-card">
+                <div class="option-header">
+                    <div class="option-num">Option 2</div>
+                    <div class="option-title">Walls + Equipment</div>
+                    <div class="option-tagline">Mixed approach</div>
+                </div>
+                <div class="option-body">
+                    <div class="option-row">
+                        <div class="option-item">2×6, 16" OC, R-20 batt + 1.5" XPS</div>
+                        <div class="option-pts">7.7</div>
+                    </div>
+                    <div class="option-row">
+                        <div class="option-item">Heat pump water heater</div>
+                        <div class="option-pts">3.8</div>
+                    </div>
+                </div>
+                <div class="option-total">
+                    <span>TOTAL</span>
+                    <span class="option-total-pts">11.5</span>
+                </div>
+            </div>
+
+            <div class="option-card">
+                <div class="option-header">
+                    <div class="option-num">Option 3</div>
+                    <div class="option-title">Envelope Focus</div>
+                    <div class="option-tagline">Building envelope</div>
+                </div>
+                <div class="option-body">
+                    <div class="option-row">
+                        <div class="option-item">2×6, 16" OC, R-20 batt + 1.5" EPS</div>
+                        <div class="option-pts">6.2</div>
+                    </div>
+                    <div class="option-row">
+                        <div class="option-item">Windows U &lt; 1.44</div>
+                        <div class="option-pts">1.6</div>
+                    </div>
+                    <div class="option-row">
+                        <div class="option-item">Airtightness &lt; 2.0 ACH</div>
+                        <div class="option-pts">3.5</div>
+                    </div>
+                </div>
+                <div class="option-total">
+                    <span>TOTAL</span>
+                    <span class="option-total-pts">11.3</span>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <div class="wall-showcase">
+        <div class="wall-card">
+            <div class="wall-diagram">
+                <img src="small.png" alt="Wall assembly diagram">
+            </div>
+            <div class="wall-info">
+                <div class="wall-title">Option 1 Assembly</div>
+                <div class="wall-specs">
+                    <div class="spec-item">
+                        <div class="spec-value">R-32</div>
+                        <div class="spec-label">Nominal</div>
+                    </div>
+                    <div class="spec-item">
+                        <div class="spec-value">R-26</div>
+                        <div class="spec-label">Effective</div>
+                    </div>
+                    <div class="spec-item">
+                        <div class="spec-value">10.6</div>
+                        <div class="spec-label">Points</div>
+                    </div>
+                </div>
+                <div class="wall-note">2×6 @ 16" OC + R-20 batt + 2" polyiso</div>
+            </div>
+        </div>
+    </div>
+
+    <div class="docs-section">
+        <div class="section-label">Documentation Checklist</div>
+        <div class="docs-grid">
+            <div class="docs-callout">
+                <div class="docs-callout-title">Plan Early</div>
+                Plan your points strategy at the permit stage. Some details, like wall assemblies, can't easily change once construction begins.
+            </div>
+            <table class="docs-table">
+                <tr>
+                    <th>Points Category</th>
+                    <th>Required Documentation</th>
+                    <th>Submit At</th>
+                </tr>
+                <tr>
+                    <td>Above-Ground Walls</td>
+                    <td>Wall detail drawing</td>
+                    <td>Building Permit</td>
+                </tr>
+                <tr>
+                    <td>Foundation Walls</td>
+                    <td>Wall detail drawing</td>
+                    <td>Building Permit</td>
+                </tr>
+                <tr>
+                    <td>Building Volume</td>
+                    <td>Building plans</td>
+                    <td>Building Permit</td>
+                </tr>
+                <tr>
+                    <td>Windows & Doors</td>
+                    <td>Window schedule with specs</td>
+                    <td>Framing Inspection</td>
+                </tr>
+                <tr>
+                    <td>Airtightness</td>
+                    <td>EnerGuide report</td>
+                    <td>Final Inspection</td>
+                </tr>
+                <tr>
+                    <td>HRV / ERV</td>
+                    <td>Equipment submittal sheet</td>
+                    <td>Final Inspection</td>
+                </tr>
+                <tr>
+                    <td>Water Heater</td>
+                    <td>Equipment submittal sheet</td>
+                    <td>Final Inspection</td>
+                </tr>
+            </table>
+        </div>
+    </div>
+
+    <div class="air-section">
+        <div class="section-label">Airtightness — High-Value Opportunity</div>
+        <div class="air-grid">
+            <div class="air-table-wrap">
+                <div class="air-header">ACH @ 50 Pa</div>
+                <div class="air-subheader">Air Changes per Hour at 50 Pascals (~20 km/h wind)</div>
+                <table class="air-table">
+                    <tr><th>ACH</th><th>What it means</th><th>Points</th></tr>
+                    <tr><td>2.5</td><td>Typical new (code min)</td><td class="pts">—</td></tr>
+                    <tr><td>2.0</td><td>Tighter than average</td><td class="pts">3.5</td></tr>
+                    <tr><td>1.5</td><td>Very tight</td><td class="pts">6.9</td></tr>
+                    <tr><td>1.0</td><td>Extremely tight</td><td class="pts">10.4</td></tr>
+                    <tr><td>0.6</td><td>Passive House level</td><td class="pts">13.3</td></tr>
+                </table>
+                <div class="note" style="margin-top: 6px;"><strong>When:</strong> After air sealing, windows/doors installed. <strong>Who:</strong> Certified energy advisor.</div>
+            </div>
+            <div class="air-callout">
+                <div class="air-callout-title">Max Points Available</div>
+                <div class="air-callout-value">13.3</div>
+                <div class="air-callout-label">Enough for Tier 2 on its own — but results depend on workmanship.</div>
+            </div>
+        </div>
+    </div>
+
+    <div class="footer">
+        <div>Version 0.5</div>
+        <div>BTZx/NSBOA — email@buildingtozero.ca</div>
+        <div>Page 1 of 2</div>
+    </div>
+</div>
+
+<!-- ============================================
+     PAGE 2: REFERENCE TABLES
+     ============================================ -->
+<div class="page">
+    <div class="page2-header">
+        <div class="page2-title">POINT TABLES</div>
+        <div class="page2-meta">
+            Reference Tables — Zone 6 Nova Scotia
+        </div>
+    </div>
+
+    <div class="understand-section">
+        <div class="qr-block">
+            <img src="QR.png" alt="QR Code" class="qr-code">
+            <div class="qr-label">Not sure what R-value<br>your wall is? Scan here.</div>
+        </div>
+        <div class="understand-content">
+            <h3>Understanding Wall Assemblies</h3>
+            <p>The R-value on insulation packaging is <strong>not</strong> your wall's effective R-value. Wood studs conduct heat faster than insulation, so the code's RSI values represent <em>whole-wall assembly</em> performance.</p>
+            <table class="example-table">
+                <tr><th>Assembly</th><th>Nominal</th><th>Effective</th></tr>
+                <tr><td>2×6 + R-20 batts + 1" XPS exterior</td><td>R-25</td><td>R-23</td></tr>
+                <tr><td>2×6 + R-22 batts + 1" polyiso exterior</td><td>R-28</td><td>R-25</td></tr>
+                <tr><td>2×6 + R-24 batts + 1.5" polyiso exterior</td><td>R-33</td><td>R-28</td></tr>
+            </table>
+            <div class="note">To hit higher targets: use higher-R batts AND/OR continuous exterior insulation.</div>
+        </div>
+    </div>
+
+    <div class="tables-section">
+        <div class="tables-intro">Different upgrades receive different <strong>energy conservation points (ECP)</strong>. Below are simplified versions of the 2020 National Building Code tables.</div>
+
+        <div class="tables-grid">
+            <!-- Above-Ground Walls -->
+            <div class="point-table-card">
+                <div class="point-table-header">
+                    Above-Ground Walls
+                    <span class="point-table-ref">Table 9.36.8.5</span>
+                </div>
+                <table class="point-table">
+                    <tr><th>RSI</th><th>R-value</th><th style="width:60px;">Points</th></tr>
+                    <tr><td>3.08</td><td>R-17</td><td class="pts-cell"><div class="pts-bar" style="width:12%;"></div><span class="pts-value">1.6</span></td></tr>
+                    <tr><td>3.69</td><td>R-21</td><td class="pts-cell"><div class="pts-bar" style="width:46%;"></div><span class="pts-value">6.2</span></td></tr>
+                    <tr><td>3.96</td><td>R-22</td><td class="pts-cell"><div class="pts-bar" style="width:57%;"></div><span class="pts-value">7.7</span></td></tr>
+                    <tr><td>4.29</td><td>R-24</td><td class="pts-cell"><div class="pts-bar" style="width:68%;"></div><span class="pts-value">9.2</span></td></tr>
+                    <tr><td>4.57</td><td>R-26</td><td class="pts-cell"><div class="pts-bar" style="width:78%;"></div><span class="pts-value">10.6</span></td></tr>
+                    <tr><td>5.01</td><td>R-28</td><td class="pts-cell"><div class="pts-bar" style="width:90%;"></div><span class="pts-value">12.2</span></td></tr>
+                    <tr><td>5.45</td><td>R-31</td><td class="pts-cell"><div class="pts-bar" style="width:100%;"></div><span class="pts-value">13.6</span></td></tr>
+                </table>
+                <div class="note" style="padding: 4px 6px;">Values are effective (whole-wall) R-value.</div>
+            </div>
+
+            <!-- Airtightness -->
+            <div class="point-table-card">
+                <div class="point-table-header">
+                    Airtightness
+                    <span class="point-table-ref">Table 9.36.8.8</span>
+                </div>
+                <table class="point-table">
+                    <tr><th>Level</th><th>Max ACH</th><th style="width:60px;">Points</th></tr>
+                    <tr><td>AL-1A</td><td>2.5</td><td class="pts-cell"><span class="pts-value">—</span></td></tr>
+                    <tr><td>AL-2A</td><td>2.0</td><td class="pts-cell"><div class="pts-bar" style="width:26%;"></div><span class="pts-value">3.5</span></td></tr>
+                    <tr><td>AL-3A</td><td>1.5</td><td class="pts-cell"><div class="pts-bar" style="width:52%;"></div><span class="pts-value">6.9</span></td></tr>
+                    <tr><td>AL-4A</td><td>1.0</td><td class="pts-cell"><div class="pts-bar" style="width:78%;"></div><span class="pts-value">10.4</span></td></tr>
+                    <tr><td>AL-5A</td><td>0.6</td><td class="pts-cell"><div class="pts-bar" style="width:100%;"></div><span class="pts-value">13.3</span></td></tr>
+                </table>
+                <div class="note" style="padding: 4px 6px;">Verified by blower door test.</div>
+            </div>
+
+            <!-- Windows & Doors -->
+            <div class="point-table-card">
+                <div class="point-table-header">
+                    Windows & Doors
+                    <span class="point-table-ref">Table 9.36.8.6</span>
+                </div>
+                <table class="point-table">
+                    <tr><th>Max U-value</th><th>Min ER</th><th style="width:60px;">Points</th></tr>
+                    <tr><td>1.44</td><td>29</td><td class="pts-cell"><div class="pts-bar" style="width:35%;"></div><span class="pts-value">1.6</span></td></tr>
+                    <tr><td>1.22</td><td>34</td><td class="pts-cell"><div class="pts-bar" style="width:100%;"></div><span class="pts-value">4.6</span></td></tr>
+                </table>
+                <div class="note" style="padding: 4px 6px;">ER per CSA A440.2. U: lower = better. ER: higher = better.</div>
+            </div>
+
+            <!-- HRV/Ventilation -->
+            <div class="point-table-card">
+                <div class="point-table-header">
+                    HRV / Ventilation
+                    <span class="point-table-ref">Table 9.36.8.9</span>
+                </div>
+                <table class="point-table">
+                    <tr><th>SRE Range</th><th style="width:60px;">Points</th></tr>
+                    <tr><td>60% to 64%</td><td class="pts-cell"><div class="pts-bar" style="width:20%;"></div><span class="pts-value">0.7</span></td></tr>
+                    <tr><td>65% to 74%</td><td class="pts-cell"><div class="pts-bar" style="width:63%;"></div><span class="pts-value">2.2</span></td></tr>
+                    <tr><td>75% to 83%</td><td class="pts-cell"><div class="pts-bar" style="width:100%;"></div><span class="pts-value">3.5</span></td></tr>
+                </table>
+                <div class="note" style="padding: 4px 6px;">SRE at 0°C. Ratings at hvi.org.</div>
+            </div>
+
+            <!-- Water Heating -->
+            <div class="point-table-card">
+                <div class="point-table-header">
+                    Water Heating Equipment
+                    <span class="point-table-ref">Table 9.36.8.10</span>
+                </div>
+                <table class="point-table">
+                    <tr><th>Equipment Type</th><th>Efficiency</th><th style="width:60px;">Points</th></tr>
+                    <tr><td>Gas/oil tankless condensing</td><td>UEF ≥ 0.92</td><td class="pts-cell"><div class="pts-bar" style="width:100%;"></div><span class="pts-value">4.9</span></td></tr>
+                    <tr><td>Gas/oil storage tank</td><td>UEF ≥ 0.83</td><td class="pts-cell"><div class="pts-bar" style="width:100%;"></div><span class="pts-value">4.9</span></td></tr>
+                    <tr><td>Heat pump water heater</td><td>EF ≥ 2.35</td><td class="pts-cell"><div class="pts-bar" style="width:78%;"></div><span class="pts-value">3.8</span></td></tr>
+                </table>
+                <div class="note" style="padding: 4px 6px;">UEF = Uniform Energy Factor. EF for heat pumps.</div>
+            </div>
+
+            <!-- Building Volume -->
+            <div class="point-table-card">
+                <div class="point-table-header">
+                    Building Volume
+                    <span class="point-table-ref">Table 9.36.8.11</span>
+                </div>
+                <table class="point-table">
+                    <tr><th>Volume (m³)</th><th>~Floor Area</th><th style="width:60px;">Points</th></tr>
+                    <tr><td>380 - 390</td><td>1,675 - 1,720 sf</td><td class="pts-cell"><div class="pts-bar" style="width:10%;"></div><span class="pts-value">1</span></td></tr>
+                    <tr><td>360 - 370</td><td>1,590 - 1,630 sf</td><td class="pts-cell"><div class="pts-bar" style="width:30%;"></div><span class="pts-value">3</span></td></tr>
+                    <tr><td>340 - 350</td><td>1,500 - 1,545 sf</td><td class="pts-cell"><div class="pts-bar" style="width:50%;"></div><span class="pts-value">5</span></td></tr>
+                    <tr><td>320 - 330</td><td>1,410 - 1,455 sf</td><td class="pts-cell"><div class="pts-bar" style="width:70%;"></div><span class="pts-value">7</span></td></tr>
+                    <tr><td>≤ 300</td><td>≤ 1,325 sf</td><td class="pts-cell"><div class="pts-bar" style="width:100%;"></div><span class="pts-value">10</span></td></tr>
+                </table>
+                <div class="note" style="padding: 4px 6px;">Area assumes 8' ceiling. Multi-unit: ≤230 m³ = 10 pts.</div>
+            </div>
+        </div>
+
+        <div class="ref-callout">
+            <div class="ref-callout-header">Quick Reference</div>
+            <div class="ref-grid">
+                <div class="ref-block">
+                    <h4>Unit Conversions</h4>
+                    <table class="ref-table">
+                        <tr><th>From</th><th>To</th><th>Multiply</th></tr>
+                        <tr><td>RSI</td><td>R-value</td><td>× 5.678</td></tr>
+                        <tr><td>R-value</td><td>RSI</td><td>× 0.176</td></tr>
+                        <tr><td>m³ (vol)</td><td>sq ft (8' ceil)</td><td>× 4.4</td></tr>
+                    </table>
+                    <div class="formula-box">R-value = RSI × 5.678</div>
+                </div>
+                <div class="ref-block">
+                    <h4>Common RSI → R-value</h4>
+                    <table class="ref-table">
+                        <tr><th>RSI</th><th>R-value</th><th>Typical Use</th></tr>
+                        <tr><td>2.11</td><td>R-12</td><td>2×4 wall cavity</td></tr>
+                        <tr><td>3.52</td><td>R-20</td><td>2×6 wall cavity</td></tr>
+                        <tr><td>4.23</td><td>R-24</td><td>High-density 2×6</td></tr>
+                        <tr><td>5.28</td><td>R-30</td><td>Ceiling insulation</td></tr>
+                    </table>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <div class="footer">
+        <div>Version 0.5 | Effective April 1, 2026</div>
+        <div>Source: National Building Code of Canada 2020, Section 9.36.8</div>
+        <div>Page 2 of 2</div>
+    </div>
+</div>
+
+</body>
+</html>
