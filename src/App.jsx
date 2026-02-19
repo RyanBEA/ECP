@@ -52,7 +52,7 @@ export default function App() {
 
   // Calculate wall points from wall selection (either simple or builder mode)
   const wallPoints = useMemo(() => {
-    const { studSpacing, cavityIns, continuousIns, simpleIndex } = wallSelection
+    const { simpleIndex } = wallSelection
 
     // Simple mode - direct option selection
     if (simpleIndex !== undefined && simpleIndex !== null) {
@@ -60,8 +60,8 @@ export default function App() {
       return wallCategory.options[simpleIndex].points
     }
 
-    // Builder mode - calculate from assembly
-    const rsi = calculateWallRsi(studSpacing, cavityIns, continuousIns)
+    // Builder mode - lookup from assembly
+    const rsi = calculateWallRsi(wallSelection)
     return getWallPoints(rsi)
   }, [wallSelection])
 
