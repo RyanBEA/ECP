@@ -197,15 +197,15 @@ Fiberglass Batt, Mineral Wool Batt, Loose Fill Cellulose, Dense Pack Cellulose, 
 
 Available cavity sizes depend on the insulation material:
 
-| Material | Cavity Types |
-|----------|-------------|
-| Fiberglass Batt | 2x4 R12, 2x4 R14, 2x6 R20, 2x6 R22, 2x6 R24 |
-| Mineral Wool Batt | 2x4 R14, 2x6 R22, 2x6 R24 |
-| Loose Fill Cellulose | 2x4, 2x6 |
-| Dense Pack Cellulose | 2x4, 2x6 |
-| Loose Fill Fiberglass | 2x4, 2x6 |
+| Material | Wood Cavity Types | Steel Cavity Types |
+|----------|-------------------|-------------------|
+| Fiberglass Batt | 2x4 R12, 2x4 R14, 2x6 R20, 2x6 R22, 2x6 R24 | 2x3-5/8 R12, 2x3-5/8 R14, 2x6 R20, 2x6 R22, 2x6 R24 |
+| Mineral Wool Batt | 2x4 R14, 2x6 R22, 2x6 R24 | 2x3-5/8 R14, 2x6 R22, 2x6 R24 |
+| Loose Fill Cellulose | 2x4, 2x6 | 2x3-5/8, 2x6 |
+| Dense Pack Cellulose | 2x4, 2x6 | 2x3-5/8, 2x6 |
+| Loose Fill Fiberglass | 2x4, 2x6 | 2x3-5/8, 2x6 |
 
-Batt insulation uses stud size + nominal R-value labels. Loose fill and dense pack use stud size only (R-value depends on fill density, not a batt designation). Source: `cavities.csv`.
+Wood uses 2x4 studs (3.5" actual depth), steel uses 2x3-5/8 studs (3.625"). Both share 2x6 cavity types. Batt insulation uses stud size + nominal R-value labels. Loose fill and dense pack use stud size only. All variants are stored in `cavityTypesByMaterial`; the `getAvailableCavityTypes` filter in WallBuilder automatically shows only matching types per wall type. Source: `cavities.csv`.
 
 ### Continuous Insulation Types (`continuousInsTypes`)
 

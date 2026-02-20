@@ -124,9 +124,9 @@ App
 
 1. **Single data file** — All thresholds, categories, and lookup tables in `ecpData.js`. No runtime data loading.
 
-2. **Lookup tables over formulas** — Wall RSI uses pre-computed lookup tables (`framedWallRsi`, `continuousInsRsi`, `icfRsi`) instead of runtime calculation. Only the isothermal planes sum (adding layers) happens at runtime. This allows supporting steel and ICF wall types where parallel path formulas differ.
+2. **Lookup tables over formulas** — Wall RSI uses pre-computed lookup tables (`framedWallRsi`, `continuousInsRsi`, `icfRsi`) instead of runtime calculation. Framed wall RSI values already include drywall, sheathing, and air films — only continuous insulation RSI is added at runtime. ICF values are fully pre-computed. This allows supporting steel and ICF wall types where parallel path formulas differ.
 
-3. **Progressive disclosure** — Wall builder shows only relevant fields based on wall type. Wood/Steel shows framing + continuous insulation dropdowns. ICF shows only form thickness. Cavity size options are further filtered by the selected insulation material (e.g., batt materials offer 5 sizes with R-values; loose fill/dense pack offer only 2x4 or 2x6). Reduces cognitive load.
+3. **Progressive disclosure** — Wall builder shows only relevant fields based on wall type. Wood/Steel shows framing + continuous insulation dropdowns. ICF shows only form thickness. Cavity size options are further filtered by the selected insulation material and wall type (e.g., wood uses 2x4 studs, steel uses 2x3-5/8 studs; batt materials offer sizes with R-values; loose fill/dense pack offer stud size only). Reduces cognitive load.
 
 4. **No routing** — Single-page, single-view app. No React Router needed.
 

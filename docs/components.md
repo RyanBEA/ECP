@@ -147,7 +147,7 @@ Renders `OptionButton` grid from `wallCategory.options`. Selection tracked by `s
 
 | Function | Input | Output | Purpose |
 |----------|-------|--------|---------|
-| `getStudDepth(cavityType)` | `'2x6 R20'` | `'2x6'` | Extract stud size for WallSection |
+| `getStudDepth(cavityType)` | `'2x6 R20'` | `'2x6'` | Extract stud size for WallSection. Maps both `2x4` and `2x3-5/8` prefixes to `'2x4'` (steel uses 2x3-5/8 studs). |
 | `getStudSpacingNum(studSpacing)` | `'16"'` | `16` | Convert to number for WallSection |
 | `getContInsThicknessNum(thickness)` | `'1-1/2"'` | `1.5` | Extract thickness for WallSection (handles fractions) |
 | `getAvailableCavityTypes(wallType, spacing, material)` | strings | Array | Returns `cavityTypesByMaterial[material]` filtered to non-null lookup values |
