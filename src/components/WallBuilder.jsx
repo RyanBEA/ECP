@@ -4,7 +4,7 @@ import {
   wallTypes,
   studSpacingOptions,
   cavityMaterials,
-  cavityTypes,
+  cavityTypesByMaterial,
   continuousInsTypes,
   continuousInsThicknesses,
   icfFormOptions,
@@ -17,10 +17,11 @@ import WallSection from './WallSection'
 
 const wallCategory = categories.find(c => c.id === 'aboveGroundWalls')
 
-// Extract stud depth from cavity type label (e.g., "2x6 R20" -> "2x6")
+// Extract stud depth from cavity type label (e.g., "2x6 R20" -> "2x6", "2x3-5/8 R12" -> "2x4")
 const getStudDepth = (cavityType) => {
   if (!cavityType) return '2x6'
-  return cavityType.startsWith('2x4') ? '2x4' : '2x6'
+  if (cavityType.startsWith('2x4') || cavityType.startsWith('2x3-5/8')) return '2x4'
+  return '2x6'
 }
 
 // Extract stud spacing as number (e.g., '16"' -> 16)
@@ -42,12 +43,13 @@ const getContInsThicknessNum = (thickness) => {
   return parseFloat(cleaned)
 }
 
-// Get available cavity types for current selection (filters by lookup table)
+// Get available cavity types for current material (filtered by lookup table)
 const getAvailableCavityTypes = (wallType, studSpacing, cavityMaterial) => {
-  if (!wallType || wallType === 'icf' || !studSpacing || !cavityMaterial) return cavityTypes
+  const materialTypes = cavityTypesByMaterial[cavityMaterial] || []
+  if (!wallType || wallType === 'icf' || !studSpacing || !cavityMaterial) return materialTypes
   const lookup = framedWallRsi[wallType]?.[studSpacing]?.[cavityMaterial]
   if (!lookup) return []
-  return cavityTypes.filter(ct => lookup[ct] != null)
+  return materialTypes.filter(ct => lookup[ct] != null)
 }
 
 export default function WallBuilder({ selection, onSelect }) {
@@ -74,6 +76,16 @@ export default function WallBuilder({ selection, onSelect }) {
     if (field === 'wallType') {
       // Wall type change clears everything
       onSelect({ wallType: value || undefined })
+      return
+    }
+    if (field === 'cavityMaterial') {
+      // Material change clears cavity type (available options differ per material)
+      onSelect({
+        ...selection,
+        simpleIndex: undefined,
+        cavityMaterial: value || undefined,
+        cavityType: undefined
+      })
       return
     }
     onSelect({

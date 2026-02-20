@@ -13,7 +13,7 @@ Single source of truth for all ECP thresholds, category definitions, and calcula
 | `wallTypes` | Array | 3 wall types: wood, steel, icf |
 | `studSpacingOptions` | Array | 3 stud spacing options (16", 19", 24") |
 | `cavityMaterials` | Array | 5 cavity insulation material names |
-| `cavityTypes` | Array | 5 cavity insulation types (stud size + R-value) |
+| `cavityTypesByMaterial` | Object | Cavity size options per material (material → array of types) |
 | `continuousInsTypes` | Array | 4 continuous insulation types (EPS, XPS, PIC, Mineral Wool) |
 | `continuousInsThicknesses` | Array | 6 thickness options (None through 3") |
 | `icfFormOptions` | Array | 3 ICF form thickness options |
@@ -193,9 +193,19 @@ Metric: U-value (W/m²·K), direction: lower
 
 Fiberglass Batt, Mineral Wool Batt, Loose Fill Cellulose, Dense Pack Cellulose, Loose Fill Fiberglass
 
-### Cavity Insulation Types (`cavityTypes`)
+### Cavity Insulation Types by Material (`cavityTypesByMaterial`)
 
-2x4 R12, 2x4 R14, 2x6 R20, 2x6 R22, 2x6 R24
+Available cavity sizes depend on the insulation material:
+
+| Material | Cavity Types |
+|----------|-------------|
+| Fiberglass Batt | 2x4 R12, 2x4 R14, 2x6 R20, 2x6 R22, 2x6 R24 |
+| Mineral Wool Batt | 2x4 R14, 2x6 R22, 2x6 R24 |
+| Loose Fill Cellulose | 2x4, 2x6 |
+| Dense Pack Cellulose | 2x4, 2x6 |
+| Loose Fill Fiberglass | 2x4, 2x6 |
+
+Batt insulation uses stud size + nominal R-value labels. Loose fill and dense pack use stud size only (R-value depends on fill density, not a batt designation). Source: `cavities.csv`.
 
 ### Continuous Insulation Types (`continuousInsTypes`)
 
@@ -213,40 +223,44 @@ None, 1", 1-1/2", 2", 2-1/2", 3"
 
 ## Lookup Tables
 
+All lookup tables are fully populated with verified values.
+
 ### Framed Wall RSI (`framedWallRsi`)
 
 Pre-computed parallel path RSI values. Keyed by: `wallType → spacing → cavityMaterial → cavityType → RSI`.
 
-**Seeded values (wood + Fiberglass Batt):**
+The cavity type keys vary by material — batt insulation uses "2x4 R12" style keys, while loose fill and dense pack use plain "2x4"/"2x6" keys. See `cavityTypesByMaterial` for the mapping.
+
+**Wood + Fiberglass Batt:**
 
 | Spacing | 2x4 R12 | 2x4 R14 | 2x6 R20 | 2x6 R22 | 2x6 R24 |
 |---------|---------|---------|---------|---------|---------|
-| 16" | 1.56 | 1.75 | 2.36 | 2.63 | 2.81 |
-| 19" | 1.59 | 1.79 | 2.42 | 2.70 | 2.89 |
-| 24" | 1.64 | 1.85 | 2.51 | 2.81 | 3.01 |
+| 16" | 1.94 | 2.07 | 2.81 | 3.00 | 3.11 |
+| 19" | 1.97 | 2.11 | 2.85 | 3.06 | 3.18 |
+| 24" | 2.00 | 2.14 | 2.90 | 3.12 | 3.25 |
 
-These are **parallel path component only** — BASE_RSI and continuous insulation added at runtime (isothermal planes).
+Fiberglass Batt and Mineral Wool Batt produce identical parallel path RSI for the same cavity type designation (same R-value). 84 total entries across all wall type / spacing / material / cavity type combos.
 
-All other combinations (wood + non-fiberglass, steel + all, ICF) are `null` pending data from Ryan.
+These values **include drywall, sheathing, and air films** — only continuous insulation RSI is added at runtime.
 
 ### Continuous Insulation RSI (`continuousInsRsi`)
 
 | Type | None | 1" | 1-1/2" | 2" | 2-1/2" | 3" |
 |------|------|-----|--------|-----|--------|-----|
-| EPS | 0 | 0.65 | 0.98 | 1.30 | 1.63 | 1.95 |
-| XPS | 0 | 0.88 | 1.28 | 1.68 | 2.10 | 2.52 |
-| PIC | 0 | 0.97 | 1.39 | 1.80 | 2.22 | 2.64 |
-| Mineral Wool | 0 | null | null | null | null | null |
+| EPS | 0 | 0.65 | 0.9906 | 1.30 | 1.651 | 1.9812 |
+| XPS | 0 | 0.88 | 1.28 | 1.68 | 2.1336 | 2.56032 |
+| PIC | 0 | 0.97 | 1.385 | 1.80 | 2.286 | 2.7432 |
+| Mineral Wool | 0 | 0.704 | 1.0554 | 1.4072 | 1.759 | 2.1107 |
 
 ### ICF RSI (`icfRsi`)
 
 | Form Thickness | Total RSI |
 |---------------|-----------|
-| 2.5" | null |
-| 3-1/8" | null |
-| 4-1/4" | null |
+| 2.5" | 3.602 |
+| 3-1/8" | 4.4275 |
+| 4-1/4" | 5.9134 |
 
-All null — pending data from Ryan.
+ICF values are fully pre-computed (includes EPS both sides + 8" concrete + air films).
 
 ---
 
@@ -259,32 +273,29 @@ All null — pending data from Ryan.
 **Algorithm:**
 
 ```
-Constants:
-  BASE_RSI = 0.44547  (drywall + sheathing + air films)
-
 ICF path:
   return icfRsi[icfFormThickness]  (fully pre-computed, or null)
 
 Wood/Steel path:
-  Step 1 — Lookup parallel path RSI:
+  Step 1 — Lookup framed wall RSI (includes drywall, sheathing, air films):
     framedRsi = framedWallRsi[wallType][spacing][material][type]
 
   Step 2 — If no continuous insulation:
-    return framedRsi + BASE_RSI
+    return framedRsi
 
   Step 3 — Lookup continuous insulation RSI:
     contIns = continuousInsRsi[contInsType][contInsThickness]
 
-  Step 4 — Isothermal planes sum:
-    return framedRsi + contIns + BASE_RSI
+  Step 4 — Sum:
+    return framedRsi + contIns
 ```
 
 **Worked example** (wood, 16", Fiberglass Batt, 2x6 R20, 2" XPS):
 
 ```
-framedRsi   = framedWallRsi.wood['16"']['Fiberglass Batt']['2x6 R20'] = 2.36
+framedRsi   = framedWallRsi.wood['16"']['Fiberglass Batt']['2x6 R20'] = 2.81
 contIns     = continuousInsRsi['XPS']['2"'] = 1.68
-totalRsi    = 2.36 + 1.68 + 0.445 = 4.485 → 4.49 displayed → 9.9 ECP points
+totalRsi    = 2.81 + 1.68 = 4.49 → 9.9 ECP points
 ```
 
 ### `getWallPoints(rsi)`
@@ -332,14 +343,17 @@ DHW categories are mutually exclusive. Best-case total: ~52.9 (using DHW Non-Ele
 
 ---
 
-## Pending Data
+## Data Verification
 
-Ryan will provide lookup table values for:
-- `framedWallRsi.wood` — all materials except Fiberglass Batt
-- `framedWallRsi.steel` — all combinations
-- `continuousInsRsi['Mineral Wool']` — all thicknesses
-- `icfRsi` — all form thicknesses
-- `continuousInsRsi` 2-1/2" and 3" values for EPS, XPS, PIC (currently extrapolated linearly — verify)
+All lookup table values are verified. Source CSV templates in `ECPTool/` root match `ecpData.js`.
+
+| Table | Values | Status |
+|-------|--------|--------|
+| `framedWallRsi` — all combinations | 84 values | Verified |
+| `continuousInsRsi` — all types/thicknesses | 20 values | Verified |
+| `icfRsi` — all form thicknesses | 3 values | Verified |
+
+To update: edit the corresponding CSV template in `ECPTool/` root and then update `ecpData.js` to match.
 
 ---
 
@@ -358,3 +372,7 @@ CSV files in the project root are **not loaded at runtime**. They are source doc
 | `windowsAndDoors.csv` | U-value thresholds |
 | `Volume.csv` | Heated volume thresholds |
 | `wallcalc/*.csv` | Wall assembly calculation inputs (framing, insulation) |
+| `cavities.csv` | Source of truth: which cavity sizes are valid per insulation material |
+| `lookup-framed-wall-rsi.csv` | Template for `framedWallRsi` values (84 rows) |
+| `lookup-continuous-ins-rsi.csv` | Template for `continuousInsRsi` values (20 rows) |
+| `lookup-icf-rsi.csv` | Template for `icfRsi` values (3 rows) |

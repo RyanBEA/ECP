@@ -116,7 +116,7 @@ Dual-mode wall assembly input: "Build Assembly" (builder) or "Select RSI" (simpl
 {}
 ```
 
-Builder fields and `simpleIndex` are mutually exclusive. Mode switching calls `onSelect({})` to wipe everything. Changing `wallType` clears all downstream fields.
+Builder fields and `simpleIndex` are mutually exclusive. Mode switching calls `onSelect({})` to wipe everything. Changing `wallType` clears all downstream fields. Changing `cavityMaterial` clears `cavityType` (available cavity sizes differ per material).
 
 ### Internal State
 
@@ -129,6 +129,7 @@ Builder fields and `simpleIndex` are mutually exclusive. Mode switching calls `o
 1. **Wall Type selector** — always visible (Wood Frame, Steel Frame, ICF)
 2. **Wood/Steel fields** — shown when `wallType` is `'wood'` or `'steel'`:
    - **Framing group**: Stud Spacing, Cavity Insulation (material), Cavity Size (type)
+   - Cavity Size options are **material-dependent** — uses `cavityTypesByMaterial[material]` filtered by non-null lookup values
    - **Continuous Insulation group**: Type, Thickness
 3. **ICF field** — shown when `wallType` is `'icf'`:
    - EPS Form Thickness (per side)
@@ -137,8 +138,6 @@ When all required fields are populated:
 - Calculates RSI via `calculateWallRsi(selection)`
 - Displays RSI value and points via `getWallPoints()`
 - Renders `WallSection` SVG diagram
-
-When a lookup returns `null` (placeholder data), shows "No data for this combination".
 
 ### Simple Mode
 
@@ -151,7 +150,7 @@ Renders `OptionButton` grid from `wallCategory.options`. Selection tracked by `s
 | `getStudDepth(cavityType)` | `'2x6 R20'` | `'2x6'` | Extract stud size for WallSection |
 | `getStudSpacingNum(studSpacing)` | `'16"'` | `16` | Convert to number for WallSection |
 | `getContInsThicknessNum(thickness)` | `'1-1/2"'` | `1.5` | Extract thickness for WallSection (handles fractions) |
-| `getAvailableCavityTypes(wallType, spacing, material)` | strings | Array | Filters cavity types to those with non-null lookup values |
+| `getAvailableCavityTypes(wallType, spacing, material)` | strings | Array | Returns `cavityTypesByMaterial[material]` filtered to non-null lookup values |
 
 ### WallSection Wiring
 

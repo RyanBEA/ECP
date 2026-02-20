@@ -11,7 +11,7 @@ describe('calculateWallRsi', () => {
       contInsType: null,
       contInsThickness: 'None'
     })
-    // framedWallRsi (2.36) + BASE_RSI (0.44547) = 2.805
+    // framedWallRsi already includes drywall, sheathing, air films
     expect(rsi).toBeCloseTo(2.81, 1)
   })
 
@@ -24,11 +24,11 @@ describe('calculateWallRsi', () => {
       contInsType: 'XPS',
       contInsThickness: '2"'
     })
-    // framedWallRsi (2.36) + contIns (1.68) + BASE_RSI (0.44547) = 4.485
+    // framedWallRsi (2.81) + contIns (1.68) = 4.49
     expect(rsi).toBeCloseTo(4.49, 1)
   })
 
-  it('returns null for missing lookup combo (steel placeholder)', () => {
+  it('returns correct RSI for steel / 16" / Fiberglass Batt / 2x6 R20 / 2" XPS', () => {
     const rsi = calculateWallRsi({
       wallType: 'steel',
       studSpacing: '16"',
@@ -37,15 +37,16 @@ describe('calculateWallRsi', () => {
       contInsType: 'XPS',
       contInsThickness: '2"'
     })
-    expect(rsi).toBeNull()
+    // framedWallRsi (1.97) + contIns (1.68) = 3.65
+    expect(rsi).toBeCloseTo(3.65, 1)
   })
 
-  it('returns null for ICF placeholder', () => {
+  it('returns correct RSI for ICF 3-1/8"', () => {
     const rsi = calculateWallRsi({
       wallType: 'icf',
       icfFormThickness: '3-1/8"'
     })
-    expect(rsi).toBeNull()
+    expect(rsi).toBe(4.4275)
   })
 
   it('returns null when required fields are missing', () => {
@@ -62,8 +63,8 @@ describe('calculateWallRsi', () => {
       contInsType: 'PIC',
       contInsThickness: '3"'
     })
-    // framedWallRsi (3.01) + contIns (2.64) + BASE_RSI (0.44547) = 6.095
-    expect(rsi).toBeCloseTo(6.10, 1)
+    // framedWallRsi (3.25) + contIns (2.7432) = 5.99
+    expect(rsi).toBeCloseTo(5.99, 1)
   })
 
   it('handles cont ins type selected but thickness None', () => {
@@ -75,11 +76,11 @@ describe('calculateWallRsi', () => {
       contInsType: 'XPS',
       contInsThickness: 'None'
     })
-    // No continuous insulation added
+    // No continuous insulation added — framed RSI is the total
     expect(rsi).toBeCloseTo(2.81, 1)
   })
 
-  it('returns null for null continuous insulation RSI (Mineral Wool placeholder)', () => {
+  it('returns correct RSI for wood with Mineral Wool continuous insulation', () => {
     const rsi = calculateWallRsi({
       wallType: 'wood',
       studSpacing: '16"',
@@ -88,7 +89,8 @@ describe('calculateWallRsi', () => {
       contInsType: 'Mineral Wool',
       contInsThickness: '2"'
     })
-    expect(rsi).toBeNull()
+    // framedWallRsi (2.81) + contIns (1.40716) = 4.22
+    expect(rsi).toBeCloseTo(4.22, 1)
   })
 })
 
