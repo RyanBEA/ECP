@@ -320,18 +320,23 @@ export default function WallSection({
             fill={colors.cavity} stroke="#9ca3af" strokeWidth="1"
           />
 
-          {/* Cavity insulation pattern between studs */}
-          {Array.from({ length: numStuds - 1 }).map((_, i) => {
-            const cavityStartX = (i * studSpacing + studWidthInches) * scale
-            const cavityWidth = (studSpacing - studWidthInches) * scale
-            if (cavityStartX >= wallWidthPx) return null
-            const actualWidth = Math.min(cavityWidth, wallWidthPx - cavityStartX)
-            return (
-              <g key={`cavity-${i}`}>
-                {generateCavityPattern(cavityStartX, actualWidth, studCavityY, studDepthInches * scale)}
-              </g>
-            )
-          })}
+          {/* Cavity insulation pattern */}
+          {wallType === 'steel'
+            ? /* Steel: continuous pattern across full width (studs render on top) */
+              generateCavityPattern(0, wallWidthPx, studCavityY, studDepthInches * scale)
+            : /* Wood: pattern only between studs (solid wood covers stud areas) */
+              Array.from({ length: numStuds - 1 }).map((_, i) => {
+                const cavityStartX = (i * studSpacing + studWidthInches) * scale
+                const cavityWidth = (studSpacing - studWidthInches) * scale
+                if (cavityStartX >= wallWidthPx) return null
+                const actualWidth = Math.min(cavityWidth, wallWidthPx - cavityStartX)
+                return (
+                  <g key={`cavity-${i}`}>
+                    {generateCavityPattern(cavityStartX, actualWidth, studCavityY, studDepthInches * scale)}
+                  </g>
+                )
+              })
+          }
 
           {/* Studs — wood or steel */}
           {Array.from({ length: numStuds }).map((_, i) => {
@@ -366,22 +371,13 @@ export default function WallSection({
                   </>
                 )}
 
-                {/* Steel stud: C-channel (top flange, bottom flange, web) + cavity fill */}
+                {/* Steel stud: C-channel (top flange, bottom flange, web) */}
                 {wallType === 'steel' && actualW >= studW - 1 && (() => {
                   const flangeW = studW
                   const webThickness = 1.5
                   const flangeThickness = 1.5
-                  // Interior void of C-channel
-                  const voidX = studX + webThickness
-                  const voidY = studCavityY + flangeThickness
-                  const voidW = flangeW - webThickness
-                  const voidH = studH - 2 * flangeThickness
                   return (
                     <>
-                      {/* Cavity insulation inside C-channel void */}
-                      <rect x={voidX} y={voidY} width={voidW} height={voidH}
-                        fill={colors.cavity} />
-                      {generateCavityPattern(voidX, voidW, voidY, voidH)}
                       {/* Top flange */}
                       <rect x={studX} y={studCavityY} width={flangeW} height={flangeThickness}
                         fill={colors.steelStud} stroke="#475569" strokeWidth="0.5" />
