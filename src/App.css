@@ -488,6 +488,19 @@ h1, h2, h3, h4, h5, h6 {
   color: var(--text-primary);
 }
 
+.source-link {
+  display: inline-block;
+  margin-top: 0.5rem;
+  font-size: 0.75rem;
+  color: var(--text-secondary);
+  text-decoration: none;
+  transition: color 0.15s ease;
+}
+
+.source-link:hover {
+  color: var(--primary);
+}
+
 /* Responsive */
 @media (max-width: 600px) {
   .app-header {

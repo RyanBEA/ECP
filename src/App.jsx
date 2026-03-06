@@ -154,6 +154,14 @@ export default function App() {
             : `Need ${(targetPoints - totalPoints).toFixed(1)} more points to reach ${selectedTier.label}.`
           }
         </p>
+        <a
+          className="source-link"
+          href="https://beafiles.blob.core.windows.net/public/RSI-calc.xlsx"
+          target="_blank"
+          rel="noopener noreferrer"
+        >
+          📊 Excel source
+        </a>
       </footer>
     </div>
   )
