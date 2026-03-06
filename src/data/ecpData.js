@@ -179,9 +179,9 @@ export const continuousInsRsi = {
 
 // ICF total RSI lookup: formThickness -> total RSI (fully pre-computed)
 export const icfRsi = {
-  '2.5"': 3.602,
-  '3-1/8"': 4.4275,
-  '4-1/4"': 5.9134
+  '2.5"': 3.66,
+  '3-1/8"': 4.49,
+  '4-1/4"': 5.97
 }
 
 // Calculate wall RSI from selections (lookup-based)
