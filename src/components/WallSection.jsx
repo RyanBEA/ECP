@@ -366,13 +366,22 @@ export default function WallSection({
                   </>
                 )}
 
-                {/* Steel stud: C-channel (top flange, bottom flange, web) */}
+                {/* Steel stud: C-channel (top flange, bottom flange, web) + cavity fill */}
                 {wallType === 'steel' && actualW >= studW - 1 && (() => {
                   const flangeW = studW
                   const webThickness = 1.5
                   const flangeThickness = 1.5
+                  // Interior void of C-channel
+                  const voidX = studX + webThickness
+                  const voidY = studCavityY + flangeThickness
+                  const voidW = flangeW - webThickness
+                  const voidH = studH - 2 * flangeThickness
                   return (
                     <>
+                      {/* Cavity insulation inside C-channel void */}
+                      <rect x={voidX} y={voidY} width={voidW} height={voidH}
+                        fill={colors.cavity} />
+                      {generateCavityPattern(voidX, voidW, voidY, voidH)}
                       {/* Top flange */}
                       <rect x={studX} y={studCavityY} width={flangeW} height={flangeThickness}
                         fill={colors.steelStud} stroke="#475569" strokeWidth="0.5" />
