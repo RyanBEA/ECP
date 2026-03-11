@@ -264,11 +264,11 @@ export const categories = [
     description: 'Air changes per hour at 50 pascals pressure',
     direction: 'lower', // lower ACH = more points
     options: [
-      { value: 2.5, points: 0 },
-      { value: 2.0, points: 3.5 },
-      { value: 1.5, points: 6.9 },
-      { value: 1.0, points: 10.4 },
-      { value: 0.6, points: 13.3 }
+      { value: 3.0, points: 0 },
+      { value: 2.5, points: 3.5 },
+      { value: 2.0, points: 7.0 },
+      { value: 1.5, points: 10.5 },
+      { value: 1.0, points: 13.4 }
     ]
   },
   {
