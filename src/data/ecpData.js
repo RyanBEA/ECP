@@ -322,9 +322,9 @@ export const categories = [
     description: 'Sensible heat recovery efficiency',
     direction: 'higher',
     options: [
-      { value: 65, points: 0.7 },
-      { value: 75, points: 2.2 },
-      { value: 84, points: 3.5 }
+      { value: 60, points: 0.7 },
+      { value: 65, points: 2.2 },
+      { value: 75, points: 3.5 }
     ]
   },
   {
@@ -356,7 +356,7 @@ export const categories = [
     direction: 'lower', // lower U = more points
     options: [
       { value: 1.44, points: 1.6 },
-      { value: 1.22, points: 6.2 }
+      { value: 1.22, points: 4.6 }
     ]
   }
 ];
