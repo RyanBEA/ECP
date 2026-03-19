@@ -316,10 +316,10 @@ export const categories = [
   },
   {
     id: 'hrv',
-    name: 'Heat Recovery Ventilation',
+    name: 'Ventilation',
     metric: 'SRE',
     unit: '%',
-    description: 'Sensible heat recovery efficiency',
+    description: 'Sensible heat recovery efficiency for heat recovery ventilator (HRV) or energy recovery ventilator (ERV)',
     direction: 'higher',
     options: [
       { value: 60, points: 0.7 },
