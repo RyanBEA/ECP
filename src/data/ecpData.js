@@ -292,7 +292,7 @@ export const categories = [
     name: 'DHW (Electric)',
     metric: 'EF',
     unit: 'Energy Factor',
-    description: 'Electric water heater efficiency',
+    description: 'Electric water heater efficiency. This energy factor can only be achieved with a heat pump water heater (HPWH)',
     direction: 'higher',
     exclusiveGroup: 'dhw',
     options: [
