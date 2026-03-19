@@ -11,6 +11,7 @@
   --primary-dark: #3d2f4d;
   --success: #16a34a;
   --success-light: #dcfce7;
+  --danger: #dc2626;
   --gray-50: #f9fafb;
   --gray-100: #f3f4f6;
   --gray-200: #e5e7eb;
@@ -33,6 +34,7 @@
   --primary-dark: #4F3D63;
   --success: #4ade80;
   --success-light: #166534;
+  --danger: #f87171;
   --gray-50: #1f2937;
   --gray-100: #111827;
   --gray-200: #374151;
@@ -469,6 +471,17 @@ h1, h2, h3, h4, h5, h6 {
 
 .wall-points.has-points .value {
   color: var(--success);
+}
+
+.wall-rsi.below-code .value {
+  color: var(--danger);
+}
+
+.wall-warning {
+  width: 100%;
+  color: var(--danger);
+  font-size: 0.8rem;
+  font-weight: 500;
 }
 
 .wall-prompt {
