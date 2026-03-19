@@ -10,7 +10,8 @@ import {
   icfFormOptions,
   framedWallRsi,
   calculateWallRsi,
-  getWallPoints
+  getWallPoints,
+  MIN_WALL_RSI
 } from '../data/ecpData'
 import OptionButton from './OptionButton'
 import WallSection from './WallSection'
@@ -62,6 +63,7 @@ export default function WallBuilder({ selection, onSelect }) {
 
   const rsi = calculateWallRsi(selection || {})
   const builderPoints = getWallPoints(rsi)
+  const belowCode = rsi !== null && rsi < MIN_WALL_RSI
 
   const simplePoints = simpleIndex !== undefined && simpleIndex !== null
     ? wallCategory.options[simpleIndex].points
@@ -289,14 +291,26 @@ export default function WallBuilder({ selection, onSelect }) {
           <div className="wall-result">
             {rsi ? (
               <>
-                <div className="wall-rsi">
+                <div className={`wall-rsi ${belowCode ? 'below-code' : ''}`}>
                   <span className="label">Effective RSI:</span>
                   <span className="value">{rsi.toFixed(2)}</span>
                 </div>
-                <div className={`wall-points ${builderPoints > 0 ? 'has-points' : ''}`}>
-                  <span className="label">Points:</span>
-                  <span className="value">+{builderPoints}</span>
-                </div>
+                {belowCode ? (
+                  <>
+                    <div className="wall-rsi">
+                      <span className="label">Min. RSI:</span>
+                      <span className="value">{MIN_WALL_RSI}</span>
+                    </div>
+                    <div className="wall-warning">
+                      ⚠ Does not meet code — {(MIN_WALL_RSI - rsi).toFixed(2)} below minimum
+                    </div>
+                  </>
+                ) : (
+                  <div className={`wall-points ${builderPoints > 0 ? 'has-points' : ''}`}>
+                    <span className="label">Points:</span>
+                    <span className="value">+{builderPoints}</span>
+                  </div>
+                )}
               </>
             ) : wallType ? (
               <div className="wall-prompt">
