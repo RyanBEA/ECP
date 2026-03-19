@@ -184,6 +184,9 @@ export const icfRsi = {
   '4-1/4"': 5.97
 }
 
+// NBC 2020 Table 9.36.2.6.-B minimum wall RSI (with HRV, Zone 5/6)
+export const MIN_WALL_RSI = 2.97
+
 // Calculate wall RSI from selections (lookup-based)
 // framedWallRsi values already include drywall, sheathing, and air films.
 // Only continuous insulation RSI is added at runtime.

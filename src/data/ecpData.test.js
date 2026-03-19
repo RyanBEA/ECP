@@ -1,5 +1,5 @@
 import { describe, it, expect } from 'vitest'
-import { calculateWallRsi, getWallPoints } from './ecpData'
+import { calculateWallRsi, getWallPoints, MIN_WALL_RSI } from './ecpData'
 
 describe('calculateWallRsi', () => {
   it('returns correct RSI for wood / 16" / Fiberglass Batt / 2x6 R20 / no cont ins', () => {
@@ -114,5 +114,21 @@ describe('getWallPoints', () => {
   it('returns 0 for null/undefined', () => {
     expect(getWallPoints(null)).toBe(0)
     expect(getWallPoints(undefined)).toBe(0)
+  })
+})
+
+describe('MIN_WALL_RSI', () => {
+  it('is 2.97', () => {
+    expect(MIN_WALL_RSI).toBe(2.97)
+  })
+
+  it('boundary: wood/24"/Loose Fill Cellulose/2x6 equals exactly MIN_WALL_RSI', () => {
+    const rsi = calculateWallRsi({
+      wallType: 'wood',
+      studSpacing: '24"',
+      cavityMaterial: 'Loose Fill Cellulose',
+      cavityType: '2x6'
+    })
+    expect(rsi).toBe(MIN_WALL_RSI)
   })
 })
