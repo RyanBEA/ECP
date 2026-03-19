@@ -20,6 +20,7 @@ Single source of truth for all ECP thresholds, category definitions, and calcula
 | `framedWallRsi` | Object | Pre-computed parallel path RSI lookup (wallType → spacing → material → type) |
 | `continuousInsRsi` | Object | Continuous insulation RSI lookup (type → thickness) |
 | `icfRsi` | Object | ICF total RSI lookup (formThickness → RSI) |
+| `MIN_WALL_RSI` | number | NBC 2020 minimum wall RSI (2.97) from Table 9.36.2.6.-B |
 | `wallPointsThresholds` | Array | 11 RSI-to-points lookup thresholds |
 | `calculateWallRsi()` | Function | Lookup-based wall RSI calculation |
 | `getWallPoints()` | Function | RSI-to-points lookup |
@@ -305,6 +306,12 @@ totalRsi    = 2.81 + 1.68 = 4.49 → 9.9 ECP points
 **Returns:** `number` — ECP points (0 if RSI is below 3.08 or falsy).
 
 **Algorithm:** Sorts `wallPointsThresholds` descending by `minRsi`, returns points for the first threshold where `rsi >= threshold.minRsi`. Returns the best (highest) threshold met.
+
+### `MIN_WALL_RSI`
+
+Constant: `2.97` (m²·K/W)
+
+NBC 2020 minimum wall RSI from Table 9.36.2.6.-B (with HRV, Climate Zone 5/6). Used by WallBuilder to flag sub-code wall assemblies. When calculated wall RSI < 2.97, the builder displays a warning and highlights the RSI in red to alert the user that the design does not meet code minimum.
 
 ### Wall Points Thresholds (`wallPointsThresholds`)
 

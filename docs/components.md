@@ -139,6 +139,16 @@ When all required fields are populated:
 - Displays RSI value and points via `getWallPoints()`
 - Renders `WallSection` SVG diagram
 
+#### Sub-Code Warning
+
+If the calculated RSI is below `MIN_WALL_RSI` (2.97):
+- The result area displays the RSI value in red (`--danger` CSS variable)
+- Shows the NBC 2020 minimum RSI requirement (2.97 m²·K/W)
+- Displays a warning message alerting the user the assembly does not meet code minimum
+- The user can still proceed to calculate points, but the visual warning makes the code violation clear
+
+When RSI >= 2.97, the result displays normally in the standard point color.
+
 ### Simple Mode
 
 Renders `OptionButton` grid from `wallCategory.options`. Selection tracked by `simpleIndex` in the parent state.
