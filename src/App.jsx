@@ -121,6 +121,17 @@ export default function App() {
         <PointsCounter total={totalPoints} target={targetPoints} />
       </header>
 
+      <section className="app-intro">
+        <strong>Prescriptive Tier 2 Compliance Calculator</strong>
+        <p>
+          Estimate how many energy conservation points your building design earns under NBC 2020
+          Subsection 9.36.8 (Prescriptive Path) for Climate Zone 6. Tier 2 requires a minimum of
+          10 points from Tables 9.36.8.4 through 9.36.8.10. This tool makes several simplifying
+          assumptions — discuss your Tier 2 compliance strategy with your building official when
+          applying for your building permit.
+        </p>
+      </section>
+
       <main className="categories-container">
         {categories.map(category => {
           // Render WallBuilder for wall category
