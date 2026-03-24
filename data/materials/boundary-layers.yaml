@@ -1,0 +1,92 @@
+# Boundary layer options (non-cavity, non-stud layers)
+# "selectable: true" means the user picks from options in the WallBuilder UI
+# "selectable: false" means fixed (always included)
+
+air_films:
+  selectable: false
+  outside: 0.03
+  inside:  0.12
+
+drywall:
+  selectable: false
+  default: 0.08    # 1/2" standard drywall
+
+sheathing:
+  selectable: true
+  applies_to: [wood]   # steel and ICF do not use structural sheathing
+  default: "osb_11"
+  options:
+    - id: "osb_11"
+      label: '7/16" (11 mm) OSB'
+      rsi: 0.108
+      source: "Table D"
+    - id: "osb_9_5"
+      label: '3/8" (9.5 mm) OSB'
+      rsi: 0.093
+      source: "Table D"
+    - id: "plywood_sw_9_5"
+      label: '3/8" (9.5 mm) Plywood'
+      rsi: 0.083
+      source: "Table D, softwood"
+    - id: "plywood_sw_12_5"
+      label: '1/2" (12.5 mm) Plywood'
+      rsi: 0.109
+      source: "Table D, softwood"
+    - id: "plywood_df_9_5"
+      label: '3/8" (9.5 mm) Douglas Fir Plywood'
+      rsi: 0.105
+      source: "Table D"
+    - id: "plywood_df_12_5"
+      label: '1/2" (12.5 mm) Douglas Fir Plywood'
+      rsi: 0.139
+      source: "Table D"
+    - id: "gypsum_12_7"
+      label: '1/2" (12.7 mm) Gypsum Sheathing'
+      rsi: 0.08
+      source: "Table D"
+
+cladding:
+  selectable: true
+  applies_to: [wood, steel, icf]
+  defaults:
+    wood: "vinyl_siding"
+    steel: "metal_siding"
+    icf: "stucco_19"
+  options:
+    - id: "vinyl_siding"
+      label: "Vinyl/Metal Siding (hollow-backed)"
+      rsi: 0.11
+      source: "Table D"
+    - id: "vinyl_insulated"
+      label: "Vinyl/Metal Siding (insulating-board-backed)"
+      rsi: 0.32
+      source: "Table D, 9.5 mm nominal"
+    - id: "wood_bevel_200"
+      label: "Wood Bevel Siding (200 mm)"
+      rsi: 0.14
+      source: "Table D, 13 mm"
+    - id: "wood_bevel_250"
+      label: "Wood Bevel Siding (250 mm)"
+      rsi: 0.18
+      source: "Table D, 20 mm"
+    - id: "fiber_cement"
+      label: "Fibre Cement"
+      rsi: 0.026
+      source: "Table D, 8 mm"
+    - id: "metal_siding"
+      label: "Metal Siding (hollow-backed)"
+      rsi: 0.11
+      source: "Table D (same as vinyl)"
+    - id: "brick_veneer"
+      label: "Brick Veneer (100 mm fired clay)"
+      rsi: 0.07
+      source: "Table D, 2400 kg/m3"
+    - id: "stucco_19"
+      label: "Stucco (19 mm)"
+      rsi: 0.017
+      source: "Table D, 0.0009 RSI/mm x 19 mm"
+
+steel_air_space:
+  selectable: false
+  applies_to: [steel]
+  rsi: 0.18    # air space in steel frame assembly between web and cladding

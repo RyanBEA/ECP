@@ -1,0 +1,34 @@
+# Framing material properties
+# Source: RSI-calc.xlsx, NRCan Table A-9.36.2.4.(1)
+
+wood:
+  rsi_per_mm: 0.0085    # thermal resistivity of softwood lumber
+
+  studs:
+    "2x4":   { depth_mm: 89 }
+    "2x6":   { depth_mm: 140 }
+    "2x8":   { depth_mm: 184 }
+    "2x10":  { depth_mm: 235 }
+    "2x12":  { depth_mm: 286 }
+
+  # Cavity area percentage (= 100 - framing_fraction)
+  # Source: NRCan Table A-9.36.2.4.(1)-A
+  cavity_pct:
+    16:   77      # 16" OC → 23% framing
+    19:   78.5    # 19.2" OC → 21.5% framing
+    24:   80      # 24" OC → 20% framing
+
+steel:
+  rsi_per_mm: 0.0000161  # thermal resistivity of steel
+  web_thickness_in: 0.125  # 1/8 inch
+
+  # Modified zone method weighting factors
+  k_iso: 0.4      # isothermal planes weight
+  k_pp:  0.6      # parallel-path weight
+
+  studs:
+    "2x3-5/8": { depth_mm: 92.075 }
+    "2x6":     { depth_mm: 152 }
+
+  # Steel cavity_pct is computed: (spacing - web_thickness) * 100 / spacing
+  # Not stored — derived at build time from stud spacing and web thickness
