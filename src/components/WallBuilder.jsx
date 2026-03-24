@@ -11,8 +11,11 @@ import {
   framedWallRsi,
   calculateWallRsi,
   getWallPoints,
+  getBoundaryOptions,
   MIN_WALL_RSI
 } from '../data/ecpData'
+
+const boundaryOpts = getBoundaryOptions()
 import OptionButton from './OptionButton'
 import WallSection from './WallSection'
 
@@ -22,6 +25,9 @@ const wallCategory = categories.find(c => c.id === 'aboveGroundWalls')
 const getStudDepth = (cavityType) => {
   if (!cavityType) return '2x6'
   if (cavityType.startsWith('2x4') || cavityType.startsWith('2x3-5/8')) return '2x4'
+  if (cavityType.startsWith('2x8')) return '2x8'
+  if (cavityType.startsWith('2x10')) return '2x10'
+  if (cavityType.startsWith('2x12')) return '2x12'
   return '2x6'
 }
 
@@ -179,13 +185,47 @@ export default function WallBuilder({ selection, onSelect }) {
             </div>
           </div>
 
+          {/* Boundary layer selectors — cladding and sheathing */}
+          {isFramedWall && (
+            <div className="wall-selectors-group">
+              <label className="wall-selectors-group-label">Boundary Layers</label>
+              <p className="wall-builder-disclaimer">
+                Includes air films and 1/2" drywall. Select cladding{wallType === 'wood' ? ' and sheathing' : ''} below.
+              </p>
+              <div className="wall-selectors">
+                <div className="wall-selector">
+                  <label htmlFor="claddingId">Cladding</label>
+                  <select
+                    id="claddingId"
+                    value={selection?.claddingId || boundaryOpts.cladding.defaults[wallType || 'wood']}
+                    onChange={e => handleFieldChange('claddingId', e.target.value)}
+                  >
+                    {boundaryOpts.cladding.options.map(o => (
+                      <option key={o.id} value={o.id}>{o.label}</option>
+                    ))}
+                  </select>
+                </div>
+                {boundaryOpts.sheathing.applies_to.includes(wallType) && (
+                  <div className="wall-selector">
+                    <label htmlFor="sheathingId">Sheathing</label>
+                    <select
+                      id="sheathingId"
+                      value={selection?.sheathingId || boundaryOpts.sheathing.default}
+                      onChange={e => handleFieldChange('sheathingId', e.target.value)}
+                    >
+                      {boundaryOpts.sheathing.options.map(o => (
+                        <option key={o.id} value={o.id}>{o.label}</option>
+                      ))}
+                    </select>
+                  </div>
+                )}
+              </div>
+            </div>
+          )}
+
           {/* Wood/Steel framing fields */}
           {isFramedWall && (
             <>
-              <p className="wall-builder-disclaimer">
-                Assumes 1/2" drywall, 7/16" OSB sheathing, and vinyl cladding.
-              </p>
-
               <div className="wall-selectors-group">
                 <label className="wall-selectors-group-label">Framing</label>
                 <div className="wall-selectors">
