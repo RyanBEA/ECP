@@ -59,12 +59,19 @@ const getAvailableCavityTypes = (wallType, studSpacing, cavityMaterial) => {
   return materialTypes.filter(ct => lookup[ct] != null)
 }
 
+const studDepthMm = { '2x4': 89, '2x6': 140, '2x8': 184, '2x10': 235, '2x12': 286 }
+const plateOptions = ['2x8', '2x10', '2x12']
+const doubleStudSizes = ['2x4', '2x6']
+const blownInMaterials = ['Dense Pack Cellulose', 'Loose Fill Cellulose', 'Loose Fill Fiberglass']
+
 export default function WallBuilder({ selection, onSelect }) {
   const [mode, setMode] = useState('builder')
 
   const {
     wallType, studSpacing, cavityMaterial, cavityType,
-    contInsType, contInsThickness, icfFormThickness, simpleIndex
+    contInsType, contInsThickness, icfFormThickness, simpleIndex,
+    assemblyType = 'single',
+    outerStud, innerStud, plate, doubleStudMaterial,
   } = selection || {}
 
   const rsi = calculateWallRsi(selection || {})
@@ -109,7 +116,16 @@ export default function WallBuilder({ selection, onSelect }) {
 
   const isFramedWall = wallType === 'wood' || wallType === 'steel'
   const isIcf = wallType === 'icf'
+  const isSingleWall = assemblyType === 'single'
+  const isDoubleStud = assemblyType === 'doubleStud'
   const availableCavityTypes = getAvailableCavityTypes(wallType, studSpacing, cavityMaterial)
+
+  // For double stud: filter plate options to those wider than outer + inner studs
+  const availablePlates = plateOptions.filter(p => {
+    const outerMm = studDepthMm[outerStud] || 89
+    const innerMm = studDepthMm[innerStud] || 89
+    return studDepthMm[p] > outerMm + innerMm
+  })
 
   return (
     <div className="category-card wall-builder">
@@ -185,6 +201,32 @@ export default function WallBuilder({ selection, onSelect }) {
             </div>
           </div>
 
+          {/* Assembly type toggle (wood only) */}
+          {wallType === 'wood' && (
+            <div className="wall-selectors-group">
+              <label className="wall-selectors-group-label">Assembly Type</label>
+              <div className="wall-selectors">
+                <div className="wall-selector assembly-type-selector">
+                  <div className="option-group">
+                    {[
+                      { id: 'single', label: 'Single Wall' },
+                      { id: 'doubleStud', label: 'Double Stud' },
+                    ].map(at => (
+                      <button
+                        key={at.id}
+                        type="button"
+                        className={`option-button ${assemblyType === at.id ? 'selected' : ''}`}
+                        onClick={() => onSelect({ wallType, assemblyType: at.id })}
+                      >
+                        {at.label}
+                      </button>
+                    ))}
+                  </div>
+                </div>
+              </div>
+            </div>
+          )}
+
           {/* Boundary layer selectors — cladding and sheathing */}
           {isFramedWall && (
             <div className="wall-selectors-group">
@@ -223,8 +265,84 @@ export default function WallBuilder({ selection, onSelect }) {
             </div>
           )}
 
-          {/* Wood/Steel framing fields */}
-          {isFramedWall && (
+          {/* Double stud fields (wood only) */}
+          {isDoubleStud && wallType === 'wood' && (
+            <>
+              <div className="wall-selectors-group">
+                <label className="wall-selectors-group-label">Double Stud Configuration</label>
+                <div className="wall-selectors">
+                  <div className="wall-selector">
+                    <label htmlFor="studSpacing">Stud Spacing</label>
+                    <select
+                      id="studSpacing"
+                      value={studSpacing || ''}
+                      onChange={e => handleFieldChange('studSpacing', e.target.value)}
+                    >
+                      <option value="">Select...</option>
+                      {studSpacingOptions.map(opt => (
+                        <option key={opt.label} value={opt.label}>{opt.label} o.c.</option>
+                      ))}
+                    </select>
+                  </div>
+                  <div className="wall-selector">
+                    <label htmlFor="outerStud">Outer Studs</label>
+                    <select
+                      id="outerStud"
+                      value={outerStud || ''}
+                      onChange={e => handleFieldChange('outerStud', e.target.value)}
+                    >
+                      <option value="">Select...</option>
+                      {doubleStudSizes.map(s => (
+                        <option key={s} value={s}>{s}</option>
+                      ))}
+                    </select>
+                  </div>
+                  <div className="wall-selector">
+                    <label htmlFor="innerStud">Inner Studs</label>
+                    <select
+                      id="innerStud"
+                      value={innerStud || ''}
+                      onChange={e => handleFieldChange('innerStud', e.target.value)}
+                    >
+                      <option value="">Select...</option>
+                      {doubleStudSizes.map(s => (
+                        <option key={s} value={s}>{s}</option>
+                      ))}
+                    </select>
+                  </div>
+                  <div className="wall-selector">
+                    <label htmlFor="plate">Plate Width</label>
+                    <select
+                      id="plate"
+                      value={plate || ''}
+                      onChange={e => handleFieldChange('plate', e.target.value)}
+                    >
+                      <option value="">Select...</option>
+                      {availablePlates.map(p => (
+                        <option key={p} value={p}>{p}</option>
+                      ))}
+                    </select>
+                  </div>
+                  <div className="wall-selector">
+                    <label htmlFor="doubleStudMaterial">Insulation</label>
+                    <select
+                      id="doubleStudMaterial"
+                      value={doubleStudMaterial || ''}
+                      onChange={e => handleFieldChange('doubleStudMaterial', e.target.value)}
+                    >
+                      <option value="">Select...</option>
+                      {blownInMaterials.map(mat => (
+                        <option key={mat} value={mat}>{mat}</option>
+                      ))}
+                    </select>
+                  </div>
+                </div>
+              </div>
+            </>
+          )}
+
+          {/* Single wall framing fields (wood/steel) */}
+          {isFramedWall && isSingleWall && (
             <>
               <div className="wall-selectors-group">
                 <label className="wall-selectors-group-label">Framing</label>
