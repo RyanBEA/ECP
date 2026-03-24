@@ -5,11 +5,14 @@
   "type": "module",
   "scripts": {
     "dev": "vite",
-    "build": "vite build",
+    "build": "npm run generate && vite build",
     "preview": "vite preview",
     "start": "serve dist -s -l $PORT",
     "test": "vitest run",
-    "test:watch": "vitest"
+    "test:watch": "vitest",
+    "generate": "node scripts/generate.js",
+    "generate:audit": "node scripts/generate.js --audit",
+    "generate:validate": "node scripts/generate.js --validate"
   },
   "dependencies": {
     "react": "^18.2.0",
@@ -18,6 +21,8 @@
   },
   "devDependencies": {
     "@vitejs/plugin-react": "^4.2.1",
+    "exceljs": "^4.4.0",
+    "js-yaml": "^4.1.1",
     "vite": "^5.0.0",
     "vitest": "^4.0.18"
   }
