@@ -96,14 +96,28 @@ Dual-mode wall assembly input: "Build Assembly" (builder) or "Select RSI" (simpl
 ### Wall Selection Object Shape
 
 ```js
-// Builder mode — wood/steel:
+// Builder mode — single wall (wood/steel):
 {
   wallType: 'wood',
+  assemblyType: 'single',          // default
   studSpacing: '16"',
   cavityMaterial: 'Fiberglass Batt',
   cavityType: '2x6 R20',
   contInsType: 'XPS',
-  contInsThickness: '2"'
+  contInsThickness: '2"',
+  claddingId: 'vinyl_siding',      // optional (default per wall type)
+  sheathingId: 'osb_11',           // optional (wood only, default OSB)
+}
+
+// Builder mode — double stud (wood only):
+{
+  wallType: 'wood',
+  assemblyType: 'doubleStud',
+  studSpacing: '16"',
+  outerStud: '2x4',
+  innerStud: '2x4',
+  plate: '2x10',
+  doubleStudMaterial: 'Dense Pack Cellulose',
 }
 
 // Builder mode — ICF:
@@ -116,7 +130,7 @@ Dual-mode wall assembly input: "Build Assembly" (builder) or "Select RSI" (simpl
 {}
 ```
 
-Builder fields and `simpleIndex` are mutually exclusive. Mode switching calls `onSelect({})` to wipe everything. Changing `wallType` clears all downstream fields. Changing `cavityMaterial` clears `cavityType` (available cavity sizes differ per material).
+Builder fields and `simpleIndex` are mutually exclusive. Mode switching calls `onSelect({})` to wipe everything. Changing `wallType` clears all downstream fields. Changing `cavityMaterial` clears `cavityType` (available cavity sizes differ per material). Changing `assemblyType` clears framing/cavity fields.
 
 ### Internal State
 
@@ -127,11 +141,17 @@ Builder fields and `simpleIndex` are mutually exclusive. Mode switching calls `o
 ### Builder Mode — Progressive Disclosure
 
 1. **Wall Type selector** — always visible (Wood Frame, Steel Frame, ICF)
-2. **Wood/Steel fields** — shown when `wallType` is `'wood'` or `'steel'`:
+2. **Assembly Type toggle** — shown for wood walls: Single Wall / Double Stud
+3. **Boundary Layers group** — shown for wood/steel:
+   - **Cladding** dropdown: 8 options from `boundary-options.json` (vinyl, brick, fibre cement, etc.)
+   - **Sheathing** dropdown (wood only): 7 options (OSB, plywood, gypsum)
+4. **Single wall fields** (default) — shown for wood/steel when `assemblyType === 'single'`:
    - **Framing group**: Stud Spacing, Cavity Insulation (material), Cavity Size (type)
-   - Cavity Size options are **material-dependent** — uses `cavityTypesByMaterial[material]` filtered by non-null lookup values
+   - Cavity Size now includes deep cavities (2x8, 2x10, 2x12) for blown-in materials
    - **Continuous Insulation group**: Type, Thickness
-3. **ICF field** — shown when `wallType` is `'icf'`:
+5. **Double stud fields** — shown for wood when `assemblyType === 'doubleStud'`:
+   - Stud Spacing, Outer Studs (2x4/2x6), Inner Studs (2x4/2x6), Plate Width (2x8-2x12, auto-filtered), Insulation (blown-in only)
+6. **ICF field** — shown when `wallType` is `'icf'`:
    - EPS Form Thickness (per side)
 
 When all required fields are populated:

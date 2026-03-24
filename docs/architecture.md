@@ -33,8 +33,9 @@ ecp-calculator/
 │   ├── App.css              # All styles, CSS variables, theming
 │   ├── WallSectionDemo.jsx  # Dev harness for WallSection (not in production)
 │   ├── data/
-│   │   ├── ecpData.js       # Source of truth: thresholds, lookups, categories
-│   │   └── ecpData.test.js  # Unit tests for wall RSI lookup and points
+│   │   ├── ecpData.js       # API layer: imports generated JSON + compute module
+│   │   ├── ecpData.test.js  # Unit tests for wall RSI and points
+│   │   └── generated/       # JSON from build pipeline (committed)
 │   └── components/
 │       ├── CategoryCard.jsx   # Standard category selection UI
 │       ├── OptionButton.jsx   # Individual option button
@@ -51,7 +52,7 @@ ecp-calculator/
 ## Data Flow
 
 ```
-ecpData.js (thresholds, lookup tables, categories, calculation functions)
+YAML materials → generate.js → generated/*.json → ecpData.js + compute.js
      │
      ▼
 App.jsx (state: selections, wallSelection, selectedTierId, darkMode)
@@ -122,9 +123,9 @@ App
 
 ## Key Design Decisions
 
-1. **Single data file** — All thresholds, categories, and lookup tables in `ecpData.js`. No runtime data loading.
+1. **YAML-driven data pipeline** — Material properties live in `data/materials/*.yaml` (NBC-verified). A build script (`scripts/generate.js`) produces JSON lookups committed to `src/data/generated/`. `ecpData.js` imports JSON and a lightweight compute module for runtime RSI assembly.
 
-2. **Lookup tables over formulas** — Wall RSI uses pre-computed lookup tables (`framedWallRsi`, `continuousInsRsi`, `icfRsi`) instead of runtime calculation. Framed wall RSI values already include drywall, sheathing, and air films — only continuous insulation RSI is added at runtime. ICF values are fully pre-computed. This allows supporting steel and ICF wall types where parallel path formulas differ.
+2. **Hybrid lookup + compute** — JSON stores the hard lookups (cavity RSI, framing factors). A thin compute module (`scripts/compute.js`, ~200 lines) does runtime math for variable boundary layers and the steel modified zone method (NBC K-values depend on spacing and insulating sheathing). An auditable Excel workbook is generated alongside the JSON.
 
 3. **Progressive disclosure** — Wall builder shows only relevant fields based on wall type. Wood/Steel shows framing + continuous insulation dropdowns. ICF shows only form thickness. Cavity size options are further filtered by the selected insulation material and wall type (e.g., wood uses 2x4 studs, steel uses 2x3-5/8 studs; batt materials offer sizes with R-values; loose fill/dense pack offer stud size only). Reduces cognitive load.
 
