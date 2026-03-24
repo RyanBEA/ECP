@@ -18,8 +18,9 @@
 import { writeFileSync, existsSync, readFileSync, mkdirSync } from 'fs'
 import { dirname, join } from 'path'
 import { fileURLToPath } from 'url'
+import ExcelJS from 'exceljs'
 import { loadMaterials } from './loadMaterials.js'
-import { parallelPath, steelCavityPct } from './compute.js'
+import { parallelPath, steelCavityPct, woodWallRsi, steelWallRsi } from './compute.js'
 
 const __dirname = dirname(fileURLToPath(import.meta.url))
 const outDir = join(__dirname, '..', 'src', 'data', 'generated')
@@ -301,34 +302,181 @@ function writeJson(filename, data) {
   writeFileSync(path, json)
 }
 
-// --- Main ---
-console.log('Generating ECP data...')
+// --- Excel Workbook ---
+async function generateExcel(wallData) {
+  const wb = new ExcelJS.Workbook()
+  wb.creator = 'ECP Calculator Pipeline'
+  wb.created = new Date()
 
-writeJson('wall-data.json', generateWallData())
-writeJson('continuous-ins.json', generateContinuousIns())
-writeJson('icf-data.json', generateIcf())
-writeJson('boundary-options.json', generateBoundaryOptions())
-writeJson('thresholds.json', generateThresholds())
-writeJson('double-stud-data.json', generateDoubleStudData())
+  // Materials sheet — reference data
+  const ref = wb.addWorksheet('Materials')
+  ref.columns = [
+    { header: 'Property', key: 'prop', width: 40 },
+    { header: 'Value', key: 'val', width: 15 },
+    { header: 'Unit', key: 'unit', width: 20 },
+    { header: 'Source', key: 'source', width: 40 },
+  ]
+  ref.getRow(1).font = { bold: true }
+  ref.addRow({ prop: 'Wood RSI/mm', val: 0.0085, unit: '(m²·K)/W per mm', source: 'NBC Table D' })
+  ref.addRow({ prop: 'Steel RSI/mm', val: 0.0000161, unit: '(m²·K)/W per mm', source: 'NBC A-9.36.2.4.(1)' })
+  ref.addRow({})
+  ref.addRow({ prop: 'Steel K values (NBC Table B)', val: '', unit: '', source: '' })
+  ref.addRow({ prop: '  < 500mm without insulating sheathing', val: 'K1=0.33, K2=0.67' })
+  ref.addRow({ prop: '  < 500mm with insulating sheathing', val: 'K1=0.40, K2=0.60' })
+  ref.addRow({ prop: '  ≥ 500mm', val: 'K1=0.50, K2=0.50' })
+  ref.addRow({})
+  for (const [key, mat] of Object.entries(m.continuous)) {
+    ref.addRow({ prop: `Continuous Ins: ${mat.label}`, val: mat.rsi_per_mm, unit: 'RSI/mm', source: mat.source || '' })
+  }
 
-// Summary
-const wallData = generateWallData()
-let woodCount = 0, steelCount = 0
-for (const [wt, data] of Object.entries(wallData)) {
-  if (!data.spacings) continue
-  for (const sp of Object.values(data.spacings)) {
-    for (const mats of Object.values(sp.materials)) {
-      const n = Object.keys(mats).length
-      if (wt === 'wood') woodCount += n
-      if (wt === 'steel') steelCount += n
+  // Wood sheet
+  const wood = wb.addWorksheet('Wood Frame')
+  wood.columns = [
+    { header: 'Spacing', key: 'spacing', width: 10 },
+    { header: 'Material', key: 'material', width: 25 },
+    { header: 'Cavity', key: 'cavity', width: 15 },
+    { header: 'Stud RSI', key: 'studRsi', width: 12 },
+    { header: 'Cavity RSI', key: 'cavityRsi', width: 12 },
+    { header: 'Cavity %', key: 'cavityPct', width: 10 },
+    { header: 'PP RSI', key: 'ppRsi', width: 12 },
+    { header: 'Boundary', key: 'boundary', width: 12 },
+    { header: 'Total RSI', key: 'totalRsi', width: 12 },
+  ]
+  wood.getRow(1).font = { bold: true }
+
+  const woodBoundary = { outside_air: 0.03, cladding: 0.11, sheathing: 0.108, drywall: 0.08, inside_air: 0.12 }
+  const bSum = 0.03 + 0.11 + 0.108 + 0.08 + 0.12
+
+  for (const [spacing, spData] of Object.entries(wallData.wood.spacings)) {
+    for (const [matLabel, entries] of Object.entries(spData.materials)) {
+      for (const [cavType, e] of Object.entries(entries)) {
+        const totalRsi = round6(e.ppRsi + bSum)
+        wood.addRow({
+          spacing: `${spacing}"`,
+          material: matLabel,
+          cavity: cavType,
+          studRsi: e.studRsi,
+          cavityRsi: e.cavityRsi,
+          cavityPct: spData.cavity_pct,
+          ppRsi: e.ppRsi,
+          boundary: bSum,
+          totalRsi,
+        })
+      }
     }
   }
+
+  // Steel sheet
+  const steel = wb.addWorksheet('Steel Frame')
+  steel.columns = [
+    { header: 'Spacing', key: 'spacing', width: 10 },
+    { header: 'Material', key: 'material', width: 25 },
+    { header: 'Cavity', key: 'cavity', width: 15 },
+    { header: 'Stud RSI', key: 'studRsi', width: 12 },
+    { header: 'Cavity RSI', key: 'cavityRsi', width: 12 },
+    { header: 'Cavity %', key: 'cavityPct', width: 10 },
+    { header: 'K1', key: 'k1', width: 8 },
+    { header: 'K2', key: 'k2', width: 8 },
+    { header: 'Total RSI (no CI)', key: 'totalRsi', width: 15 },
+  ]
+  steel.getRow(1).font = { bold: true }
+
+  const steelBoundary = { outside_air: 0.03, cladding: 0.07, sheathing: 0, drywall: 0.08, inside_air: 0.12 }
+
+  for (const [spacing, spData] of Object.entries(wallData.steel.spacings)) {
+    for (const [matLabel, entries] of Object.entries(spData.materials)) {
+      for (const [cavType, e] of Object.entries(entries)) {
+        const spacingNum = parseInt(spacing)
+        const totalRsi = steelWallRsi({
+          studDepthMm: wallData.steel.studs[e.stud].depth_mm,
+          cavityRsi: e.cavityRsi,
+          spacingInches: spacingNum,
+          boundary: steelBoundary,
+          airSpace: 0.18,
+        })
+        const spacingMm = spacingNum * 25.4
+        const k1 = spacingMm >= 500 ? 0.50 : 0.33
+        const k2 = spacingMm >= 500 ? 0.50 : 0.67
+
+        steel.addRow({
+          spacing: `${spacing}"`,
+          material: matLabel,
+          cavity: cavType,
+          studRsi: e.studRsi,
+          cavityRsi: e.cavityRsi,
+          cavityPct: spData.cavity_pct,
+          k1, k2,
+          totalRsi: round6(totalRsi),
+        })
+      }
+    }
+  }
+
+  // ICF sheet
+  const icfSheet = wb.addWorksheet('ICF')
+  icfSheet.columns = [
+    { header: 'Form', key: 'form', width: 15 },
+    { header: 'Form RSI', key: 'formRsi', width: 12 },
+    { header: 'Concrete RSI', key: 'concreteRsi', width: 12 },
+    { header: 'Boundary', key: 'boundary', width: 12 },
+    { header: 'Total RSI', key: 'totalRsi', width: 12 },
+  ]
+  icfSheet.getRow(1).font = { bold: true }
+
+  const icfBoundarySum = 0.03 + 0.07 + 0.08 + 0.12
+  for (const f of m.icf.forms) {
+    const formRsi = round6(f.thickness_mm * 2 * m.icf.eps_rsi_per_mm)
+    const concreteRsi = round6(m.icf.concrete_core_mm * m.icf.concrete_rsi_per_mm)
+    icfSheet.addRow({
+      form: f.label,
+      formRsi,
+      concreteRsi,
+      boundary: icfBoundarySum,
+      totalRsi: round6(formRsi + concreteRsi + icfBoundarySum),
+    })
+  }
+
+  const distDir = join(__dirname, '..', 'dist')
+  mkdirSync(distDir, { recursive: true })
+  const excelPath = join(distDir, 'ECP-Wall-RSI-Calculator.xlsx')
+  await wb.xlsx.writeFile(excelPath)
+  console.log(`  Excel workbook: ${excelPath}`)
 }
 
-const dsData = generateDoubleStudData()
-const dsCount = Object.values(dsData).reduce((sum, sp) => sum + Object.keys(sp).length, 0)
+// --- Main ---
+async function main() {
+  console.log('Generating ECP data...')
 
-console.log(`  Wood single wall combos: ${woodCount}`)
-console.log(`  Steel single wall combos: ${steelCount}`)
-console.log(`  Double stud combos: ${dsCount}`)
-console.log('Done.')
+  const wallData = generateWallData()
+  writeJson('wall-data.json', wallData)
+  writeJson('continuous-ins.json', generateContinuousIns())
+  writeJson('icf-data.json', generateIcf())
+  writeJson('boundary-options.json', generateBoundaryOptions())
+  writeJson('thresholds.json', generateThresholds())
+  writeJson('double-stud-data.json', generateDoubleStudData())
+
+  await generateExcel(wallData)
+
+  // Summary
+  let woodCount = 0, steelCount = 0
+  for (const [wt, data] of Object.entries(wallData)) {
+    if (!data.spacings) continue
+    for (const sp of Object.values(data.spacings)) {
+      for (const mats of Object.values(sp.materials)) {
+        const n = Object.keys(mats).length
+        if (wt === 'wood') woodCount += n
+        if (wt === 'steel') steelCount += n
+      }
+    }
+  }
+
+  const dsData = generateDoubleStudData()
+  const dsCount = Object.values(dsData).reduce((sum, sp) => sum + Object.keys(sp).length, 0)
+
+  console.log(`  Wood single wall combos: ${woodCount}`)
+  console.log(`  Steel single wall combos: ${steelCount}`)
+  console.log(`  Double stud combos: ${dsCount}`)
+  console.log('Done.')
+}
+
+main().catch(err => { console.error(err); process.exit(1) })
