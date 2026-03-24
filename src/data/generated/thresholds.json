@@ -1,0 +1,49 @@
+{
+  "walls": [
+    {
+      "minRsi": 3.08,
+      "points": 1.6
+    },
+    {
+      "minRsi": 3.69,
+      "points": 6.2
+    },
+    {
+      "minRsi": 3.85,
+      "points": 6.9
+    },
+    {
+      "minRsi": 3.96,
+      "points": 7.7
+    },
+    {
+      "minRsi": 4.29,
+      "points": 9.2
+    },
+    {
+      "minRsi": 4.4,
+      "points": 9.9
+    },
+    {
+      "minRsi": 4.57,
+      "points": 10.6
+    },
+    {
+      "minRsi": 4.73,
+      "points": 11.1
+    },
+    {
+      "minRsi": 4.84,
+      "points": 11.6
+    },
+    {
+      "minRsi": 5.01,
+      "points": 12.2
+    },
+    {
+      "minRsi": 5.45,
+      "points": 13.6
+    }
+  ],
+  "minWallRsi": 2.97
+}
