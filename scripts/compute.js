@@ -137,3 +137,88 @@ export function icfWallRsi({
     + (boundary.drywall || 0)
     + (boundary.inside_air || 0)
 }
+
+/**
+ * Total RSI for a staggered double stud wall.
+ *
+ * Two rows of studs on a wider plate, blown insulation fills everything.
+ * Each stud row: parallel-path (penalizes bridging)
+ * Gap between rows: isothermal plane (no bridging — continuous insulation)
+ *
+ * @param {object} params
+ * @param {number} params.outerStudDepthMm - Outer stud row depth (mm)
+ * @param {number} params.innerStudDepthMm - Inner stud row depth (mm)
+ * @param {number} params.plateDepthMm - Total plate width (mm), determines gap
+ * @param {number} params.cavityRsiPerMm - Blown insulation RSI per mm
+ * @param {number} params.cavityPct - Cavity area percentage (same for both rows)
+ * @param {object} params.boundary - Boundary layer RSI values
+ * @param {number} [params.contInsRsi=0] - Optional exterior continuous insulation
+ * @returns {number} Total effective RSI
+ */
+export function doubleStudWallRsi({
+  outerStudDepthMm,
+  innerStudDepthMm,
+  plateDepthMm,
+  cavityRsiPerMm,
+  cavityPct,
+  boundary,
+  contInsRsi = 0,
+}) {
+  const gapMm = plateDepthMm - outerStudDepthMm - innerStudDepthMm
+
+  // Each stud row via parallel-path
+  const outerStudRsi = outerStudDepthMm * 0.0085
+  const outerCavityRsi = outerStudDepthMm * cavityRsiPerMm
+  const outerPp = parallelPath(outerStudRsi, outerCavityRsi, cavityPct)
+
+  const innerStudRsi = innerStudDepthMm * 0.0085
+  const innerCavityRsi = innerStudDepthMm * cavityRsiPerMm
+  const innerPp = parallelPath(innerStudRsi, innerCavityRsi, cavityPct)
+
+  // Gap: continuous insulation (series, no bridging)
+  const gapRsi = gapMm * cavityRsiPerMm
+
+  return boundarySum(boundary, { contInsRsi }) + outerPp + gapRsi + innerPp
+}
+
+/**
+ * Total RSI for a double wall (exterior wall + gap + interior wall).
+ *
+ * Each wall: parallel-path framed layer
+ * Gap: isothermal plane (blown insulation, no bridging)
+ *
+ * @param {object} params
+ * @param {number} params.outerStudDepthMm - Exterior wall stud depth (mm)
+ * @param {number} params.outerCavityRsi - Exterior wall cavity insulation RSI
+ * @param {number} params.outerCavityPct - Exterior wall cavity percentage
+ * @param {number} params.innerStudDepthMm - Interior wall stud depth (mm)
+ * @param {number} params.innerCavityRsi - Interior wall cavity insulation RSI
+ * @param {number} params.innerCavityPct - Interior wall cavity percentage
+ * @param {number} params.gapMm - Gap width in mm
+ * @param {number} params.gapRsiPerMm - Gap insulation RSI per mm
+ * @param {object} params.boundary - Boundary layer RSI values
+ * @param {number} [params.contInsRsi=0] - Optional exterior continuous insulation
+ * @returns {number} Total effective RSI
+ */
+export function doubleWallRsi({
+  outerStudDepthMm,
+  outerCavityRsi,
+  outerCavityPct,
+  innerStudDepthMm,
+  innerCavityRsi,
+  innerCavityPct,
+  gapMm,
+  gapRsiPerMm,
+  boundary,
+  contInsRsi = 0,
+}) {
+  const outerStudRsi = outerStudDepthMm * 0.0085
+  const outerPp = parallelPath(outerStudRsi, outerCavityRsi, outerCavityPct)
+
+  const innerStudRsi = innerStudDepthMm * 0.0085
+  const innerPp = parallelPath(innerStudRsi, innerCavityRsi, innerCavityPct)
+
+  const gapRsi = gapMm * gapRsiPerMm
+
+  return boundarySum(boundary, { contInsRsi }) + outerPp + gapRsi + innerPp
+}

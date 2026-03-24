@@ -1,5 +1,8 @@
 import { describe, it, expect } from 'vitest'
-import { woodWallRsi, steelWallRsi, icfWallRsi, parallelPath } from './compute.js'
+import {
+  woodWallRsi, steelWallRsi, icfWallRsi, parallelPath,
+  doubleStudWallRsi, doubleWallRsi,
+} from './compute.js'
 
 describe('parallelPath', () => {
   it('computes parallel-path RSI for wood 2x4 R12 at 16" OC', () => {
@@ -209,5 +212,81 @@ describe('icfWallRsi', () => {
       boundary: icfBoundary,
     })
     expect(rsi).toBeCloseTo(5.974, 2)
+  })
+})
+
+describe('doubleStudWallRsi', () => {
+  const boundary = {
+    outside_air: 0.03,
+    cladding: 0.11,
+    sheathing: 0.108,
+    drywall: 0.08,
+    inside_air: 0.12,
+  }
+
+  it('two 2x4 rows on 2x10 plate, dense pack cellulose, 16" OC', () => {
+    const rsi = doubleStudWallRsi({
+      outerStudDepthMm: 89,
+      innerStudDepthMm: 89,
+      plateDepthMm: 235,
+      cavityRsiPerMm: 0.024,
+      cavityPct: 77,
+      boundary,
+    })
+    // Each stud-cavity pp ≈ 1.504
+    // Gap RSI = (235-89-89) * 0.024 = 57 * 0.024 = 1.368
+    // Total ≈ 0.448 + 1.504 + 1.368 + 1.504 = 4.824
+    expect(rsi).toBeGreaterThan(4.5)
+    expect(rsi).toBeLessThan(5.5)
+  })
+
+  it('gap RSI increases with wider plate', () => {
+    const narrow = doubleStudWallRsi({
+      outerStudDepthMm: 89,
+      innerStudDepthMm: 89,
+      plateDepthMm: 184, // 2x8
+      cavityRsiPerMm: 0.024,
+      cavityPct: 77,
+      boundary,
+    })
+    const wide = doubleStudWallRsi({
+      outerStudDepthMm: 89,
+      innerStudDepthMm: 89,
+      plateDepthMm: 286, // 2x12
+      cavityRsiPerMm: 0.024,
+      cavityPct: 77,
+      boundary,
+    })
+    expect(wide).toBeGreaterThan(narrow)
+    // Difference should be approximately (286-184)*0.024 = 2.448
+    expect(wide - narrow).toBeCloseTo((286 - 184) * 0.024, 1)
+  })
+})
+
+describe('doubleWallRsi', () => {
+  const boundary = {
+    outside_air: 0.03,
+    cladding: 0.11,
+    sheathing: 0.108,
+    drywall: 0.08,
+    inside_air: 0.12,
+  }
+
+  it('2x6 exterior + 3" gap + 2x4 interior, DPC', () => {
+    const rsi = doubleWallRsi({
+      outerStudDepthMm: 140,
+      outerCavityRsi: 140 * 0.024,   // DPC in outer wall
+      outerCavityPct: 77,
+      innerStudDepthMm: 89,
+      innerCavityRsi: 89 * 0.024,    // DPC in inner wall
+      innerCavityPct: 77,
+      gapMm: 76.2,                    // 3"
+      gapRsiPerMm: 0.024,            // DPC blown in
+      boundary,
+    })
+    // Outer pp ≈ 2.364, inner pp ≈ 1.504, gap = 76.2*0.024 = 1.829
+    // Total ≈ 0.448 + 2.364 + 1.829 + 1.504 = 6.145
+    expect(rsi).toBeGreaterThan(5.5)
+    expect(rsi).toBeLessThan(7.0)
   })
 })
