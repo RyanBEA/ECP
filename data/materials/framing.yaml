@@ -20,15 +20,25 @@ wood:
 
 steel:
   rsi_per_mm: 0.0000161  # thermal resistivity of steel
-  web_thickness_in: 0.125  # 1/8 inch
-
-  # Modified zone method weighting factors
-  k_iso: 0.4      # isothermal planes weight
-  k_pp:  0.6      # parallel-path weight
 
   studs:
     "2x3-5/8": { depth_mm: 92.075 }
     "2x6":     { depth_mm: 152 }
 
-  # Steel cavity_pct is computed: (spacing - web_thickness) * 100 / spacing
-  # Not stored — derived at build time from stud spacing and web thickness
+  # NBC 2020 Table A-9.36.2.4.(1)-B — K1/K2 weighting factors
+  # K1 weights RSI_T1 (full-assembly parallel-path), K2 weights RSI_T3 (stud-cavity pp + boundary series)
+  # "insulating_sheathing" = continuous exterior insulation is present
+  k_values:
+    under_500_no_ins:   { k1: 0.33, k2: 0.67 }   # < 500 mm without insulating sheathing
+    under_500_with_ins: { k1: 0.40, k2: 0.60 }   # < 500 mm with insulating sheathing
+    over_500:           { k1: 0.50, k2: 0.50 }   # ≥ 500 mm (any)
+
+  # NBC 2020 Table A-9.36.2.4.(1)-C — Steel framing/cavity percentages (above-grade walls)
+  # These are NOT computed from web thickness — they come from the NBC table
+  # and are based on common framing practices (18-gauge / 1.2 mm steel)
+  cavity_pct:
+    under_500: { framing: 0.77, cavity: 99.23 }   # < 500 mm o.c.
+    over_500:  { framing: 0.67, cavity: 99.33 }   # ≥ 500 mm o.c.
+
+  # Spacing breakpoint (mm) — 16" = 406mm, 19.2" = 488mm (both < 500); 24" = 610mm (≥ 500)
+  spacing_breakpoint_mm: 500

@@ -2,6 +2,7 @@ import { describe, it, expect } from 'vitest'
 import {
   woodWallRsi, steelWallRsi, icfWallRsi, parallelPath,
   doubleStudWallRsi, doubleWallRsi,
+  steelKValues, steelCavityPct,
 } from './compute.js'
 
 describe('parallelPath', () => {
@@ -104,11 +105,39 @@ describe('woodWallRsi', () => {
   })
 })
 
+describe('steelKValues', () => {
+  it('< 500mm without insulating sheathing → 0.33/0.67', () => {
+    expect(steelKValues(16, false)).toEqual({ k1: 0.33, k2: 0.67 })
+    expect(steelKValues(19, false)).toEqual({ k1: 0.33, k2: 0.67 })
+  })
+
+  it('< 500mm with insulating sheathing → 0.40/0.60', () => {
+    expect(steelKValues(16, true)).toEqual({ k1: 0.40, k2: 0.60 })
+    expect(steelKValues(19, true)).toEqual({ k1: 0.40, k2: 0.60 })
+  })
+
+  it('≥ 500mm → 0.50/0.50 regardless of insulating sheathing', () => {
+    expect(steelKValues(24, false)).toEqual({ k1: 0.50, k2: 0.50 })
+    expect(steelKValues(24, true)).toEqual({ k1: 0.50, k2: 0.50 })
+  })
+})
+
+describe('steelCavityPct', () => {
+  it('computes cavity percentage from web thickness', () => {
+    // (spacing - 0.125) * 100 / spacing
+    expect(steelCavityPct(16)).toBeCloseTo(99.2188, 3)
+    expect(steelCavityPct(19)).toBeCloseTo(99.3421, 3)
+    expect(steelCavityPct(24)).toBeCloseTo(99.4792, 3)
+  })
+})
+
 describe('steelWallRsi', () => {
-  // Steel uses modified zone method: 0.4 * isothermal + 0.6 * parallel_path
-  // Reference values from lookup-framed-wall-rsi.csv
-  // Steel default boundary: outside_air=0.03, cladding=0.07, air_space=0.18,
-  //   drywall=0.08, inside_air=0.12, NO sheathing
+  // NBC 2020 A-9.36.2.4.(1): RSI_eff = K1 × RSI_T1 + K2 × RSI_T3
+  // K values from Table B, cavity percentages from Table C
+  //
+  // The existing CSV was generated with K1=0.40/K2=0.60 at 16"/19"
+  // (assuming insulating sheathing present). Without continuous insulation,
+  // the correct K values are 0.33/0.67 — giving LOWER RSI values.
 
   const steelBoundary = {
     outside_air: 0.03,
@@ -118,32 +147,30 @@ describe('steelWallRsi', () => {
     inside_air: 0.12,
   }
 
-  it('steel/16"/Fiberglass Batt/2x3-5/8 R12 matches CSV', () => {
-    const rsi = steelWallRsi({
-      studDepthMm: 92.075,
-      cavityRsi: 2.11,
-      spacingInches: 16,
-      boundary: steelBoundary,
-      airSpace: 0.18,
-    })
-    expect(rsi).toBeCloseTo(1.394125, 3)
-  })
-
-  it('steel/16"/Fiberglass Batt/2x6 R20 matches CSV', () => {
+  // --- NBC Example verification (page 1448) ---
+  // 41×152mm steel, 406mm (16") o.c., with 38mm XPS (RSI 1.33)
+  // K1=0.40, K2=0.60 (< 500mm with insulating sheathing)
+  // RSI_eff = (0.40 × 5.25) + (0.60 × 2.08) = 3.35
+  it('matches NBC 2020 Example 2 (steel 16" with XPS)', () => {
     const rsi = steelWallRsi({
       studDepthMm: 152,
       cavityRsi: 3.52,
       spacingInches: 16,
-      boundary: steelBoundary,
+      boundary: {
+        outside_air: 0.03,
+        cladding: 0.07,  // brick veneer
+        sheathing: 0,
+        drywall: 0.08,   // 12.7mm gypsum
+        inside_air: 0.12,
+      },
       airSpace: 0.18,
+      contInsRsi: 1.33,  // 38mm XPS → triggers K1=0.40
     })
-    expect(rsi).toBeCloseTo(1.973997, 3)
+    expect(rsi).toBeCloseTo(3.35, 1)
   })
 
-  it('steel/24"/Fiberglass Batt/2x6 R24 formula consistency', () => {
-    // NOTE: CSV says 2.703207 but formula gives ~2.344 at 24" OC.
-    // The RSI-calc.xlsx uses a different cavity_pct at 24" than (spacing-web)/spacing.
-    // This discrepancy will be systematically addressed in Task 8 CSV validation.
+  // --- 24" OC tests (K1=0.50/K2=0.50, ≥500mm) ---
+  it('steel/24"/FG Batt/2x6 R24 matches CSV (K=0.50)', () => {
     const rsi = steelWallRsi({
       studDepthMm: 152,
       cavityRsi: 4.23,
@@ -151,22 +178,55 @@ describe('steelWallRsi', () => {
       boundary: steelBoundary,
       airSpace: 0.18,
     })
-    // Verify formula consistency (stud_rsi * k factor + boundary)
-    expect(rsi).toBeGreaterThan(2.0)
-    expect(rsi).toBeLessThan(3.0)
+    expect(rsi).toBeCloseTo(2.703, 2)
   })
 
-  it('steel/16"/Dense Pack Cellulose/2x6 matches CSV', () => {
-    // steel 2x6 depth = 152mm, DPC rsi/mm = 0.024
-    // cavity_rsi = 152 * 0.024 = 3.648
+  it('steel/24"/FG Batt/2x3-5/8 R12 matches CSV (K=0.50)', () => {
+    const rsi = steelWallRsi({
+      studDepthMm: 92.075,
+      cavityRsi: 2.11,
+      spacingInches: 24,
+      boundary: steelBoundary,
+      airSpace: 0.18,
+    })
+    expect(rsi).toBeCloseTo(1.631488, 3)
+  })
+
+  // --- 16" OC without continuous insulation (K1=0.33/K2=0.67) ---
+  it('steel/16"/no cont ins uses K1=0.33', () => {
     const rsi = steelWallRsi({
       studDepthMm: 152,
-      cavityRsi: 152 * 0.024,
+      cavityRsi: 3.52,
       spacingInches: 16,
       boundary: steelBoundary,
       airSpace: 0.18,
     })
-    expect(rsi).toBeCloseTo(2.023, 2)
+    // K1=0.33, K2=0.67 — lower than the CSV (which assumed 0.40/0.60)
+    // This is the NBC-correct value for steel without insulating sheathing
+    expect(rsi).toBeGreaterThan(1.5)
+    expect(rsi).toBeLessThan(2.5)
+  })
+
+  // --- Adding continuous insulation switches K at 16" ---
+  it('adding continuous insulation at 16" increases K1 from 0.33 to 0.40', () => {
+    const base = steelWallRsi({
+      studDepthMm: 152,
+      cavityRsi: 3.52,
+      spacingInches: 16,
+      boundary: steelBoundary,
+      airSpace: 0.18,
+    })
+    const withContIns = steelWallRsi({
+      studDepthMm: 152,
+      cavityRsi: 3.52,
+      spacingInches: 16,
+      boundary: steelBoundary,
+      airSpace: 0.18,
+      contInsRsi: 0.88,  // 1" XPS
+    })
+    // The continuous insulation adds RSI AND switches K1 from 0.33→0.40
+    // So the increase is MORE than just 0.88
+    expect(withContIns - base).toBeGreaterThan(0.88)
   })
 })
 

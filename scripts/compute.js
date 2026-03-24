@@ -57,10 +57,47 @@ export function woodWallRsi({ studDepthMm, cavityRsi, cavityPct, boundary, contI
 }
 
 /**
+ * Look up NBC 2020 Table A-9.36.2.4.(1)-B K1/K2 values for steel.
+ *
+ * @param {number} spacingInches - Stud spacing in inches (16, 19, or 24)
+ * @param {boolean} hasInsulatingSheathing - Whether continuous exterior insulation is present
+ * @returns {{ k1: number, k2: number }}
+ */
+export function steelKValues(spacingInches, hasInsulatingSheathing) {
+  const spacingMm = spacingInches * 25.4
+  if (spacingMm >= 500) {
+    return { k1: 0.50, k2: 0.50 }
+  }
+  if (hasInsulatingSheathing) {
+    return { k1: 0.40, k2: 0.60 }
+  }
+  return { k1: 0.33, k2: 0.67 }
+}
+
+/**
+ * Compute steel cavity percentage from stud spacing and web thickness.
+ *
+ * Per NBC 2020 Table A-9.36.2.4.(1)-C Notes: "If the actual % areas of
+ * framing and cavity are known, those should be used rather than the ones
+ * in this Table." The web thickness of 18-gauge steel is 0.125" (3.175mm).
+ *
+ * @param {number} spacingInches - Stud spacing in inches
+ * @returns {number} Cavity area percentage
+ */
+export function steelCavityPct(spacingInches) {
+  const webThicknessIn = 0.125
+  return (spacingInches - webThicknessIn) * 100 / spacingInches
+}
+
+/**
  * Total RSI for a steel-framed wall assembly.
  *
- * Uses modified zone method: RSI = k_iso * V_iso + k_pp * T_pp
- * where k_iso=0.4, k_pp=0.6 (from RSI-calc.xlsx)
+ * NBC 2020 A-9.36.2.4.(1): RSI_eff = K1 × RSI_T1 + K2 × RSI_T3
+ *   RSI_T1 = full-assembly parallel-path (boundary layers in both stud and cavity paths)
+ *   RSI_T2 = stud-cavity parallel-path only
+ *   RSI_T3 = RSI_T2 + boundary layers in series
+ *   K1, K2 from Table B (depends on spacing and insulating sheathing)
+ *   Cavity percentages from Table C (depends on spacing)
  *
  * @param {object} params
  * @param {number} params.studDepthMm - Steel stud depth in mm
@@ -69,8 +106,6 @@ export function woodWallRsi({ studDepthMm, cavityRsi, cavityPct, boundary, contI
  * @param {object} params.boundary - Boundary layer RSI values
  * @param {number} params.airSpace - Air space RSI (typically 0.18)
  * @param {number} [params.contInsRsi=0] - Continuous insulation RSI
- * @param {number} [params.kIso=0.4] - Isothermal planes weight
- * @param {number} [params.kPp=0.6] - Parallel-path weight
  * @returns {number} Total effective RSI
  */
 export function steelWallRsi({
@@ -80,12 +115,12 @@ export function steelWallRsi({
   boundary,
   airSpace,
   contInsRsi = 0,
-  kIso = 0.4,
-  kPp = 0.6,
 }) {
   const studRsi = studDepthMm * 0.0000161
-  const webThicknessIn = 0.125
-  const cavityPct = (spacingInches - webThicknessIn) * 100 / spacingInches
+  const cavityPct = steelCavityPct(spacingInches)
+  const framingPct = 100 - cavityPct
+  const hasInsulatingSheathing = contInsRsi > 0
+  const { k1, k2 } = steelKValues(spacingInches, hasInsulatingSheathing)
 
   // Boundary sum for steel (includes air space, no sheathing typically)
   const bSum = (boundary.outside_air || 0)
@@ -95,17 +130,18 @@ export function steelWallRsi({
     + (boundary.drywall || 0)
     + (boundary.inside_air || 0)
 
-  // Isothermal planes: full assembly as two parallel paths (stud path, cavity path)
+  // RSI_T1: full assembly parallel-path (all layers in stud and cavity paths)
   const tStud = bSum + studRsi
   const tCavity = bSum + cavityRsi
-  const framingPct = 100 - cavityPct
-  const vIso = 100 / (framingPct / tStud + cavityPct / tCavity)
+  const rsiT1 = 100 / (framingPct / tStud + cavityPct / tCavity)
 
-  // Parallel-path: stud-cavity layer only, then add boundary in series
-  const wPp = parallelPath(studRsi, cavityRsi, cavityPct)
-  const tPp = bSum + wPp
+  // RSI_T2: stud-cavity parallel-path only
+  const rsiT2 = parallelPath(studRsi, cavityRsi, cavityPct)
 
-  return kIso * vIso + kPp * tPp
+  // RSI_T3: RSI_T2 + boundary layers in series
+  const rsiT3 = bSum + rsiT2
+
+  return k1 * rsiT1 + k2 * rsiT3
 }
 
 /**
