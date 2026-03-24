@@ -1,241 +1,304 @@
-// Wall type options
+// ECP Calculator — Data Layer
+//
+// Imports pre-computed wall data from the build pipeline (scripts/generate.js)
+// and provides lookup functions for the React app.
+//
+// The compute module is imported for runtime calculations when boundary layers
+// differ from defaults (variable cladding/sheathing) or continuous insulation
+// is added (which affects steel K-values per NBC Table B).
+
+import wallData from './generated/wall-data.json'
+import continuousInsData from './generated/continuous-ins.json'
+import icfData from './generated/icf-data.json'
+import boundaryOptions from './generated/boundary-options.json'
+import thresholdsData from './generated/thresholds.json'
+import doubleStudData from './generated/double-stud-data.json'
+import { woodWallRsi, steelWallRsi, icfWallRsi, doubleStudWallRsi } from '@scripts/compute.js'
+
+// --- Exports matching existing API (backward compatible) ---
+
 export const wallTypes = [
   { id: 'wood', label: 'Wood Frame' },
   { id: 'steel', label: 'Steel Frame' },
-  { id: 'icf', label: 'ICF' }
+  { id: 'icf', label: 'ICF' },
 ]
 
-// Stud spacing options
 export const studSpacingOptions = [
   { label: '16"' },
   { label: '19"' },
-  { label: '24"' }
+  { label: '24"' },
 ]
 
-// Cavity insulation materials
-export const cavityMaterials = [
-  'Fiberglass Batt',
-  'Mineral Wool Batt',
-  'Loose Fill Cellulose',
-  'Dense Pack Cellulose',
-  'Loose Fill Fiberglass'
-]
-
-// Cavity insulation types per material (stud size + nominal R-value where applicable)
-// Wood uses 2x4 studs (3.5"), steel uses 2x3-5/8 studs (3.625").
-// Both share 2x6 cavity types. The getAvailableCavityTypes filter
-// in WallBuilder ensures only matching types appear per wall type.
-export const cavityTypesByMaterial = {
-  'Fiberglass Batt': ['2x4 R12', '2x3-5/8 R12', '2x4 R14', '2x3-5/8 R14', '2x6 R20', '2x6 R22', '2x6 R24'],
-  'Mineral Wool Batt': ['2x4 R14', '2x3-5/8 R14', '2x6 R22', '2x6 R24'],
-  'Loose Fill Cellulose': ['2x4', '2x3-5/8', '2x6'],
-  'Dense Pack Cellulose': ['2x4', '2x3-5/8', '2x6'],
-  'Loose Fill Fiberglass': ['2x4', '2x3-5/8', '2x6']
-}
-
-// Continuous insulation types
-export const continuousInsTypes = ['EPS', 'XPS', 'PIC', 'Mineral Wool']
-
-// Continuous insulation thicknesses
-export const continuousInsThicknesses = [
-  'None', '1"', '1-1/2"', '2"', '2-1/2"', '3"'
-]
-
-// ICF form thickness options (per side)
-export const icfFormOptions = ['2.5"', '3-1/8"', '4-1/4"']
-
-// Parallel path pre-computed RSI lookup
-// wallType -> spacing -> cavityMaterial -> cavityType -> RSI
-export const framedWallRsi = {
-  wood: {
-    '16"': {
-      'Fiberglass Batt': {
-        '2x4 R12': 1.94, '2x4 R14': 2.07, '2x6 R20': 2.81,
-        '2x6 R22': 3.00, '2x6 R24': 3.11
-      },
-      'Mineral Wool Batt': {
-        '2x4 R14': 2.07, '2x6 R22': 3.00, '2x6 R24': 3.11
-      },
-      'Loose Fill Cellulose': {
-        '2x4': 1.99, '2x6': 2.86
-      },
-      'Dense Pack Cellulose': {
-        '2x4': 1.95, '2x6': 2.81
-      },
-      'Loose Fill Fiberglass': {
-        '2x4': 2.10, '2x6': 3.06
-      }
-    },
-    '19"': {
-      'Fiberglass Batt': {
-        '2x4 R12': 1.97, '2x4 R14': 2.11, '2x6 R20': 2.85,
-        '2x6 R22': 3.06, '2x6 R24': 3.18
-      },
-      'Mineral Wool Batt': {
-        '2x4 R14': 2.11, '2x6 R22': 3.06, '2x6 R24': 3.18
-      },
-      'Loose Fill Cellulose': {
-        '2x4': 2.02, '2x6': 2.91
-      },
-      'Dense Pack Cellulose': {
-        '2x4': 1.98, '2x6': 2.86
-      },
-      'Loose Fill Fiberglass': {
-        '2x4': 2.14, '2x6': 3.12
-      }
-    },
-    '24"': {
-      'Fiberglass Batt': {
-        '2x4 R12': 2.00, '2x4 R14': 2.14, '2x6 R20': 2.90,
-        '2x6 R22': 3.12, '2x6 R24': 3.25
-      },
-      'Mineral Wool Batt': {
-        '2x4 R14': 2.14, '2x6 R22': 3.12, '2x6 R24': 3.25
-      },
-      'Loose Fill Cellulose': {
-        '2x4': 2.05, '2x6': 2.97
-      },
-      'Dense Pack Cellulose': {
-        '2x4': 2.01, '2x6': 2.91
-      },
-      'Loose Fill Fiberglass': {
-        '2x4': 2.18, '2x6': 3.18
-      }
-    }
-  },
-  steel: {
-    '16"': {
-      'Fiberglass Batt': {
-        '2x3-5/8 R12': 1.39, '2x3-5/8 R14': 1.52, '2x6 R20': 1.97,
-        '2x6 R22': 2.10, '2x6 R24': 2.23
-      },
-      'Mineral Wool Batt': {
-        '2x3-5/8 R14': 1.52, '2x6 R22': 2.10, '2x6 R24': 2.23
-      },
-      'Loose Fill Cellulose': {
-        '2x3-5/8': 1.47, '2x6': 2.08
-      },
-      'Dense Pack Cellulose': {
-        '2x3-5/8': 1.43, '2x6': 2.02
-      },
-      'Loose Fill Fiberglass': {
-        '2x3-5/8': 1.59, '2x6': 2.23
-      }
-    },
-    '19"': {
-      'Fiberglass Batt': {
-        '2x3-5/8 R12': 1.42, '2x3-5/8 R14': 1.55, '2x6 R20': 2.02,
-        '2x6 R22': 2.14, '2x6 R24': 2.27
-      },
-      'Mineral Wool Batt': {
-        '2x3-5/8 R14': 1.55, '2x6 R22': 2.14, '2x6 R24': 2.27
-      },
-      'Loose Fill Cellulose': {
-        '2x3-5/8': 1.49, '2x6': 2.12
-      },
-      'Dense Pack Cellulose': {
-        '2x3-5/8': 1.46, '2x6': 2.07
-      },
-      'Loose Fill Fiberglass': {
-        '2x3-5/8': 1.62, '2x6': 2.27
-      }
-    },
-    '24"': {
-      'Fiberglass Batt': {
-        '2x3-5/8 R12': 1.63, '2x3-5/8 R14': 1.80, '2x6 R20': 2.37,
-        '2x6 R22': 2.54, '2x6 R24': 2.70
-      },
-      'Mineral Wool Batt': {
-        '2x3-5/8 R14': 1.80, '2x6 R22': 2.54, '2x6 R24': 2.70
-      },
-      'Loose Fill Cellulose': {
-        '2x3-5/8': 1.72, '2x6': 2.51
-      },
-      'Dense Pack Cellulose': {
-        '2x3-5/8': 1.68, '2x6': 2.44
-      },
-      'Loose Fill Fiberglass': {
-        '2x3-5/8': 1.88, '2x6': 2.70
+// Derive cavity materials from wall-data.json
+export const cavityMaterials = (() => {
+  const mats = new Set()
+  for (const wt of Object.values(wallData)) {
+    if (!wt.spacings) continue
+    for (const sp of Object.values(wt.spacings)) {
+      for (const label of Object.keys(sp.materials)) {
+        mats.add(label)
       }
     }
   }
-}
+  return [...mats]
+})()
+
+// Derive available cavity types per material from wall-data.json
+// Uses wood spacings as the canonical set (widest variety including deep cavities)
+export const cavityTypesByMaterial = (() => {
+  const result = {}
+  const woodSpacings = wallData.wood?.spacings || {}
+  // Merge all spacings to get the full set of cavity types
+  for (const sp of Object.values(woodSpacings)) {
+    for (const [label, entries] of Object.entries(sp.materials)) {
+      if (!result[label]) result[label] = new Set()
+      for (const key of Object.keys(entries)) {
+        result[label].add(key)
+      }
+    }
+  }
+  // Also add steel-specific stud names (2x3-5/8) for steel cavity types
+  const steelSpacings = wallData.steel?.spacings || {}
+  for (const sp of Object.values(steelSpacings)) {
+    for (const [label, entries] of Object.entries(sp.materials)) {
+      if (!result[label]) result[label] = new Set()
+      for (const key of Object.keys(entries)) {
+        result[label].add(key)
+      }
+    }
+  }
+  // Convert Sets to arrays
+  const out = {}
+  for (const [label, set] of Object.entries(result)) {
+    out[label] = [...set]
+  }
+  return out
+})()
+
+// Backward-compatible: PIC → Polyiso
+export const continuousInsTypes = Object.keys(continuousInsData)
+
+export const continuousInsThicknesses = ['None', '1"', '1-1/2"', '2"', '2-1/2"', '3"']
+
+export const icfFormOptions = icfData.forms.map(f => f.label)
 
 // Continuous insulation RSI lookup: type -> thickness -> RSI
-export const continuousInsRsi = {
-  'EPS': {
-    'None': 0, '1"': 0.65, '1-1/2"': 0.9906, '2"': 1.3, '2-1/2"': 1.651, '3"': 1.9812
-  },
-  'XPS': {
-    'None': 0, '1"': 0.88, '1-1/2"': 1.28, '2"': 1.68, '2-1/2"': 2.1336, '3"': 2.56032
-  },
-  'PIC': {
-    'None': 0, '1"': 0.97, '1-1/2"': 1.385, '2"': 1.8, '2-1/2"': 2.286, '3"': 2.7432
-  },
-  'Mineral Wool': {
-    'None': 0, '1"': 0.704, '1-1/2"': 1.05537, '2"': 1.40716, '2-1/2"': 1.75895, '3"': 2.11074
+// Handles PIC → Polyiso rename for backward compat
+export const continuousInsRsi = (() => {
+  const result = {}
+  for (const [label, data] of Object.entries(continuousInsData)) {
+    result[label] = { None: 0, ...data.thicknesses }
   }
+  // Backward compat: 'PIC' maps to 'Polyiso'
+  if (result['Polyiso'] && !result['PIC']) {
+    result['PIC'] = result['Polyiso']
+  }
+  return result
+})()
+
+// ICF total RSI lookup: formThickness -> total RSI (with default boundary)
+export const icfRsi = (() => {
+  const result = {}
+  const defaultCladding = boundaryOptions.cladding.options.find(
+    o => o.id === boundaryOptions.cladding.defaults.icf
+  )
+  for (const f of icfData.forms) {
+    result[f.label] = icfWallRsi({
+      formThicknessMm: f.thickness_mm,
+      epsRsiPerMm: icfData.eps_rsi_per_mm,
+      concreteCoreMm: icfData.concrete_core_mm,
+      concreteRsiPerMm: icfData.concrete_rsi_per_mm,
+      boundary: {
+        outside_air: boundaryOptions.air_films.outside,
+        cladding: defaultCladding?.rsi || 0.017,
+        drywall: boundaryOptions.drywall.default,
+        inside_air: boundaryOptions.air_films.inside,
+      },
+    })
+  }
+  return result
+})()
+
+// Framed wall RSI lookup — backward compat for WallBuilder's getAvailableCavityTypes.
+// Structure: wallType -> spacing -> material -> cavityType -> RSI
+// Values are computed with DEFAULT boundary layers.
+export const framedWallRsi = (() => {
+  const result = {}
+  for (const [wallType, wtData] of Object.entries(wallData)) {
+    if (!wtData.spacings) continue
+    result[wallType] = {}
+    for (const [spacing, spData] of Object.entries(wtData.spacings)) {
+      const spacingLabel = `${spacing}"`
+      result[wallType][spacingLabel] = {}
+      for (const [matLabel, entries] of Object.entries(spData.materials)) {
+        result[wallType][spacingLabel][matLabel] = {}
+        for (const [cavType, e] of Object.entries(entries)) {
+          // Compute total RSI with default boundary
+          const boundary = getDefaultBoundary(wallType)
+          let rsi
+          if (wallType === 'wood') {
+            rsi = woodWallRsi({
+              studDepthMm: wtData.studs[e.stud].depth_mm,
+              cavityRsi: e.cavityRsi,
+              cavityPct: spData.cavity_pct,
+              boundary,
+            })
+          } else if (wallType === 'steel') {
+            rsi = steelWallRsi({
+              studDepthMm: wtData.studs[e.stud].depth_mm,
+              cavityRsi: e.cavityRsi,
+              spacingInches: parseInt(spacing),
+              boundary,
+              airSpace: boundary.air_space,
+            })
+          }
+          result[wallType][spacingLabel][matLabel][cavType] = rsi ? Math.round(rsi * 100) / 100 : null
+        }
+      }
+    }
+  }
+  return result
+})()
+
+export const wallPointsThresholds = thresholdsData.walls
+export const MIN_WALL_RSI = thresholdsData.minWallRsi
+
+// --- Boundary layer API ---
+
+export function getBoundaryOptions() {
+  return boundaryOptions
 }
 
-// ICF total RSI lookup: formThickness -> total RSI (fully pre-computed)
-export const icfRsi = {
-  '2.5"': 3.66,
-  '3-1/8"': 4.49,
-  '4-1/4"': 5.97
+export function getDefaultBoundary(wallType) {
+  const b = {
+    outside_air: boundaryOptions.air_films.outside,
+    inside_air: boundaryOptions.air_films.inside,
+    drywall: boundaryOptions.drywall.default,
+    cladding: 0,
+    sheathing: 0,
+    air_space: 0,
+  }
+
+  const claddingId = boundaryOptions.cladding.defaults[wallType]
+  const cladding = boundaryOptions.cladding.options.find(o => o.id === claddingId)
+  b.cladding = cladding?.rsi || 0
+
+  if (boundaryOptions.sheathing.applies_to.includes(wallType)) {
+    const sheathingId = boundaryOptions.sheathing.default
+    const sheathing = boundaryOptions.sheathing.options.find(o => o.id === sheathingId)
+    b.sheathing = sheathing?.rsi || 0
+  }
+
+  if (wallType === 'steel') {
+    b.air_space = boundaryOptions.steel_air_space.rsi
+  }
+
+  return b
 }
 
-// NBC 2020 Table 9.36.2.6.-B minimum wall RSI (with HRV, Zone 5/6)
-export const MIN_WALL_RSI = 2.97
+export function getContinuousInsRsi(type, thickness) {
+  if (!type || thickness === 'None') return 0
+  // Handle PIC → Polyiso
+  const lookupType = type === 'PIC' ? 'Polyiso' : type
+  return continuousInsData[lookupType]?.thicknesses[thickness] ?? 0
+}
 
-// Calculate wall RSI from selections (lookup-based)
-// framedWallRsi values already include drywall, sheathing, and air films.
-// Only continuous insulation RSI is added at runtime.
-export function calculateWallRsi({ wallType, studSpacing, cavityMaterial, cavityType, contInsType, contInsThickness, icfFormThickness } = {}) {
-  // ICF path — single lookup, fully pre-computed
+// --- Main calculation function (backward compatible + extended) ---
+
+export function calculateWallRsi({
+  wallType, studSpacing, cavityMaterial, cavityType,
+  contInsType, contInsThickness, icfFormThickness,
+  sheathingId, claddingId,
+  assemblyType = 'single',
+  outerStud, innerStud, plate, doubleStudMaterial,
+} = {}) {
+  // Build boundary layers (with optional custom cladding/sheathing)
+  const boundary = getDefaultBoundary(wallType || 'wood')
+  if (sheathingId) {
+    const sh = boundaryOptions.sheathing.options.find(o => o.id === sheathingId)
+    if (sh) boundary.sheathing = sh.rsi
+  }
+  if (claddingId) {
+    const cl = boundaryOptions.cladding.options.find(o => o.id === claddingId)
+    if (cl) boundary.cladding = cl.rsi
+  }
+
+  const contInsRsi = getContinuousInsRsi(contInsType, contInsThickness)
+
+  // ICF path
   if (wallType === 'icf') {
-    return icfRsi[icfFormThickness] ?? null
+    const form = icfData.forms.find(f => f.label === icfFormThickness)
+    if (!form) return null
+    return icfWallRsi({
+      formThicknessMm: form.thickness_mm,
+      epsRsiPerMm: icfData.eps_rsi_per_mm,
+      concreteCoreMm: icfData.concrete_core_mm,
+      concreteRsiPerMm: icfData.concrete_rsi_per_mm,
+      boundary,
+    })
   }
 
-  // Wood/Steel path — framed wall lookup + optional continuous insulation
-  const framed = framedWallRsi[wallType]?.[studSpacing]?.[cavityMaterial]?.[cavityType]
-  if (framed == null) return null
+  // Single wall path (wood or steel)
+  if (assemblyType === 'single') {
+    const spacing = studSpacing?.replace('"', '') || ''
+    const wt = wallData[wallType]
+    if (!wt?.spacings?.[spacing]) return null
+    const sp = wt.spacings[spacing]
+    const entry = sp.materials[cavityMaterial]?.[cavityType]
+    if (!entry) return null
 
-  // If no continuous insulation selected, framed RSI is the total
-  if (!contInsType || contInsThickness === 'None') {
-    return framed
+    if (wallType === 'wood') {
+      return woodWallRsi({
+        studDepthMm: wt.studs[entry.stud].depth_mm,
+        cavityRsi: entry.cavityRsi,
+        cavityPct: sp.cavity_pct,
+        boundary,
+        contInsRsi,
+      })
+    }
+
+    if (wallType === 'steel') {
+      return steelWallRsi({
+        studDepthMm: wt.studs[entry.stud].depth_mm,
+        cavityRsi: entry.cavityRsi,
+        spacingInches: parseInt(spacing),
+        boundary,
+        airSpace: boundary.air_space,
+        contInsRsi,
+      })
+    }
   }
 
-  const contIns = continuousInsRsi[contInsType]?.[contInsThickness]
-  if (contIns == null) return null
+  // Double stud path (wood only)
+  if (assemblyType === 'doubleStud') {
+    const spacing = studSpacing?.replace('"', '') || ''
+    const key = `${outerStud}+${innerStud}|${plate}|${doubleStudMaterial}`
+    const entry = doubleStudData[spacing]?.[key]
+    if (!entry) return null
 
-  return framed + contIns
+    return doubleStudWallRsi({
+      outerStudDepthMm: wallData.wood.studs[entry.outerStud]?.depth_mm,
+      innerStudDepthMm: wallData.wood.studs[entry.innerStud]?.depth_mm,
+      plateDepthMm: wallData.wood.studs[entry.plate]?.depth_mm,
+      cavityRsiPerMm: entry.rsiPerMm,
+      cavityPct: wallData.wood.spacings[spacing]?.cavity_pct || 77,
+      boundary,
+      contInsRsi,
+    })
+  }
+
+  return null
 }
-
-// RSI thresholds for above-grade walls and their point values
-export const wallPointsThresholds = [
-  { minRsi: 3.08, points: 1.6 },
-  { minRsi: 3.69, points: 6.2 },
-  { minRsi: 3.85, points: 6.9 },
-  { minRsi: 3.96, points: 7.7 },
-  { minRsi: 4.29, points: 9.2 },
-  { minRsi: 4.4, points: 9.9 },
-  { minRsi: 4.57, points: 10.6 },
-  { minRsi: 4.73, points: 11.1 },
-  { minRsi: 4.84, points: 11.6 },
-  { minRsi: 5.01, points: 12.2 },
-  { minRsi: 5.45, points: 13.6 }
-];
 
 // Get points for a given RSI value (finds highest threshold met)
 export function getWallPoints(rsi) {
-  if (!rsi) return 0;
-
-  // Sort thresholds by minRsi descending, find first one that RSI meets or exceeds
-  const sorted = [...wallPointsThresholds].sort((a, b) => b.minRsi - a.minRsi);
-  const threshold = sorted.find(t => rsi >= t.minRsi);
-  return threshold ? threshold.points : 0;
+  if (!rsi) return 0
+  const sorted = [...wallPointsThresholds].sort((a, b) => b.minRsi - a.minRsi)
+  const threshold = sorted.find(t => rsi >= t.minRsi)
+  return threshold ? threshold.points : 0
 }
 
+// Categories and tiers
 export const categories = [
   {
     id: 'aboveGroundWalls',
@@ -244,20 +307,8 @@ export const categories = [
     unit: 'm²·K/W',
     description: 'Thermal resistance of above-grade wall assemblies',
     direction: 'higher',
-    type: 'wallBuilder', // Special type - uses WallBuilder component
-    options: [
-      { value: 3.08, points: 1.6 },
-      { value: 3.69, points: 6.2 },
-      { value: 3.85, points: 6.9 },
-      { value: 3.96, points: 7.7 },
-      { value: 4.29, points: 9.2 },
-      { value: 4.4, points: 9.9 },
-      { value: 4.57, points: 10.6 },
-      { value: 4.73, points: 11.1 },
-      { value: 4.84, points: 11.6 },
-      { value: 5.01, points: 12.2 },
-      { value: 5.45, points: 13.6 }
-    ]
+    type: 'wallBuilder',
+    options: thresholdsData.walls.map(t => ({ value: t.minRsi, points: t.points })),
   },
   {
     id: 'airTightness',
@@ -265,14 +316,14 @@ export const categories = [
     metric: 'ACH',
     unit: 'ACH @ 50Pa',
     description: 'Air changes per hour at 50 pascals pressure',
-    direction: 'lower', // lower ACH = more points
+    direction: 'lower',
     options: [
       { value: 2.5, points: 0 },
       { value: 2.0, points: 3.5 },
       { value: 1.5, points: 6.9 },
       { value: 1.0, points: 10.4 },
-      { value: 0.6, points: 13.3 }
-    ]
+      { value: 0.6, points: 13.3 },
+    ],
   },
   {
     id: 'belowGradeWalls',
@@ -284,8 +335,8 @@ export const categories = [
     options: [
       { value: 3.09, points: 0.2 },
       { value: 3.46, points: 0.8 },
-      { value: 3.9, points: 1.4 }
-    ]
+      { value: 3.9, points: 1.4 },
+    ],
   },
   {
     id: 'dhwElectric',
@@ -295,24 +346,22 @@ export const categories = [
     description: 'Electric water heater efficiency. This energy factor can only be achieved with a heat pump water heater (HPWH)',
     direction: 'higher',
     exclusiveGroup: 'dhw',
-    options: [
-      { value: 2.35, points: 3.8 }
-    ]
+    options: [{ value: 2.35, points: 3.8 }],
   },
   {
     id: 'dhwGas',
-    name: 'DHW (Non-Electric)',
+    name: 'DHW (Gas- or oil-fired)',
     metric: 'UEF',
     unit: 'Uniform Energy Factor',
-    description: 'Gas/propane water heater efficiency',
+    description: 'Gas- or oil-fired water heater efficiency',
     direction: 'higher',
     exclusiveGroup: 'dhw',
     options: [
       { value: 0.79, points: 2.4, label: 'Commercial Storage-type' },
       { value: 0.83, points: 4.9, label: 'Residential Storage-type' },
       { value: 0.85, points: 3.2, label: 'Commercial Storage-type' },
-      { value: 0.92, points: 4.9, label: 'Tankless Condensing' }
-    ]
+      { value: 0.92, points: 4.9, label: 'Tankless Condensing' },
+    ],
   },
   {
     id: 'hrv',
@@ -324,8 +373,8 @@ export const categories = [
     options: [
       { value: 60, points: 0.7 },
       { value: 65, points: 2.2 },
-      { value: 75, points: 3.5 }
-    ]
+      { value: 75, points: 3.5 },
+    ],
   },
   {
     id: 'volume',
@@ -333,7 +382,7 @@ export const categories = [
     metric: 'Volume',
     unit: 'm³',
     description: 'Total heated volume of the building',
-    direction: 'lower', // smaller volume = more points
+    direction: 'lower',
     options: [
       { value: 390, points: 1 },
       { value: 380, points: 2 },
@@ -344,8 +393,8 @@ export const categories = [
       { value: 330, points: 7 },
       { value: 320, points: 8 },
       { value: 310, points: 9 },
-      { value: 300, points: 10 }
-    ]
+      { value: 300, points: 10 },
+    ],
   },
   {
     id: 'windowsDoors',
@@ -353,16 +402,15 @@ export const categories = [
     metric: 'U-value',
     unit: 'W/m²·K',
     description: 'Maximum thermal transmittance',
-    direction: 'lower', // lower U = more points
+    direction: 'lower',
     options: [
       { value: 1.44, points: 1.6 },
-      { value: 1.22, points: 4.6 }
-    ]
-  }
-];
+      { value: 1.22, points: 4.6 },
+    ],
+  },
+]
 
-// Tier options
 export const tiers = [
   { id: 2, label: 'Tier 2', points: 10 },
-  { id: 3, label: 'Tier 3', points: 20 }
-];
+  { id: 3, label: 'Tier 3', points: 20 },
+]
