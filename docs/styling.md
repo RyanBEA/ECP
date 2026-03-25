@@ -32,8 +32,10 @@ Plain CSS with custom properties — no Tailwind, no CSS modules, no preprocesso
 |----------|-------|-------|
 | `--primary` | `#4F3D63` | Purple — borders, selected states, accents |
 | `--primary-dark` | `#3d2f4d` | Darker purple (defined but unused in CSS) |
+| `--primary-light` | `#e8e0f0` | Light purple — field group borders |
 | `--success` | `#16a34a` | Green — completion states |
 | `--success-light` | `#dcfce7` | Light green — completion backgrounds |
+| `--danger` | `#dc2626` | Red — sub-code warnings, below-minimum RSI |
 | `--gray-50` | `#f9fafb` | Hover backgrounds |
 | `--gray-100` | `#f3f4f6` | Body background |
 | `--gray-200` | `#e5e7eb` | Default borders |
@@ -58,8 +60,10 @@ The `.dark` class on `<body>` inverts the gray scale and adjusts semantic tokens
 |----------|-------|------|
 | `--primary` | `#4F3D63` | `#8b7a9e` (lighter purple) |
 | `--primary-dark` | `#3d2f4d` | `#4F3D63` |
+| `--primary-light` | `#e8e0f0` | `#3d2f4d` (dark purple) |
 | `--success` | `#16a34a` | `#4ade80` (brighter green) |
 | `--success-light` | `#dcfce7` | `#166534` (dark green) |
+| `--danger` | `#dc2626` | `#f87171` (brighter red) |
 | `--gray-50` | `#f9fafb` | `#1f2937` |
 | `--gray-100` | `#f3f4f6` | `#111827` |
 | `--gray-200` | `#e5e7eb` | `#374151` |
@@ -137,14 +141,45 @@ All motion is via `transition` — no keyframe animations.
 
 Flat hyphen-separated names (BEM-like but without `__` or `--` syntax):
 
-- **Blocks:** `.app`, `.category-card`, `.option-button`, `.wall-builder`, `.points-counter`
-- **Elements:** `.category-name`, `.option-value`, `.wall-selector`, `.points-label`
-- **State modifiers:** additional class names — `.selected`, `.active`, `.complete`, `.disabled`, `.has-points`, `.has-label`
+- **Blocks:** `.app`, `.category-card`, `.option-button`, `.wall-builder`, `.points-counter`, `.field-group`, `.view-toggle`
+- **Elements:** `.category-name`, `.option-value`, `.wall-selector`, `.points-label`, `.field-group-num`, `.field-group-title`, `.sub-label`
+- **State modifiers:** additional class names — `.selected`, `.active`, `.complete`, `.disabled`, `.has-points`, `.has-label`, `.below-code`, `.footnote`
 
 ### Notable Patterns
 
 - **`.wall-builder`** has a thick left border (`border-left: 4px solid var(--primary)`) — unique visual treatment distinguishing it from standard cards.
-- **`.wall-builder-disclaimer`** — blockquote-style callout with left border + background.
 - **`.category-card.disabled`** — `opacity: 0.5` + `pointer-events: none` for full card disabling.
 - **`.points-counter.complete`** — switches entire counter from gray to green palette.
 - **`.wall-points.has-points`** — value text turns green only when points are earned.
+- **`.wall-rsi.below-code`** — RSI value turns `--danger` red when below NBC minimum.
+
+### Field Group Cards
+
+| Class | Purpose |
+|-------|---------|
+| `.field-group` | Numbered card wrapper — `border: 2px solid var(--primary-light)`, 10px radius, subtle purple tint background |
+| `.field-group-head` | Flex row: badge + title |
+| `.field-group-num` | Circular numbered badge — 20px, `var(--primary)` background, white text |
+| `.field-group-title` | 0.75rem, bold 700, `var(--gray-700)` |
+| `.field-group.footnote` | Variant — dashed `var(--gray-300)` border, transparent background, smaller badge (16px, `var(--gray-400)`) and title (0.65rem, `var(--gray-500)`) |
+
+### Sub-labels and Assumptions
+
+| Class | Purpose |
+|-------|---------|
+| `.sub-label` | Section divider within a FieldGroup — 0.6rem uppercase, `var(--gray-400)`, letter-spaced |
+| `.assumptions-list` | Flex row of read-only assumption items |
+| `.assumption-item` | 0.7rem, `var(--gray-500)` |
+| `.assumption-label` | Bold 600, `var(--gray-600)` |
+
+### Wall Builder Result Area
+
+| Class | Purpose |
+|-------|---------|
+| `.wall-result` | Flex row with `var(--gray-50)` background — holds RSI and points display |
+| `.wall-rsi`, `.wall-points` | Baseline-aligned label + value pairs |
+| `.wall-warning` | Full-width `--danger` colored warning text for sub-code RSI |
+| `.wall-prompt` | Italic `var(--gray-500)` placeholder text |
+| `.export-button` | `var(--primary)` filled button with disabled/wait state |
+| `.view-toggle` | Pill-style mode switcher (Build Assembly / Select RSI) with `.active` highlight |
+| `.option-group` | Flex row for assembly type toggle buttons |

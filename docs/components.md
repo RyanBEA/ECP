@@ -1,6 +1,6 @@
 # ECP Calculator — Components Reference
 
-All components live in `src/components/` except `App.jsx` (root) and `WallSectionDemo.jsx` (dev harness).
+All components live in `src/components/` except `App.jsx` (root).
 
 ---
 
@@ -118,6 +118,25 @@ Dual-mode wall assembly input: "Build Assembly" (builder) or "Select RSI" (simpl
   innerStud: '2x4',
   plate: '2x10',
   doubleStudMaterial: 'Dense Pack Cellulose',
+  claddingId: 'vinyl_siding',
+  sheathingId: 'osb_11',
+}
+
+// Builder mode — service wall (wood only, single or double stud primary):
+{
+  wallType: 'wood',
+  assemblyType: 'single',
+  studSpacing: '16"',
+  cavityMaterial: 'Fiberglass Batt',
+  cavityType: '2x6 R20',
+  hasServiceWall: true,
+  serviceSpacing: '16"',
+  serviceCavityMaterial: 'Fiberglass Batt',
+  serviceCavityType: '2x4 R12',
+  interiorLayerMaterial: 'osb_11',       // sheathing or rigid insulation
+  interiorLayerThickness: undefined,     // only for rigid insulation
+  claddingId: 'vinyl_siding',
+  sheathingId: 'osb_11',
 }
 
 // Builder mode — ICF:
@@ -145,21 +164,18 @@ Builder fields and `simpleIndex` are mutually exclusive. Mode switching calls `o
 |-----|--------|---------|
 | `wallSectionRef` | `.wall-section-container` div | Provides SVG element access for Excel export PNG embedding |
 
-### Builder Mode — Progressive Disclosure
+### Builder Mode — FieldGroup Cards
 
-1. **Wall Type selector** — always visible (Wood Frame, Steel Frame, ICF)
-2. **Assembly Type toggle** — shown for wood walls: Single Wall / Double Stud
-3. **Boundary Layers group** — shown for wood/steel:
-   - **Cladding** dropdown: 8 options from `boundary-options.json` (vinyl, brick, fibre cement, etc.)
-   - **Sheathing** dropdown (wood only): 7 options (OSB, plywood, gypsum)
-4. **Single wall fields** (default) — shown for wood/steel when `assemblyType === 'single'`:
-   - **Framing group**: Stud Spacing, Cavity Insulation (material), Cavity Size (type)
-   - Cavity Size now includes deep cavities (2x8, 2x10, 2x12) for blown-in materials
-   - **Continuous Insulation group**: Type, Thickness
-5. **Double stud fields** — shown for wood when `assemblyType === 'doubleStud'`:
-   - Stud Spacing, Outer Studs (2x4/2x6), Inner Studs (2x4/2x6), Plate Width (2x8-2x12, auto-filtered), Insulation (blown-in only)
-6. **ICF field** — shown when `wallType` is `'icf'`:
-   - EPS Form Thickness (per side)
+Group numbers are dynamic (no gaps). Groups appear/disappear based on wall type and toggles:
+
+1. **Wall Configuration** (always visible) — Wall Type selector (Wood Frame, Steel Frame, ICF). Wood adds: Assembly Type toggle (Single Stud / Double Stud), Service Wall checkbox.
+2. **Service Wall** (conditional: wood + `hasServiceWall`) — Stud Spacing, Cavity Insulation (material), Cavity Size.
+3. **Main Wall** (conditional: `wallType` set) — content varies by wall type and assembly:
+   - **Wood/Steel single:** Framing sub-label (Stud Spacing, Cavity Insulation, Cavity Size — deep cavities for blown-in), Continuous Insulation sub-label (Type, Thickness — hidden when service wall), Exterior sub-label (Sheathing dropdown for wood, Cladding dropdown).
+   - **Wood double stud:** Framing sub-label (Stud Spacing, Outer Studs, Inner Studs, Plate Width — auto-filtered, Insulation — blown-in only), Exterior sub-label.
+   - **ICF:** EPS Form Thickness (per side) only.
+4. **Interior Layer** (conditional: `hasServiceWall`) — Material (sheathing or rigid insulation), Thickness (rigid insulation only).
+5. **Assumptions** (footnote variant, conditional: `wallType` set) — read-only display of assumed drywall and air film values.
 
 When all required fields are populated:
 - Calculates RSI via `calculateWallRsi(selection)`
@@ -196,7 +212,7 @@ Renders `OptionButton` grid from `wallCategory.options`. Selection tracked by `s
 
 | Function | Input | Output | Purpose |
 |----------|-------|--------|---------|
-| `getStudDepth(cavityType)` | `'2x6 R20'` | `'2x6'` | Extract stud size for WallSection. Maps both `2x4` and `2x3-5/8` prefixes to `'2x4'` (steel uses 2x3-5/8 studs). |
+| `getStudDepth(cavityType)` | `'2x6 R20'` | `'2x6'` | Extract stud size for WallSection. Maps `2x4` and `2x3-5/8` prefixes to `'2x4'` (steel uses 2x3-5/8 studs). Supports deep cavities: `2x8`, `2x10`, `2x12`. |
 | `getStudSpacingNum(studSpacing)` | `'16"'` | `16` | Convert to number for WallSection |
 | `getContInsThicknessNum(thickness)` | `'1-1/2"'` | `1.5` | Extract thickness for WallSection (handles fractions) |
 | `getAvailableCavityTypes(wallType, spacing, material)` | strings | Array | Returns `cavityTypesByMaterial[material]` filtered to non-null lookup values |
@@ -204,14 +220,37 @@ Renders `OptionButton` grid from `wallCategory.options`. Selection tracked by `s
 ### WallSection Wiring
 
 ```jsx
-// Wood/Steel (shown when studSpacing && cavityType are set):
+// Wood single/double stud (with optional service wall, boundary labels):
 <WallSection
-  wallType={wallType}                               // 'wood' | 'steel'
+  wallType={wallType}                               // 'wood'
   studDepth={getStudDepth(cavityType)}              // '2x4' | '2x6'
   studSpacing={getStudSpacingNum(studSpacing)}      // 16 | 19 | 24
-  continuousIns={getContInsThicknessNum(contInsThickness)}  // 0–3
+  continuousIns={...}                               // 0–3 (0 when service wall)
   cavityInsLabel={cavityType}                       // e.g. '2x6 R20'
   continuousInsLabel={...}                          // e.g. '2" XPS' or null
+  claddingLabel={...}                               // e.g. 'Vinyl Siding'
+  sheathingLabel={...}                              // e.g. '7/16" OSB'
+  assemblyType={assemblyType}                       // 'single' | 'doubleStud'
+  hasServiceWall={hasServiceWall}                   // boolean
+  outerStudDepth={outerStud}                        // double stud: '2x4' | '2x6'
+  innerStudDepth={innerStud}                        // double stud: '2x4' | '2x6'
+  gapInches={dsGapInches}                           // double stud: gap in inches
+  serviceStudDepth={getStudDepth(serviceCavityType)} // service wall stud size
+  serviceSpacingInches={getStudSpacingNum(serviceSpacing)}
+  serviceCavityLabel={serviceCavityType}
+  interiorLayerLabel={intLayerLabelText}
+  interiorLayerThicknessInches={intLayerVisualThick}
+/>
+
+// Steel (shown when studSpacing && cavityType are set):
+<WallSection
+  wallType="steel"
+  studDepth={getStudDepth(cavityType)}
+  studSpacing={getStudSpacingNum(studSpacing)}
+  continuousIns={getContInsThicknessNum(contInsThickness)}
+  cavityInsLabel={cavityType}
+  continuousInsLabel={...}
+  claddingLabel={...}
 />
 
 // ICF (shown when icfFormThickness is set):
@@ -253,6 +292,18 @@ Stateless SVG component rendering a top-down cross-section of the wall assembly.
 | `cavityInsLabel` | string \| null | `null` | Overrides generic cavity label in diagram |
 | `continuousInsLabel` | string \| null | `null` | Overrides generic continuous insulation label |
 | `icfFormThickness` | number | `0` | ICF only: EPS form thickness per side (inches) |
+| `claddingLabel` | string \| null | `null` | Override label for cladding layer |
+| `sheathingLabel` | string \| null | `null` | Override label for sheathing layer |
+| `assemblyType` | `'single'` \| `'doubleStud'` | `'single'` | Assembly mode (wood only) |
+| `hasServiceWall` | boolean | `false` | Whether to render a service wall |
+| `outerStudDepth` | `'2x4'` \| `'2x6'` | `'2x4'` | Double stud: outer wall stud size |
+| `innerStudDepth` | `'2x4'` \| `'2x6'` | `'2x4'` | Double stud: inner wall stud size |
+| `gapInches` | number | `0` | Double stud: gap between walls (inches) |
+| `serviceStudDepth` | `'2x4'` \| `'2x6'` | `'2x4'` | Service wall stud size |
+| `serviceSpacingInches` | number | `16` | Service wall stud spacing (inches) |
+| `serviceCavityLabel` | string \| null | `null` | Label for service wall cavity |
+| `interiorLayerLabel` | string \| null | `null` | Label for interior layer (between service and primary) |
+| `interiorLayerThicknessInches` | number | `0` | Thickness of interior layer (inches) |
 | `width` | number | `600` | Accepted but unused (SVG uses `width="100%"` with viewBox) |
 
 ### Rendering Modes
@@ -294,6 +345,14 @@ Completely different layer structure (no studs, no stud spacing):
 
 Fixed 24" display width. Max SVG height 250px. No stud spacing dimension.
 
+#### Double Stud (`wallType === 'wood'`, `assemblyType === 'doubleStud'`)
+
+Two wood stud walls (outer and inner) on a wider plate, with an insulation-filled gap between them. Each stud row renders with the same wood frame pattern. The gap renders as a continuous insulation layer. Outer/inner stud depths and gap width are driven by props.
+
+#### Service Wall (`wallType === 'wood'`, `hasServiceWall === true`)
+
+Adds an interior service cavity on the conditioned side. Layers from outside to inside: cladding, sheathing, primary stud cavity, interior layer (sheathing or rigid insulation), service stud cavity, drywall. Works with both single and double stud primary walls.
+
 ### Geometry
 
 - **Scale:** 10px per inch (uniform both axes)
@@ -327,22 +386,6 @@ Stateless display component for current ECP progress.
 ```
 
 When `total >= target`, adds `.complete` class (switches to green styling).
-
----
-
-## WallSectionDemo (`src/WallSectionDemo.jsx`)
-
-Development/testing harness for WallSection. Not connected to the main app.
-
-### State
-
-| State | Default |
-|-------|---------|
-| `studDepth` | `'2x6'` |
-| `studSpacing` | `16` |
-| `continuousIns` | `1` |
-
-Three `<select>` controls for interactive testing. Does NOT pass `cavityInsLabel` or `continuousInsLabel` — tests fallback label behavior. The 19" spacing option is omitted here (only 16" and 24").
 
 ---
 

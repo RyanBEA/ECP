@@ -4,7 +4,7 @@
 
 ECP Calculator is a React web app for calculating Energy Conservation Points (ECP) under NBC 2020. It helps builders and building officials determine if a residential design meets Tier 2 (10 pts) or Tier 3 (20 pts) energy performance thresholds.
 
-**Stack:** React 18 + Vite 5 + Vitest, plain CSS (no framework), deployed on Railway.
+**Stack:** React 18 + Vite 5 + Vitest, plain CSS (no framework).
 
 ## Quick Start
 
@@ -13,43 +13,66 @@ cd ecp-calculator
 npm install
 npm run dev      # Dev server at localhost:5173
 npm run build    # Production build to dist/
-npm run start    # Serve production build (Railway uses this)
+npm run start    # Serve production build (production server uses this)
 npm test         # Run unit tests (Vitest)
 npm run test:watch  # Watch mode
+npm run generate     # Regenerate JSON from YAML materials
+npm run generate:audit    # Generate + produce audit Excel workbook
+npm run generate:validate # Generate + validate against existing JSON
 ```
 
 ## Project Structure
 
 ```
 ecp-calculator/
+├── data/
+│   └── materials/               # YAML source of truth (NBC-verified values)
+│       ├── framing.yaml
+│       ├── cavity-insulation.yaml
+│       ├── continuous-insulation.yaml
+│       ├── sheathing-cladding.yaml
+│       └── icf.yaml
+├── scripts/
+│   ├── generate.js              # Build pipeline: YAML → JSON + audit workbook
+│   ├── compute.js               # Runtime RSI formulas (shared with React via alias)
+│   ├── loadMaterials.js         # YAML file loader for generate.js
+│   ├── compute.test.js          # Unit tests for compute functions
+│   ├── loadMaterials.test.js    # Unit tests for YAML loading
+│   └── validate.test.js         # Validation tests for generated JSON
 ├── public/
-│   ├── manifest.json        # PWA manifest
-│   ├── sw.js                # Service worker (network-first)
-│   ├── logolightmode.png    # BEA logo (light theme)
-│   └── logodarkmode.png     # BEA logo (dark theme)
+│   ├── manifest.json            # PWA manifest
+│   ├── sw.js                    # Service worker (network-first)
+│   ├── logolightmode.png        # Logo (light theme)
+│   └── logodarkmode.png         # Logo (dark theme)
 ├── src/
-│   ├── main.jsx             # Entry point, service worker registration
-│   ├── App.jsx              # Root component, all state management
-│   ├── App.css              # All styles, CSS variables, theming
-│   ├── WallSectionDemo.jsx  # Dev harness for WallSection (not in production)
+│   ├── main.jsx                 # Entry point, service worker registration
+│   ├── App.jsx                  # Root component, all state management
+│   ├── App.css                  # All styles, CSS variables, theming
 │   ├── data/
-│   │   ├── ecpData.js       # API layer: imports generated JSON + compute module
-│   │   ├── ecpData.test.js  # Unit tests for wall RSI and points
-│   │   └── generated/       # JSON from build pipeline (committed)
+│   │   ├── ecpData.js           # API layer: imports generated JSON + compute module
+│   │   ├── ecpData.test.js      # Unit tests for wall RSI and points
+│   │   └── generated/           # JSON from build pipeline (committed)
+│   │       ├── wall-data.json
+│   │       ├── continuous-ins.json
+│   │       ├── icf-data.json
+│   │       ├── boundary-options.json
+│   │       ├── thresholds.json
+│   │       └── double-stud-data.json
 │   ├── utils/
-│   │   ├── resolveWallData.js      # Extracts all intermediate RSI values from selection
-│   │   ├── buildWallSheet.js       # Builds Excel sheet with live formulas
-│   │   ├── exportWallAssembly.js   # Orchestrator: resolve → sheet → PNG → download
-│   │   └── svgToPng.js             # SVG DOM element → base64 PNG via canvas
+│   │   ├── resolveWallData.js       # Extracts all intermediate RSI values from selection
+│   │   ├── resolveWallData.test.js  # Unit tests for resolveWallData
+│   │   ├── buildWallSheet.js        # Builds Excel sheet with live formulas
+│   │   ├── buildWallSheet.test.js   # Unit tests for buildWallSheet
+│   │   ├── exportWallAssembly.js    # Orchestrator: resolve → sheet → PNG → download
+│   │   └── svgToPng.js              # SVG DOM element → base64 PNG via canvas
 │   └── components/
-│       ├── CategoryCard.jsx   # Standard category selection UI
-│       ├── OptionButton.jsx   # Individual option button
-│       ├── WallBuilder.jsx    # Wall assembly builder (simple + builder modes)
-│       ├── WallSection.jsx    # SVG wall cross-section diagram (wood/steel/ICF)
-│       ├── FieldGroup.jsx     # Numbered card wrapper for field groups
-│       └── PointsCounter.jsx  # ECP points progress display
-├── *.csv                      # Reference data (not loaded at runtime)
-├── wallcalc/*.csv             # Wall calculation reference data
+│       ├── CategoryCard.jsx     # Standard category selection UI
+│       ├── OptionButton.jsx     # Individual option button
+│       ├── WallBuilder.jsx      # Wall assembly builder (simple + builder modes)
+│       ├── WallSection.jsx      # SVG wall cross-section diagram (wood/steel/ICF)
+│       ├── FieldGroup.jsx       # Numbered card wrapper for field groups
+│       ├── FieldGroup.test.jsx  # Unit tests for FieldGroup
+│       └── PointsCounter.jsx    # ECP points progress display
 ├── index.html
 ├── vite.config.js
 └── package.json
@@ -63,10 +86,11 @@ YAML materials → generate.js → generated/*.json → ecpData.js + compute.js
      ▼
 App.jsx (state: selections, wallSelection, selectedTierId, darkMode)
      │
-     ├── WallBuilder ──► WallSection (SVG diagram: wood/steel/ICF)
+     ├── WallBuilder ──► WallSection (SVG diagram: wood/steel/ICF/doubleStud/serviceWall)
      │     │
      │     ├── Wall type selector → progressive disclosure
-     │     │   ├── Wood/Steel: framing + continuous insulation fields
+     │     │   ├── Wood: assembly type (single/double stud), service wall toggle
+     │     │   ├── Wood/Steel: framing + continuous insulation + exterior fields
      │     │   └── ICF: form thickness field
      │     │
      │     ├── Uses: calculateWallRsi(selection), getWallPoints()
@@ -91,7 +115,9 @@ All state lives in `App.jsx` — no context providers, no external state librari
 | `darkMode` | boolean | system preference | Theme toggle; applies `.dark` class to `<body>` |
 | `selectedTierId` | number | `2` | Tier 2 (10 pts) or Tier 3 (20 pts) |
 | `selections` | `{ [categoryId]: optionIndex }` | `{}` | Selected option index per standard category |
-| `wallSelection` | object | `{}` | Wall builder state: `{ wallType, studSpacing, cavityMaterial, cavityType, contInsType, contInsThickness, icfFormThickness, simpleIndex }` |
+| `wallSelection` | object | `{}` | Wall builder state (see below) |
+
+The `wallSelection` object shape varies by mode and wall type. See [Components Reference — WallBuilder](components.md#wallbuilder-srccomponentswallbuilderjsx) for the full shape. Key fields include `wallType`, `assemblyType`, `studSpacing`, framing fields, `hasServiceWall`, service wall fields, `interiorLayerMaterial`, and `simpleIndex` (simple mode).
 
 ### Derived Values (useMemo)
 
@@ -111,22 +137,26 @@ Compliance: totalPoints >= selectedTier.points
 ```
 App
 ├── <header>
-│   ├── BEA Logo (light/dark variant)
+│   ├── Logo (light/dark variant)
 │   ├── Tier Selector dropdown
 │   ├── Dark/Light toggle button
 │   └── PointsCounter
+│
+├── <section class="app-intro">
+│   └── Prescriptive Tier 2 intro text + assumptions disclaimer
 │
 ├── <main>
 │   ├── WallBuilder (for category.type === 'wallBuilder')
 │   │   ├── Mode toggle (Build Assembly / Select RSI)
 │   │   ├── Builder mode:
 │   │   │   ├── FieldGroup cards (numbered, visually grouped)
-│   │   │   │   ├── Wall Configuration (type, assembly, service wall toggle)
-│   │   │   │   ├── Service Wall (conditional)
+│   │   │   │   ├── Wall Configuration (type, assembly toggle, service wall checkbox)
+│   │   │   │   ├── Service Wall (conditional — wood only, when toggled)
 │   │   │   │   ├── Main Wall (framing, cont. insulation, exterior)
-│   │   │   │   ├── Interior Layer (conditional)
-│   │   │   │   └── Assumptions (footnote style, read-only)
-│   │   │   ├── WallSection SVG (wood studs / steel C-channels / ICF layers)
+│   │   │   │   ├── Interior Layer (conditional — when service wall active)
+│   │   │   │   └── Assumptions (footnote variant, read-only)
+│   │   │   ├── Wall result (RSI + points, or sub-code warning)
+│   │   │   ├── WallSection SVG (wood/steel/ICF/double stud/service wall)
 │   │   │   └── Export to Excel button (visible when RSI valid)
 │   │   └── Simple mode: OptionButton grid
 │   │
@@ -141,7 +171,7 @@ App
 
 1. **YAML-driven data pipeline** — Material properties live in `data/materials/*.yaml` (NBC-verified). A build script (`scripts/generate.js`) produces JSON lookups committed to `src/data/generated/`. `ecpData.js` imports JSON and a lightweight compute module for runtime RSI assembly.
 
-2. **Hybrid lookup + compute** — JSON stores the hard lookups (cavity RSI, framing factors). A thin compute module (`scripts/compute.js`, ~200 lines) does runtime math for variable boundary layers and the steel modified zone method (NBC K-values depend on spacing and insulating sheathing). An auditable Excel workbook is generated alongside the JSON.
+2. **Hybrid lookup + compute** — JSON stores the hard lookups (cavity RSI, framing factors). A thin compute module (`scripts/compute.js`, ~260 lines) does runtime math for variable boundary layers and the steel modified zone method (NBC K-values depend on spacing and insulating sheathing). An auditable Excel workbook is generated alongside the JSON.
 
 3. **Progressive disclosure** — Wall builder shows only relevant fields based on wall type. Wood/Steel shows framing + continuous insulation dropdowns. ICF shows only form thickness. Cavity size options are further filtered by the selected insulation material and wall type (e.g., wood uses 2x4 studs, steel uses 2x3-5/8 studs; batt materials offer sizes with R-values; loose fill/dense pack offer stud size only). Reduces cognitive load.
 

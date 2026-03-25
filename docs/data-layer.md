@@ -3,15 +3,15 @@
 ## Architecture
 
 ```
-data/materials/*.yaml          ← Source of truth (NBC-verified values)
+data/materials/*.yaml          <- Source of truth (NBC-verified values)
         |
-scripts/generate.js            ← Build pipeline (Node.js, runs at build time)
+scripts/generate.js            <- Build pipeline (Node.js, runs at build time)
         |
-        +--→ src/data/generated/*.json    ← Pre-computed lookups (committed)
-        +--→ dist/ECP-Wall-RSI-Calculator.xlsx  ← Audit workbook (gitignored)
+        +---> src/data/generated/*.json    <- Pre-computed lookups (committed)
+        +---> dist/ECP-Wall-RSI-Calculator.xlsx  <- Audit workbook (gitignored)
 
-scripts/compute.js             ← Runtime RSI formulas (bundled into React app)
-src/data/ecpData.js            ← API layer (imports JSON + compute module)
+scripts/compute.js             <- Runtime RSI formulas (bundled into React app)
+src/data/ecpData.js            <- API layer (imports JSON + compute module)
 ```
 
 **Key principle:** YAML material files are the single source of truth. The build pipeline generates JSON lookups. The compute module handles runtime RSI assembly when boundary layers differ from defaults.
@@ -21,7 +21,7 @@ src/data/ecpData.js            ← API layer (imports JSON + compute module)
 | File | Content |
 |------|---------|
 | `framing.yaml` | Wood/steel stud properties, NBC Table A/B/C values |
-| `boundary-layers.yaml` | Air films, drywall, sheathing options, cladding options |
+| `sheathing-cladding.yaml` | Air films, drywall, sheathing options, cladding options |
 | `cavity-insulation.yaml` | Batt and blown-in materials with cavity RSI values |
 | `continuous-insulation.yaml` | Rigid insulation (EPS, XPS, Polyiso, Mineral Wool) |
 | `icf.yaml` | ICF form properties |
@@ -33,7 +33,7 @@ All RSI values sourced from NBC 2020 Table A-9.36.2.4.(1)-D.
 | File | Content |
 |------|---------|
 | `wall-data.json` | Stud-cavity parallel-path RSI for all wood (87) and steel (42) combos |
-| `continuous-ins.json` | 5 materials × 5 thicknesses |
+| `continuous-ins.json` | 5 materials x 5 thicknesses |
 | `icf-data.json` | 3 ICF form configurations |
 | `boundary-options.json` | Selectable cladding/sheathing with RSI values |
 | `thresholds.json` | ECP point thresholds and minimum RSI |
@@ -47,8 +47,12 @@ Runtime RSI calculation functions, bundled into the React app via `@scripts` Vit
 
 | Function | Wall Type | Method |
 |----------|-----------|--------|
+| `parallelPath()` | All framed | Stud-cavity parallel-path effective RSI |
+| `boundarySum()` | All | Series sum of boundary layer RSI values |
 | `woodWallRsi()` | Wood | Parallel-path + boundary series |
-| `steelWallRsi()` | Steel | NBC modified zone: K1×RSI_T1 + K2×RSI_T3 |
+| `steelWallRsi()` | Steel | NBC modified zone: K1 x RSI_T1 + K2 x RSI_T3 |
+| `steelKValues()` | Steel | NBC Table B K1/K2 lookup (spacing + insulating sheathing) |
+| `steelCavityPct()` | Steel | Cavity percentage from stud spacing and web thickness |
 | `icfWallRsi()` | ICF | Series sum |
 | `doubleStudWallRsi()` | Double stud | Two parallel-path layers + isothermal gap |
 | `doubleWallRsi()` | Double wall | Two independent parallel-path walls + gap |
@@ -58,7 +62,7 @@ Runtime RSI calculation functions, bundled into the React app via `@scripts` Vit
 | Spacing | Without insulating sheathing | With insulating sheathing |
 |---------|------------------------------|--------------------------|
 | < 500mm (16", 19") | K1=0.33, K2=0.67 | K1=0.40, K2=0.60 |
-| ≥ 500mm (24") | K1=0.50, K2=0.50 | K1=0.50, K2=0.50 |
+| >= 500mm (24") | K1=0.50, K2=0.50 | K1=0.50, K2=0.50 |
 
 "Insulating sheathing" = continuous exterior insulation present (`contInsRsi > 0`).
 
@@ -87,10 +91,11 @@ Runtime RSI calculation functions, bundled into the React app via `@scripts` Vit
 | `getBoundaryOptions()` | Function | Cladding/sheathing options |
 | `getDefaultBoundary()` | Function | Default boundary layers per wall type |
 | `getContinuousInsRsi()` | Function | Continuous insulation RSI lookup |
+| `getInteriorLayerRsi()` | Function | Interior layer RSI (sheathing or rigid insulation) |
 
 ### `calculateWallRsi(params)`
 
-Accepts: `{ wallType, studSpacing, cavityMaterial, cavityType, contInsType, contInsThickness, icfFormThickness, sheathingId, claddingId, assemblyType, outerStud, innerStud, plate, doubleStudMaterial }`
+Accepts: `{ wallType, studSpacing, cavityMaterial, cavityType, contInsType, contInsThickness, icfFormThickness, sheathingId, claddingId, assemblyType, outerStud, innerStud, plate, doubleStudMaterial, hasServiceWall, serviceSpacing, serviceCavityMaterial, serviceCavityType, interiorLayerMaterial, interiorLayerThickness }`
 
 Returns: `number` (RSI) or `null`.
 
@@ -98,7 +103,13 @@ Returns: `number` (RSI) or `null`.
 - `'single'` (default): Standard single-wall calculation
 - `'doubleStud'`: Two stud rows on wider plate, blown-in insulation
 
+**Service wall path:** When `hasServiceWall` is true (wood only), the calculation sums the primary wall parallel-path + interior layer + service wall parallel-path, without continuous insulation. Works with both single and double stud primary walls.
+
 **Backward compatibility:** `PIC` is aliased to `Polyiso` for continuous insulation lookups.
+
+### `getInteriorLayerRsi(material, thickness)`
+
+Resolves RSI for the interior layer between primary and service walls. Accepts either a sheathing ID (from `boundary-options.json`, e.g., `'osb_11'`) or a continuous insulation type (e.g., `'XPS'`) with a thickness. Tries sheathing lookup first, falls back to continuous insulation.
 
 ## Deep Cavity Support
 
