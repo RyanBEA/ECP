@@ -36,11 +36,17 @@ ecp-calculator/
 │   │   ├── ecpData.js       # API layer: imports generated JSON + compute module
 │   │   ├── ecpData.test.js  # Unit tests for wall RSI and points
 │   │   └── generated/       # JSON from build pipeline (committed)
+│   ├── utils/
+│   │   ├── resolveWallData.js      # Extracts all intermediate RSI values from selection
+│   │   ├── buildWallSheet.js       # Builds Excel sheet with live formulas
+│   │   ├── exportWallAssembly.js   # Orchestrator: resolve → sheet → PNG → download
+│   │   └── svgToPng.js             # SVG DOM element → base64 PNG via canvas
 │   └── components/
 │       ├── CategoryCard.jsx   # Standard category selection UI
 │       ├── OptionButton.jsx   # Individual option button
 │       ├── WallBuilder.jsx    # Wall assembly builder (simple + builder modes)
 │       ├── WallSection.jsx    # SVG wall cross-section diagram (wood/steel/ICF)
+│       ├── FieldGroup.jsx     # Numbered card wrapper for field groups
 │       └── PointsCounter.jsx  # ECP points progress display
 ├── *.csv                      # Reference data (not loaded at runtime)
 ├── wallcalc/*.csv             # Wall calculation reference data
@@ -63,7 +69,13 @@ App.jsx (state: selections, wallSelection, selectedTierId, darkMode)
      │     │   ├── Wood/Steel: framing + continuous insulation fields
      │     │   └── ICF: form thickness field
      │     │
-     │     └── Uses: calculateWallRsi(selection), getWallPoints()
+     │     ├── Uses: calculateWallRsi(selection), getWallPoints()
+     │     │
+     │     └── Export to Excel (below diagram, when RSI valid)
+     │           └── exportWallAssembly(selection, svgElement)
+     │                 ├── resolveWallData → all intermediate RSI values
+     │                 ├── buildWallSheet → ExcelJS workbook with live formulas
+     │                 └── svgToPng → wall section image embedded in sheet
      │
      ├── CategoryCard ──► OptionButton (one per threshold)
      │
@@ -108,10 +120,14 @@ App
 │   ├── WallBuilder (for category.type === 'wallBuilder')
 │   │   ├── Mode toggle (Build Assembly / Select RSI)
 │   │   ├── Builder mode:
-│   │   │   ├── Wall Type selector (always visible)
-│   │   │   ├── Wood/Steel: Framing group + Continuous Insulation group
-│   │   │   ├── ICF: Form Thickness selector
-│   │   │   └── WallSection SVG (wood studs / steel C-channels / ICF layers)
+│   │   │   ├── FieldGroup cards (numbered, visually grouped)
+│   │   │   │   ├── Wall Configuration (type, assembly, service wall toggle)
+│   │   │   │   ├── Service Wall (conditional)
+│   │   │   │   ├── Main Wall (framing, cont. insulation, exterior)
+│   │   │   │   ├── Interior Layer (conditional)
+│   │   │   │   └── Assumptions (footnote style, read-only)
+│   │   │   ├── WallSection SVG (wood studs / steel C-channels / ICF layers)
+│   │   │   └── Export to Excel button (visible when RSI valid)
 │   │   └── Simple mode: OptionButton grid
 │   │
 │   └── CategoryCard × 7 (standard categories)
@@ -138,6 +154,8 @@ App
 7. **Dual wall input modes** — The wall category supports both direct RSI selection (simple mode) and assembly-based calculation (builder mode). Mode switching clears state completely.
 
 8. **PWA support** — Service worker + manifest for offline use and "Add to Home Screen" on mobile.
+
+9. **Wall assembly Excel export** — The "Export to Excel" button generates a `.xlsx` workbook entirely client-side using ExcelJS (dynamically imported, code-split into its own chunk). The workbook contains live Excel formulas replicating the parallel-path RSI calculation, a source column with NBC table references, and an embedded PNG of the wall section diagram. Three sheet layouts: universal wood template (single/double/service wall), steel K-factor method, and ICF series sum.
 
 ## Cross-References
 

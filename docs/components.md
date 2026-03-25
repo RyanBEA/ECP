@@ -137,6 +137,13 @@ Builder fields and `simpleIndex` are mutually exclusive. Mode switching calls `o
 | State | Type | Default |
 |-------|------|---------|
 | `mode` | `'builder'` \| `'simple'` | `'builder'` |
+| `exporting` | boolean | `false` |
+
+### Refs
+
+| Ref | Target | Purpose |
+|-----|--------|---------|
+| `wallSectionRef` | `.wall-section-container` div | Provides SVG element access for Excel export PNG embedding |
 
 ### Builder Mode — Progressive Disclosure
 
@@ -158,6 +165,18 @@ When all required fields are populated:
 - Calculates RSI via `calculateWallRsi(selection)`
 - Displays RSI value and points via `getWallPoints()`
 - Renders `WallSection` SVG diagram
+- Shows "Export to Excel" button below the diagram
+
+### Export to Excel
+
+When the user clicks "Export to Excel" (visible only when RSI is valid):
+1. `handleExport()` sets `exporting` state to `true` (button shows "Exporting...")
+2. Queries `wallSectionRef.current.querySelector('svg')` for the SVG element
+3. Calls `exportWallAssembly(selection, svgElement)` from `src/utils/exportWallAssembly.js`
+4. The orchestrator dynamically imports ExcelJS, resolves intermediate values, builds the sheet with live formulas, converts SVG to PNG, and triggers a browser download
+5. On completion (or error), `exporting` resets to `false`
+
+The export is entirely client-side — no server component. ExcelJS is code-split into its own chunk (~938KB) and only loaded on first export click.
 
 #### Sub-Code Warning
 
@@ -324,3 +343,36 @@ Development/testing harness for WallSection. Not connected to the main app.
 | `continuousIns` | `1` |
 
 Three `<select>` controls for interactive testing. Does NOT pass `cavityInsLabel` or `continuousInsLabel` — tests fallback label behavior. The 19" spacing option is omitted here (only 16" and 24").
+
+---
+
+## Export Utilities (`src/utils/`)
+
+### resolveWallData (`src/utils/resolveWallData.js`)
+
+`resolveWallData(selection)` — mirrors `calculateWallRsi()` but returns a structured object with all intermediate values instead of just the total RSI. Used by the Excel export to populate every cell.
+
+**Input:** Wall builder `selection` object (same as passed to `calculateWallRsi`).
+
+**Output:** `{ wallType, wallTypeLabel, assemblyType, studSpacing, boundary, contIns, mainWall, doubleStud, steel, icf, serviceWall, interiorLayer, totalRsi, points }` — null sections for inapplicable wall type paths.
+
+Covers all paths: wood single stud, wood double stud, wood + service wall, steel (K-factor method), ICF. Boundary layers include RSI values, labels, and NBC source citations.
+
+### buildWallSheet (`src/utils/buildWallSheet.js`)
+
+`buildWallSheet(workbook, data)` — takes an ExcelJS workbook and a resolved data object, adds a "Wall Assembly RSI" worksheet with live Excel formulas.
+
+Three internal layouts:
+- **Wood** — universal template (rows 7–31). Unused rows (double stud, service wall) zeroed. Parallel-path formulas, stud RSI from depth, total as sum of series layers.
+- **Steel** — K-factor weighted method. Cavity % and K1 as live formulas (IF conditions for spacing/insulating sheathing). Total = K1×T1 + K2×T3.
+- **ICF** — pure series sum with EPS form and concrete core formulas.
+
+All layouts include a Source column (E) with NBC table references.
+
+### svgToPng (`src/utils/svgToPng.js`)
+
+`svgToPng(svgElement, scale=2)` — converts an SVG DOM element to a PNG via native browser Canvas API. Returns `{ base64, width, height }`. Handles SVGs using viewBox without explicit width/height.
+
+### exportWallAssembly (`src/utils/exportWallAssembly.js`)
+
+`exportWallAssembly(selection, svgElement)` — orchestrator. Dynamically imports ExcelJS, calls resolveWallData, buildWallSheet, svgToPng (with graceful degradation), and triggers a browser file download. Filename: `Wall-Assembly-RSI-{type}-{date}.xlsx`.

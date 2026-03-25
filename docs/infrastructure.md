@@ -8,11 +8,15 @@
 // vite.config.js
 export default defineConfig({
   plugins: [react()],
-  base: './'     // Relative asset paths — required for Railway and subdirectory serving
+  base: './',     // Relative asset paths — required for Railway and subdirectory serving
+  resolve: {
+    alias: { '@scripts': path.resolve(__dirname, 'scripts') }
+  },
+  test: { environment: 'jsdom', globals: true }
 })
 ```
 
-No PostCSS, no Tailwind, no CSS modules, no path aliases, no environment variables. Intentionally minimal.
+Path alias `@scripts` allows `src/` code to import from `scripts/compute.js` (shared between build pipeline and React app). Test environment configured for jsdom (component + ExcelJS tests).
 
 ## NPM Scripts
 
@@ -30,10 +34,13 @@ No PostCSS, no Tailwind, no CSS modules, no path aliases, no environment variabl
 | `react` | ^18.2.0 | UI framework |
 | `react-dom` | ^18.2.0 | DOM rendering |
 | `serve` | ^14.2.5 | Static file server for production |
+| `exceljs` | ^4.4.0 | Excel workbook generation (dynamically imported, code-split) |
 | `vite` | ^5.0.0 | Build tool (dev) |
 | `@vitejs/plugin-react` | ^4.2.1 | React JSX/refresh support (dev) |
+| `vitest` | ^4.0.18 | Test framework (dev) |
+| `@testing-library/react` | ^16.3.2 | React component testing (dev) |
 
-Zero runtime dependencies beyond React itself. The `serve` package is used only in production for Railway's `npm start`.
+ExcelJS is a production dependency but dynamically imported — Vite code-splits it into a separate chunk (~938KB) loaded only when the user clicks "Export to Excel" in the wall builder. The main bundle remains ~229KB.
 
 ---
 
