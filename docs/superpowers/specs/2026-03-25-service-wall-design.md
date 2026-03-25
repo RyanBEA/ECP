@@ -70,7 +70,7 @@ Single dropdown combining sheathing and rigid foam options, with grouped optgrou
 └───────────────────────────────────────────┘
 ```
 
-Sheathing options have fixed RSI (material determines thickness). Rigid foam options require a thickness sub-selector.
+Sheathing options have fixed RSI (material determines thickness). Rigid foam options require a thickness sub-selector. **Default: 7/16" OSB (`osb_11`)** when service wall is enabled.
 
 ### Service Wall Section
 
@@ -171,6 +171,19 @@ New parameters for `calculateWallRsi()`:
 ```
 
 New helper: `getInteriorLayerRsi(material, thickness)` — resolves sheathing ID (from boundary-options.json) or continuous insulation type+thickness (from continuous-ins.json) to RSI value.
+
+**Service wall data lookup:** The service wall uses the same `wallData.wood.spacings[serviceSpacing].materials[serviceCavityMaterial][serviceCavityType]` lookup as the primary wall, with its own independent spacing. The `cavity_pct` comes from the service wall's spacing entry.
+
+**Calculation note:** `boundarySum(boundary)` includes all boundary layers (outside air, cladding, sheathing, drywall, inside air). Since all layers are series resistances summed together, the physical layer order doesn't affect the total — addition is commutative. The service wall path computes: `boundarySum(boundary) + primaryPP + interiorLayerRsi + servicePP`.
+
+### State Transitions
+
+- **Enabling service wall:** clears `contInsType` and `contInsThickness` from state (not just hidden)
+- **Disabling service wall:** clears all service wall fields (`serviceSpacing`, `serviceCavityMaterial`, `serviceCavityType`, `interiorLayerMaterial`, `interiorLayerThickness`)
+- **Changing wall type from wood:** clears entire selection (existing behavior in `handleFieldChange`), which removes service wall state
+- **Changing assembly type (single ↔ double stud):** preserves `hasServiceWall` and service wall fields; clears primary wall fields (existing behavior)
+- **Changing `interiorLayerMaterial`:** clears `interiorLayerThickness` (foam needs thickness, sheathing doesn't)
+- **Changing `serviceCavityMaterial`:** clears `serviceCavityType` (available types differ per material)
 
 ### No Changes Required
 
