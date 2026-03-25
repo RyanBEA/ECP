@@ -157,6 +157,41 @@ export default function WallSection({
   const wallWidthPx = wallLengthInches * scale
   const studWidthInches = 1.5
 
+  // Shared helper: compute non-overlapping label Y positions
+  // Starts labels at layer midpoints, then pushes apart any that overlap
+  const computeLabelPositions = (layers, minSpacing = 14) => {
+    // Start at each layer's midpoint
+    const positions = layers.map(l => l.midY)
+    // Forward pass: push labels down if they overlap
+    for (let i = 1; i < positions.length; i++) {
+      if (positions[i] - positions[i - 1] < minSpacing) {
+        positions[i] = positions[i - 1] + minSpacing
+      }
+    }
+    return positions
+  }
+
+  // Shared helper: render labels with leader lines using relaxed positions
+  const renderLabels = (layers, wallWidth, startY) => {
+    const labelX = wallWidth + 80
+    const positions = computeLabelPositions(layers)
+    return (
+      <g>
+        {layers.map((layer, i) => {
+          const labelY = positions[i]
+          return (
+            <g key={layer.name + i}>
+              <path d={`M ${wallWidth + 20} ${layer.midY} L ${wallWidth + 40} ${layer.midY} L ${labelX - 5} ${labelY}`}
+                fill="none" stroke="#9ca3af" strokeWidth="1" />
+              <circle cx={wallWidth + 20} cy={layer.midY} r="2" fill="#9ca3af" />
+              <text x={labelX} y={labelY + 3} fontSize="9" fill="#6b7280">{layer.name}</text>
+            </g>
+          )
+        })}
+      </g>
+    )
+  }
+
   // Shared helper: renders a wood stud+cavity section
   const renderStudCavity = (startY, depth, spacingIn) => {
     const studH = depth * scale
@@ -276,31 +311,7 @@ export default function WallSection({
             <rect x={0} y={icfCladdingY} width={icfWallWidthPx}
               height={claddingThickness * scale} fill={colors.cladding} stroke="#4b5563" strokeWidth="1" />
 
-            {/* Labels */}
-            {(() => {
-              const labelSpacing = 14
-              const labelStartY = icfStartY + 5
-              const labelX = icfWallWidthPx + 80
-
-              return (
-                <g>
-                  {icfLayers.map((layer, i) => {
-                    const labelY = labelStartY + i * labelSpacing
-                    return (
-                      <g key={layer.name}>
-                        <path
-                          d={`M ${icfWallWidthPx + 20} ${layer.midY}
-                              L ${icfWallWidthPx + 40} ${layer.midY}
-                              L ${labelX - 5} ${labelY}`}
-                          fill="none" stroke="#9ca3af" strokeWidth="1" />
-                        <circle cx={icfWallWidthPx + 20} cy={layer.midY} r="2" fill="#9ca3af" />
-                        <text x={labelX} y={labelY + 3} fontSize="9" fill="#6b7280">{layer.name}</text>
-                      </g>
-                    )
-                  })}
-                </g>
-              )
-            })()}
+            {renderLabels(icfLayers, icfWallWidthPx, icfStartY)}
           </g>
 
           <text x={icfSvgWidth / 2} y={icfCladdingY + claddingThickness * scale + 25}
@@ -415,26 +426,7 @@ export default function WallSection({
             {renderStudsOnly(outerStudYDs, outerDepth, studSpacing)}
             <rect x={0} y={sheathingYDs} width={wallWidthPx} height={sheathingThickness * scale} fill={colors.sheathing} stroke="#6b7280" strokeWidth="1" />
             <rect x={0} y={claddingYDs} width={wallWidthPx} height={claddingThickness * scale} fill={colors.cladding} stroke="#4b5563" strokeWidth="1" />
-            {(() => {
-              const labelSpacing = 14
-              const labelStartY = dsStartY + 5
-              const labelX = wallWidthPx + 80
-              return (
-                <g>
-                  {dsLayers.map((layer, i) => {
-                    const labelY = labelStartY + i * labelSpacing
-                    return (
-                      <g key={layer.name}>
-                        <path d={`M ${wallWidthPx + 20} ${layer.midY} L ${wallWidthPx + 40} ${layer.midY} L ${labelX - 5} ${labelY}`}
-                          fill="none" stroke="#9ca3af" strokeWidth="1" />
-                        <circle cx={wallWidthPx + 20} cy={layer.midY} r="2" fill="#9ca3af" />
-                        <text x={labelX} y={labelY + 3} fontSize="9" fill="#6b7280">{layer.name}</text>
-                      </g>
-                    )
-                  })}
-                </g>
-              )
-            })()}
+            {renderLabels(dsLayers, wallWidthPx, dsStartY)}
             <g transform={`translate(0, ${claddingYDs + claddingThickness * scale + 15})`}>
               <line x1={0} y1="0" x2={studSpacing * scale} y2="0" stroke="#9ca3af" strokeWidth="1" />
               <line x1={0} y1="-5" x2={0} y2="5" stroke="#9ca3af" strokeWidth="1" />
@@ -502,26 +494,7 @@ export default function WallSection({
             {wallType === 'wood' && renderStudCavity(primaryCavityYSw, primaryDepth, studSpacing)}
             <rect x={0} y={sheathingYSw} width={wallWidthPx} height={sheathingThickness * scale} fill={colors.sheathing} stroke="#6b7280" strokeWidth="1" />
             <rect x={0} y={claddingYSw} width={wallWidthPx} height={claddingThickness * scale} fill={colors.cladding} stroke="#4b5563" strokeWidth="1" />
-            {(() => {
-              const labelSpacing = 14
-              const labelStartY = swStartY + 5
-              const labelX = wallWidthPx + 80
-              return (
-                <g>
-                  {swLayers.map((layer, i) => {
-                    const labelY = labelStartY + i * labelSpacing
-                    return (
-                      <g key={layer.name}>
-                        <path d={`M ${wallWidthPx + 20} ${layer.midY} L ${wallWidthPx + 40} ${layer.midY} L ${labelX - 5} ${labelY}`}
-                          fill="none" stroke="#9ca3af" strokeWidth="1" />
-                        <circle cx={wallWidthPx + 20} cy={layer.midY} r="2" fill="#9ca3af" />
-                        <text x={labelX} y={labelY + 3} fontSize="9" fill="#6b7280">{layer.name}</text>
-                      </g>
-                    )
-                  })}
-                </g>
-              )
-            })()}
+            {renderLabels(swLayers, wallWidthPx, swStartY)}
             <g transform={`translate(0, ${claddingYSw + claddingThickness * scale + 15})`}>
               <line x1={0} y1="0" x2={studSpacing * scale} y2="0" stroke="#9ca3af" strokeWidth="1" />
               <line x1={0} y1="-5" x2={0} y2="5" stroke="#9ca3af" strokeWidth="1" />
@@ -719,31 +692,7 @@ export default function WallSection({
               { name: claddingLabel || '½" cladding', midY: claddingY + claddingThickness * scale / 2 },
             ]
 
-            const labelSpacing = 14
-            const labelStartY = startY + 5
-            const labelX = wallWidthPx + 80
-
-            return (
-              <g>
-                {layers.map((layer, i) => {
-                  const labelY = labelStartY + i * labelSpacing
-                  const layerMidY = layer.midY
-
-                  return (
-                    <g key={layer.name}>
-                      <path
-                        d={`M ${wallWidthPx + 20} ${layerMidY}
-                            L ${wallWidthPx + 40} ${layerMidY}
-                            L ${labelX - 5} ${labelY}`}
-                        fill="none" stroke="#9ca3af" strokeWidth="1"
-                      />
-                      <circle cx={wallWidthPx + 20} cy={layerMidY} r="2" fill="#9ca3af" />
-                      <text x={labelX} y={labelY + 3} fontSize="9" fill="#6b7280">{layer.name}</text>
-                    </g>
-                  )
-                })}
-              </g>
-            )
+            return renderLabels(layers, wallWidthPx, startY)
           })()}
 
           {/* Stud spacing dimension at bottom */}
