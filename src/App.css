@@ -353,6 +353,23 @@ h1, h2, h3, h4, h5, h6 {
   border-color: var(--gray-400);
 }
 
+/* Export button */
+.export-button {
+  background: var(--primary);
+  color: white;
+  border: 1px solid var(--primary);
+  margin-bottom: 0.5rem;
+}
+
+.export-button:hover:not(:disabled) {
+  opacity: 0.9;
+}
+
+.export-button:disabled {
+  opacity: 0.6;
+  cursor: wait;
+}
+
 /* Wall Builder */
 .wall-builder {
   border-left: 4px solid var(--primary);

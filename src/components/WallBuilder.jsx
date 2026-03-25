@@ -1,4 +1,4 @@
-import React, { useState } from 'react'
+import React, { useState, useRef } from 'react'
 import {
   categories,
   wallTypes,
@@ -19,6 +19,7 @@ const boundaryOpts = getBoundaryOptions()
 import OptionButton from './OptionButton'
 import FieldGroup from './FieldGroup'
 import WallSection from './WallSection'
+import { exportWallAssembly } from '../utils/exportWallAssembly'
 
 const wallCategory = categories.find(c => c.id === 'aboveGroundWalls')
 
@@ -92,6 +93,20 @@ const DEFAULTS = {
 
 export default function WallBuilder({ selection, onSelect }) {
   const [mode, setMode] = useState('builder')
+  const wallSectionRef = useRef(null)
+  const [exporting, setExporting] = useState(false)
+
+  const handleExport = async () => {
+    setExporting(true)
+    try {
+      const svgEl = wallSectionRef.current?.querySelector('svg')
+      await exportWallAssembly(selection, svgEl)
+    } catch (err) {
+      console.error('Export failed:', err)
+    } finally {
+      setExporting(false)
+    }
+  }
 
   const {
     wallType, studSpacing, cavityMaterial, cavityType,
@@ -727,7 +742,7 @@ export default function WallBuilder({ selection, onSelect }) {
               : null
 
             return (
-              <div className="wall-section-container">
+              <div className="wall-section-container" ref={wallSectionRef}>
                 <WallSection
                   wallType={wallType}
                   studDepth={isSingleWall ? getStudDepth(cavityType) : '2x6'}
@@ -754,7 +769,7 @@ export default function WallBuilder({ selection, onSelect }) {
 
           {/* Steel single wall diagram (unchanged) */}
           {wallType === 'steel' && studSpacing && cavityType && (
-            <div className="wall-section-container">
+            <div className="wall-section-container" ref={wallSectionRef}>
               <WallSection
                 wallType="steel"
                 studDepth={getStudDepth(cavityType)}
@@ -768,12 +783,24 @@ export default function WallBuilder({ selection, onSelect }) {
           )}
 
           {isIcf && icfFormThickness && (
-            <div className="wall-section-container">
+            <div className="wall-section-container" ref={wallSectionRef}>
               <WallSection
                 wallType="icf"
                 icfFormThickness={getContInsThicknessNum(icfFormThickness)}
               />
             </div>
+          )}
+
+          {/* Export to Excel button */}
+          {rsi !== null && (
+            <button
+              className="option-button export-button"
+              onClick={handleExport}
+              disabled={exporting}
+              type="button"
+            >
+              {exporting ? 'Exporting...' : 'Export to Excel'}
+            </button>
           )}
 
           {/* Clear button */}
