@@ -15,6 +15,13 @@ import { getContinuousInsRsi, getInteriorLayerRsi, getWallPoints } from '../data
 
 const WALL_TYPE_LABELS = { wood: 'Wood Frame', steel: 'Steel Frame', icf: 'ICF' }
 
+/** Normalize abbreviated source refs from boundary-options.json (e.g., "Table D" → "NBC 2020 Table A-9.36.2.4.(1)-D") */
+function normalizeSource(src) {
+  if (!src) return null
+  if (src.startsWith('Table D')) return 'NBC 2020 Table A-9.36.2.4.(1)-D' + src.slice(7)
+  return src
+}
+
 /**
  * Resolve boundary layers with RSI values and human-readable labels.
  */
@@ -27,7 +34,7 @@ function resolveBoundary(wallType, sheathingId, claddingId) {
   const clId = claddingId || boundaryOptions.cladding.defaults[wallType]
   const clOption = boundaryOptions.cladding.options.find(o => o.id === clId)
   const cladding = clOption
-    ? { rsi: clOption.rsi, label: clOption.label, id: clId, source: clOption.source || null }
+    ? { rsi: clOption.rsi, label: clOption.label, id: clId, source: normalizeSource(clOption.source) }
     : { rsi: 0, label: 'None', id: null, source: null }
 
   // Sheathing (wood only)
@@ -36,7 +43,7 @@ function resolveBoundary(wallType, sheathingId, claddingId) {
     const shId = sheathingId || boundaryOptions.sheathing.default
     const shOption = boundaryOptions.sheathing.options.find(o => o.id === shId)
     sheathing = shOption
-      ? { rsi: shOption.rsi, label: shOption.label, id: shId, source: shOption.source || null }
+      ? { rsi: shOption.rsi, label: shOption.label, id: shId, source: normalizeSource(shOption.source) }
       : { rsi: 0, label: 'None', id: null, source: null }
   }
 

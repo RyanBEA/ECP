@@ -35,7 +35,7 @@ export async function exportWallAssembly(selection, svgElement) {
   // Embed wall section image (graceful degradation: skip on failure)
   if (svgElement) {
     try {
-      const pngBase64 = await svgToPng(svgElement)
+      const { base64: pngBase64, width: imgW, height: imgH } = await svgToPng(svgElement)
       const imageId = workbook.addImage({
         base64: pngBase64,
         extension: 'png',
@@ -45,9 +45,12 @@ export async function exportWallAssembly(selection, svgElement) {
       const lastRow = sheet.lastRow?.number || 30
       const imageRow = lastRow + 2
 
+      // Scale to fit ~500px wide while preserving aspect ratio
+      const maxWidth = 500
+      const scale = imgW > maxWidth ? maxWidth / imgW : 1
       sheet.addImage(imageId, {
         tl: { col: 0, row: imageRow },
-        ext: { width: 500, height: 300 },
+        ext: { width: imgW * scale, height: imgH * scale },
       })
     } catch (err) {
       console.warn('SVG-to-PNG conversion failed, exporting without image:', err.message)
