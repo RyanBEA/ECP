@@ -2,6 +2,7 @@ import { describe, it, expect } from 'vitest'
 import {
   calculateWallRsi, getWallPoints, MIN_WALL_RSI,
   getBoundaryOptions, getDefaultBoundary, getContinuousInsRsi,
+  getInteriorLayerRsi,
   wallTypes, studSpacingOptions, cavityMaterials, continuousInsTypes,
   categories, tiers, framedWallRsi, icfRsi,
 } from './ecpData'
@@ -211,5 +212,27 @@ describe('variable boundary layers', () => {
     })
     // Plywood 1/2" (0.109) vs OSB 7/16" (0.108) = +0.001
     expect(withPlywood).toBeGreaterThan(defaultRsi)
+  })
+})
+
+describe('getInteriorLayerRsi', () => {
+  it('returns RSI for a sheathing ID', () => {
+    expect(getInteriorLayerRsi('osb_11')).toBeCloseTo(0.108, 3)
+  })
+  it('returns RSI for a plywood sheathing ID', () => {
+    expect(getInteriorLayerRsi('plywood_sw_12_5')).toBeCloseTo(0.109, 3)
+  })
+  it('returns RSI for rigid foam type + thickness', () => {
+    expect(getInteriorLayerRsi('XPS', '2"')).toBeCloseTo(1.68, 2)
+  })
+  it('returns RSI for Polyiso 1-1/2"', () => {
+    expect(getInteriorLayerRsi('Polyiso', '1-1/2"')).toBeCloseTo(1.385, 2)
+  })
+  it('returns 0 for null/undefined', () => {
+    expect(getInteriorLayerRsi(null)).toBe(0)
+    expect(getInteriorLayerRsi(undefined)).toBe(0)
+  })
+  it('returns 0 for unknown material', () => {
+    expect(getInteriorLayerRsi('nonexistent')).toBe(0)
   })
 })

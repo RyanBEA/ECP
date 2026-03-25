@@ -203,6 +203,18 @@ export function getContinuousInsRsi(type, thickness) {
   return continuousInsData[lookupType]?.thicknesses[thickness] ?? 0
 }
 
+// Interior layer RSI: resolves either a sheathing ID or a cont ins type+thickness
+// Sheathing IDs match boundary-options.json (e.g., 'osb_11', 'plywood_sw_12_5')
+// Cont ins types match continuous-ins.json (e.g., 'XPS', 'Polyiso')
+export function getInteriorLayerRsi(material, thickness) {
+  if (!material) return 0
+  // Try sheathing lookup first
+  const sheathing = boundaryOptions.sheathing.options.find(o => o.id === material)
+  if (sheathing) return sheathing.rsi
+  // Try continuous insulation lookup
+  return getContinuousInsRsi(material, thickness)
+}
+
 // --- Main calculation function (backward compatible + extended) ---
 
 export function calculateWallRsi({
