@@ -235,7 +235,15 @@ Expected: FAIL — `hasServiceWall` param not handled
 **Files:**
 - Modify: `src/data/ecpData.js`
 
-- [ ] **Step 1: Add service wall parameters to function signature**
+- [ ] **Step 1: Add `parallelPath` and `boundarySum` to imports**
+
+Update the import from `@scripts/compute.js` (line 16 of ecpData.js):
+
+```js
+import { woodWallRsi, steelWallRsi, icfWallRsi, doubleStudWallRsi, parallelPath, boundarySum } from '@scripts/compute.js'
+```
+
+- [ ] **Step 2: Add service wall parameters to function signature**
 
 In `calculateWallRsi()` (line 208), update the destructured params:
 
@@ -252,7 +260,7 @@ export function calculateWallRsi({
 } = {}) {
 ```
 
-- [ ] **Step 2: Add the service wall code path**
+- [ ] **Step 3: Add the service wall code path**
 
 Add after the `contInsRsi` line (line 226) and before the ICF path (line 228). This early-returns for the service wall path so the existing single/double stud paths are untouched:
 
@@ -296,12 +304,12 @@ Add after the `contInsRsi` line (line 226) and before the ICF path (line 228). T
   }
 ```
 
-- [ ] **Step 3: Run tests to verify they pass**
+- [ ] **Step 4: Run tests to verify they pass**
 
 Run: `npx vitest run src/data/ecpData.test.js`
 Expected: All service wall tests PASS, all existing tests still PASS
 
-- [ ] **Step 4: Commit**
+- [ ] **Step 5: Commit**
 
 ```bash
 git add src/data/ecpData.js src/data/ecpData.test.js
@@ -726,7 +734,62 @@ export default function WallSection({
 }) {
 ```
 
-- [ ] **Step 2: Add double stud rendering before the single-wall framed rendering**
+- [ ] **Step 2: Extract shared `renderStudCavity` helper**
+
+Add this helper function inside the WallSection component body, AFTER the pattern generators (`generateCavityPattern`, `generateContInsPattern`) and the `studDepthMap`/`toStudDepthInches` definitions, but BEFORE any rendering branches (ICF, double stud, or single wall). This helper is used by both the double stud and single wall + service wall rendering:
+
+```js
+  const studWidthInches = 1.5
+
+  // Shared helper: renders a wood stud+cavity section at the given y position
+  const renderStudCavity = (startY, depth, spacingIn) => {
+    const studH = depth * scale
+    const numSt = Math.ceil(wallLengthInches / spacingIn) + 1
+    return (
+      <g>
+        {/* Cavity background */}
+        <rect x={0} y={startY} width={wallWidthPx} height={studH}
+          fill={colors.cavity} stroke="#9ca3af" strokeWidth="1" />
+        {/* Cavity pattern between studs */}
+        {Array.from({ length: numSt - 1 }).map((_, i) => {
+          const cavStartX = (i * spacingIn + studWidthInches) * scale
+          const cavW = (spacingIn - studWidthInches) * scale
+          if (cavStartX >= wallWidthPx) return null
+          return (
+            <g key={`cav-${startY}-${i}`}>
+              {generateCavityPattern(cavStartX, Math.min(cavW, wallWidthPx - cavStartX), startY, studH)}
+            </g>
+          )
+        })}
+        {/* Studs */}
+        {Array.from({ length: numSt }).map((_, i) => {
+          const sx = i * spacingIn * scale
+          const sw = studWidthInches * scale
+          if (sx >= wallWidthPx) return null
+          const aw = Math.min(sw, wallWidthPx - sx)
+          return (
+            <g key={`stud-${startY}-${i}`}>
+              <rect x={sx} y={startY} width={aw} height={studH}
+                fill={colors.stud} stroke="#333" strokeWidth="1" />
+              {aw >= sw - 1 && (
+                <>
+                  <line x1={sx + 1} y1={startY + 1} x2={sx + sw - 1} y2={startY + studH - 1}
+                    stroke="#333" strokeWidth="1" />
+                  <line x1={sx + sw - 1} y1={startY + 1} x2={sx + 1} y2={startY + studH - 1}
+                    stroke="#333" strokeWidth="1" />
+                </>
+              )}
+            </g>
+          )
+        })}
+      </g>
+    )
+  }
+```
+
+**Note:** This helper references `wallWidthPx` and `wallLengthInches`, which are computed per-rendering-branch. You'll need to compute these before defining the helper, or pass them as additional parameters. The simplest approach: compute `wallLengthInches` and `wallWidthPx` once at the top of the wood/steel section (before any branch), since all wood rendering modes use `studSpacing * 1.5` for wall length.
+
+- [ ] **Step 3: Add double stud rendering before the single-wall framed rendering**
 
 After the ICF section (after line 245) and before the existing wood/steel section (line 247), add:
 
@@ -787,51 +850,6 @@ After the ICF section (after line 245) and before the existing wood/steel sectio
     dsLayers.push({ name: sheathingLabel || '7/16" sheathing', midY: sheathingYDs + sheathingThickness * scale / 2 })
     dsLayers.push({ name: claddingLabel || '½" cladding', midY: claddingYDs + claddingThickness * scale / 2 })
 
-    // Helper to render a wood stud+cavity section
-    const renderStudCavity = (startY, depth, spacingIn) => {
-      const studH = depth * scale
-      const numSt = Math.ceil(wallLengthInches / spacingIn) + 1
-      return (
-        <g>
-          {/* Cavity background */}
-          <rect x={0} y={startY} width={wallWidthPx} height={studH}
-            fill={colors.cavity} stroke="#9ca3af" strokeWidth="1" />
-          {/* Cavity pattern between studs */}
-          {Array.from({ length: numSt - 1 }).map((_, i) => {
-            const cavStartX = (i * spacingIn + studWidthInches) * scale
-            const cavW = (spacingIn - studWidthInches) * scale
-            if (cavStartX >= wallWidthPx) return null
-            return (
-              <g key={`cav-${startY}-${i}`}>
-                {generateCavityPattern(cavStartX, Math.min(cavW, wallWidthPx - cavStartX), startY, studH)}
-              </g>
-            )
-          })}
-          {/* Studs */}
-          {Array.from({ length: numSt }).map((_, i) => {
-            const sx = i * spacingIn * scale
-            const sw = studWidthInches * scale
-            if (sx >= wallWidthPx) return null
-            const aw = Math.min(sw, wallWidthPx - sx)
-            return (
-              <g key={`stud-${startY}-${i}`}>
-                <rect x={sx} y={startY} width={aw} height={studH}
-                  fill={colors.stud} stroke="#333" strokeWidth="1" />
-                {aw >= sw - 1 && (
-                  <>
-                    <line x1={sx + 1} y1={startY + 1} x2={sx + sw - 1} y2={startY + studH - 1}
-                      stroke="#333" strokeWidth="1" />
-                    <line x1={sx + sw - 1} y1={startY + 1} x2={sx + 1} y2={startY + studH - 1}
-                      stroke="#333" strokeWidth="1" />
-                  </>
-                )}
-              </g>
-            )
-          })}
-        </g>
-      )
-    }
-
     return (
       <div className="wall-section" style={{ width: '100%', overflowX: 'auto' }}>
         <svg
@@ -856,8 +874,8 @@ After the ICF section (after line 245) and before the existing wood/steel sectio
               <g>
                 <rect x={0} y={intLayerYDs} width={wallWidthPx}
                   height={intLayerThick * scale}
-                  fill={interiorLayerLabel && !interiorLayerLabel.includes('"') ? colors.sheathing : '#fce7f3'}
-                  stroke={interiorLayerLabel && !interiorLayerLabel.includes('"') ? '#6b7280' : '#db2777'}
+                  fill={interiorLayerLabel && interiorLayerLabel.match(/EPS|XPS|Polyiso|Mineral Wool/) ? '#fce7f3' : colors.sheathing}
+                  stroke={interiorLayerLabel && interiorLayerLabel.match(/EPS|XPS|Polyiso|Mineral Wool/) ? '#db2777' : '#6b7280'}
                   strokeWidth="1" />
                 {/* Foam pattern if rigid insulation */}
                 {interiorLayerLabel && interiorLayerLabel.match(/EPS|XPS|Polyiso|Mineral Wool/) &&
@@ -989,9 +1007,7 @@ Before the existing wood/steel framed wall return (the `return (` around line 28
       { name: claddingLabel || '½" cladding', midY: claddingYSw + claddingThickness * scale / 2 },
     )
 
-    // Reuse renderStudCavity helper (extract to top of function scope)
-    // ... same SVG structure as double stud but with:
-    //   drywall → service wall → interior layer → primary wall → sheathing → cladding
+    // Uses renderStudCavity helper from Task 11, Step 2 (defined at function scope)
 
     return (
       <div className="wall-section" style={{ width: '100%', overflowX: 'auto' }}>
@@ -1074,7 +1090,7 @@ Before the existing wood/steel framed wall return (the `return (` around line 28
   }
 ```
 
-**Important:** The `renderStudCavity` helper used in Tasks 11 and 12 must be defined once, above both rendering sections. Extract it to a shared location within the function body, after the pattern generators and before any rendering branches.
+**Note:** The `renderStudCavity` helper was extracted to the function body scope in Step 2 above, so it's available to both this Task and Task 12.
 
 - [ ] **Step 2: Commit**
 
