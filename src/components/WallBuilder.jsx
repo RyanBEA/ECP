@@ -634,16 +634,71 @@ export default function WallBuilder({ selection, onSelect }) {
             )}
           </div>
 
-          {/* Wall Section Diagram — only when we have enough info */}
-          {isFramedWall && studSpacing && cavityType && (
+          {/* Wall Section Diagram */}
+          {isFramedWall && wallType === 'wood' && (() => {
+            // Determine if we have enough info to show diagram
+            const hasPrimaryInfo = isSingleWall
+              ? (studSpacing && cavityType)
+              : (isDoubleStud && studSpacing && outerStud && innerStud && plate && doubleStudMaterial)
+            const hasServiceInfo = !hasServiceWall || (serviceSpacing && serviceCavityType)
+            if (!hasPrimaryInfo) return null
+
+            // Compute gap for double stud (plate depth - outer - inner)
+            const dsGapInches = isDoubleStud
+              ? ((studDepthMm[plate] || 0) - (studDepthMm[outerStud] || 89) - (studDepthMm[innerStud] || 89)) / 25.4
+              : 0
+
+            // Interior layer thickness in inches (0 for sheathing, actual for foam)
+            const isFoam = interiorLayerMaterial && !boundaryOpts.sheathing.options.find(o => o.id === interiorLayerMaterial)
+            const intLayerThickInches = isFoam ? getContInsThicknessNum(interiorLayerThickness) : 0
+            // Sheathing interior layer: use fixed ~0.44" (11mm) visual thickness
+            const intLayerVisualThick = interiorLayerMaterial
+              ? (isFoam ? intLayerThickInches : 0.44)
+              : 0
+
+            const intLayerLabelText = interiorLayerMaterial
+              ? (isFoam
+                ? `${interiorLayerThickness || ''} ${interiorLayerMaterial}`
+                : boundaryOpts.sheathing.options.find(o => o.id === interiorLayerMaterial)?.label)
+              : null
+
+            return (
+              <div className="wall-section-container">
+                <WallSection
+                  wallType={wallType}
+                  studDepth={isSingleWall ? getStudDepth(cavityType) : '2x6'}
+                  studSpacing={getStudSpacingNum(studSpacing)}
+                  continuousIns={!hasServiceWall && isSingleWall ? getContInsThicknessNum(contInsThickness) : 0}
+                  cavityInsLabel={isSingleWall ? cavityType : doubleStudMaterial}
+                  continuousInsLabel={!hasServiceWall && isSingleWall && contInsType && contInsThickness !== 'None' ? `${contInsThickness} ${contInsType}` : null}
+                  claddingLabel={boundaryOpts.cladding.options.find(o => o.id === (selection?.claddingId || boundaryOpts.cladding.defaults[wallType]))?.label}
+                  sheathingLabel={boundaryOpts.sheathing.options.find(o => o.id === (selection?.sheathingId || boundaryOpts.sheathing.default))?.label}
+                  assemblyType={assemblyType}
+                  hasServiceWall={hasServiceWall && hasServiceInfo}
+                  outerStudDepth={outerStud || '2x4'}
+                  innerStudDepth={innerStud || '2x4'}
+                  gapInches={dsGapInches}
+                  serviceStudDepth={getStudDepth(serviceCavityType)}
+                  serviceSpacingInches={getStudSpacingNum(serviceSpacing)}
+                  serviceCavityLabel={serviceCavityType}
+                  interiorLayerLabel={intLayerLabelText}
+                  interiorLayerThicknessInches={intLayerVisualThick}
+                />
+              </div>
+            )
+          })()}
+
+          {/* Steel single wall diagram (unchanged) */}
+          {wallType === 'steel' && studSpacing && cavityType && (
             <div className="wall-section-container">
               <WallSection
-                wallType={wallType}
+                wallType="steel"
                 studDepth={getStudDepth(cavityType)}
                 studSpacing={getStudSpacingNum(studSpacing)}
                 continuousIns={getContInsThicknessNum(contInsThickness)}
                 cavityInsLabel={cavityType}
                 continuousInsLabel={contInsType && contInsThickness !== 'None' ? `${contInsThickness} ${contInsType}` : null}
+                claddingLabel={boundaryOpts.cladding.options.find(o => o.id === (selection?.claddingId || boundaryOpts.cladding.defaults.steel))?.label}
               />
             </div>
           )}
