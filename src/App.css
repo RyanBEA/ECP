@@ -452,6 +452,12 @@ h1, h2, h3, h4, h5, h6 {
   box-shadow: 0 0 0 3px rgba(79, 61, 99, 0.15);
 }
 
+.option-group {
+  display: flex;
+  gap: 0.5rem;
+  flex-wrap: wrap;
+}
+
 .wall-result {
   display: flex;
   flex-wrap: wrap;

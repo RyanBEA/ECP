@@ -231,7 +231,7 @@ export default function WallBuilder({ selection, onSelect }) {
                 <div className="wall-selector assembly-type-selector">
                   <div className="option-group">
                     {[
-                      { id: 'single', label: 'Single Wall' },
+                      { id: 'single', label: 'Single Stud' },
                       { id: 'doubleStud', label: 'Double Stud' },
                     ].map(at => (
                       <button
@@ -280,50 +280,6 @@ export default function WallBuilder({ selection, onSelect }) {
                 />
                 {' '}Add Interior Service Wall
               </label>
-            </div>
-          )}
-
-          {/* Interior layer (between primary wall and service wall) */}
-          {hasServiceWall && (
-            <div className="wall-selectors-group">
-              <label className="wall-selectors-group-label">Interior Layer</label>
-              <div className="wall-selectors">
-                <div className="wall-selector">
-                  <label htmlFor="interiorLayerMaterial">Material</label>
-                  <select
-                    id="interiorLayerMaterial"
-                    value={interiorLayerMaterial || ''}
-                    onChange={e => handleFieldChange('interiorLayerMaterial', e.target.value)}
-                  >
-                    <option value="">Select...</option>
-                    <optgroup label="Sheathing">
-                      {boundaryOpts.sheathing.options.map(o => (
-                        <option key={o.id} value={o.id}>{o.label}</option>
-                      ))}
-                    </optgroup>
-                    <optgroup label="Rigid Insulation">
-                      {continuousInsTypes.map(t => (
-                        <option key={t} value={t}>{t}</option>
-                      ))}
-                    </optgroup>
-                  </select>
-                </div>
-                {interiorLayerMaterial && !boundaryOpts.sheathing.options.find(o => o.id === interiorLayerMaterial) && (
-                  <div className="wall-selector">
-                    <label htmlFor="interiorLayerThickness">Thickness</label>
-                    <select
-                      id="interiorLayerThickness"
-                      value={interiorLayerThickness || ''}
-                      onChange={e => handleFieldChange('interiorLayerThickness', e.target.value)}
-                    >
-                      <option value="">Select...</option>
-                      {continuousInsThicknesses.filter(t => t !== 'None').map(th => (
-                        <option key={th} value={th}>{th}</option>
-                      ))}
-                    </select>
-                  </div>
-                )}
-              </div>
             </div>
           )}
 
@@ -593,6 +549,53 @@ export default function WallBuilder({ selection, onSelect }) {
             </div>
           )}
 
+          {/* Interior layer (between primary wall and service wall) */}
+          {hasServiceWall && (
+            <div className="wall-selectors-group">
+              <label className="wall-selectors-group-label">Interior Layer</label>
+              <p className="wall-builder-disclaimer">
+                This layer separates the interior service wall from the main wall assembly.
+              </p>
+              <div className="wall-selectors">
+                <div className="wall-selector">
+                  <label htmlFor="interiorLayerMaterial">Material</label>
+                  <select
+                    id="interiorLayerMaterial"
+                    value={interiorLayerMaterial || ''}
+                    onChange={e => handleFieldChange('interiorLayerMaterial', e.target.value)}
+                  >
+                    <option value="">Select...</option>
+                    <optgroup label="Sheathing">
+                      {boundaryOpts.sheathing.options.map(o => (
+                        <option key={o.id} value={o.id}>{o.label}</option>
+                      ))}
+                    </optgroup>
+                    <optgroup label="Rigid Insulation">
+                      {continuousInsTypes.map(t => (
+                        <option key={t} value={t}>{t}</option>
+                      ))}
+                    </optgroup>
+                  </select>
+                </div>
+                {interiorLayerMaterial && !boundaryOpts.sheathing.options.find(o => o.id === interiorLayerMaterial) && (
+                  <div className="wall-selector">
+                    <label htmlFor="interiorLayerThickness">Thickness</label>
+                    <select
+                      id="interiorLayerThickness"
+                      value={interiorLayerThickness || ''}
+                      onChange={e => handleFieldChange('interiorLayerThickness', e.target.value)}
+                    >
+                      <option value="">Select...</option>
+                      {continuousInsThicknesses.filter(t => t !== 'None').map(th => (
+                        <option key={th} value={th}>{th}</option>
+                      ))}
+                    </select>
+                  </div>
+                )}
+              </div>
+            </div>
+          )}
+
           {/* Results */}
           <div className="wall-result">
             {rsi ? (
@@ -662,12 +665,17 @@ export default function WallBuilder({ selection, onSelect }) {
                 : boundaryOpts.sheathing.options.find(o => o.id === interiorLayerMaterial)?.label)
               : null
 
+            // Use max spacing for diagram when service wall has different spacing
+            const primarySpacing = getStudSpacingNum(studSpacing)
+            const svcSpacing = hasServiceWall ? getStudSpacingNum(serviceSpacing) : primarySpacing
+            const diagramSpacing = Math.max(primarySpacing, svcSpacing)
+
             return (
               <div className="wall-section-container">
                 <WallSection
                   wallType={wallType}
                   studDepth={isSingleWall ? getStudDepth(cavityType) : '2x6'}
-                  studSpacing={getStudSpacingNum(studSpacing)}
+                  studSpacing={diagramSpacing}
                   continuousIns={!hasServiceWall && isSingleWall ? getContInsThicknessNum(contInsThickness) : 0}
                   cavityInsLabel={isSingleWall ? cavityType : doubleStudMaterial}
                   continuousInsLabel={!hasServiceWall && isSingleWall && contInsType && contInsThickness !== 'None' ? `${contInsThickness} ${contInsType}` : null}

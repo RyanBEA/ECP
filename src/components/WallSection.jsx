@@ -313,16 +313,19 @@ export default function WallSection({
   }
 
   // --- Double Stud Rendering ---
+  // Draws one unified insulation fill across the entire cavity (inner studs + gap + outer studs)
+  // with studs drawn on top, matching how blown-in insulation actually fills the assembly.
   if (assemblyType === 'doubleStud' && wallType === 'wood') {
     const outerDepth = toStudDepthInches(outerStudDepth)
     const innerDepth = toStudDepthInches(innerStudDepth)
     const svcDepth = hasServiceWall ? toStudDepthInches(serviceStudDepth) : 0
     const intLayerThick = hasServiceWall ? interiorLayerThicknessInches : 0
+    const dsCavityDepth = innerDepth + gapInches + outerDepth
 
     const totalThickness =
       drywallThickness +
       (hasServiceWall ? svcDepth + intLayerThick : 0) +
-      innerDepth + gapInches + outerDepth +
+      dsCavityDepth +
       sheathingThickness + claddingThickness
 
     const dsSvgWidth = wallWidthPx + 220
@@ -335,11 +338,13 @@ export default function WallSection({
     if (hasServiceWall) yPos += svcDepth * scale
     const intLayerYDs = hasServiceWall ? yPos : null
     if (hasServiceWall) yPos += intLayerThick * scale
-    const innerCavityYDs = yPos; yPos += innerDepth * scale
-    const gapYDs = yPos; yPos += gapInches * scale
-    const outerCavityYDs = yPos; yPos += outerDepth * scale
+    const dsCavityYDs = yPos; yPos += dsCavityDepth * scale
     const sheathingYDs = yPos; yPos += sheathingThickness * scale
     const claddingYDs = yPos
+
+    // Inner/outer stud positions within the unified cavity
+    const innerStudYDs = dsCavityYDs
+    const outerStudYDs = dsCavityYDs + (innerDepth + gapInches) * scale
 
     // Detect foam vs sheathing for interior layer rendering
     const isFoamLayer = interiorLayerLabel && interiorLayerLabel.match(/EPS|XPS|Polyiso|Mineral Wool/)
@@ -353,13 +358,35 @@ export default function WallSection({
         dsLayers.push({ name: interiorLayerLabel || 'interior layer', midY: intLayerYDs + intLayerThick * scale / 2 })
       }
     }
-    dsLayers.push({ name: cavityInsLabel ? `inner ${cavityInsLabel}` : 'inner studs', midY: innerCavityYDs + innerDepth * scale / 2 })
-    if (gapInches > 0) {
-      dsLayers.push({ name: 'gap (blown-in)', midY: gapYDs + gapInches * scale / 2 })
-    }
-    dsLayers.push({ name: 'outer studs', midY: outerCavityYDs + outerDepth * scale / 2 })
+    dsLayers.push({ name: cavityInsLabel || 'blown-in insulation', midY: dsCavityYDs + dsCavityDepth * scale / 2 })
     dsLayers.push({ name: sheathingLabel || '7/16" sheathing', midY: sheathingYDs + sheathingThickness * scale / 2 })
     dsLayers.push({ name: claddingLabel || '½" cladding', midY: claddingYDs + claddingThickness * scale / 2 })
+
+    // Render studs only (no cavity background — drawn on top of unified fill)
+    const renderStudsOnly = (startY, depth, spacingIn) => {
+      const studH = depth * scale
+      const numSt = Math.ceil(wallLengthInches / spacingIn) + 1
+      return Array.from({ length: numSt }).map((_, i) => {
+        const sx = i * spacingIn * scale
+        const sw = studWidthInches * scale
+        if (sx >= wallWidthPx) return null
+        const aw = Math.min(sw, wallWidthPx - sx)
+        return (
+          <g key={`stud-${startY}-${i}`}>
+            <rect x={sx} y={startY} width={aw} height={studH}
+              fill={colors.stud} stroke="#333" strokeWidth="1" />
+            {aw >= sw - 1 && (
+              <>
+                <line x1={sx + 1} y1={startY + 1} x2={sx + sw - 1} y2={startY + studH - 1}
+                  stroke="#333" strokeWidth="1" />
+                <line x1={sx + sw - 1} y1={startY + 1} x2={sx + 1} y2={startY + studH - 1}
+                  stroke="#333" strokeWidth="1" />
+              </>
+            )}
+          </g>
+        )
+      })
+    }
 
     return (
       <div className="wall-section" style={{ width: '100%', overflowX: 'auto' }}>
@@ -378,14 +405,14 @@ export default function WallSection({
                 {isFoamLayer && generateContInsPattern(0, wallWidthPx, intLayerYDs, intLayerThick * scale)}
               </g>
             )}
-            {renderStudCavity(innerCavityYDs, innerDepth, studSpacing)}
-            {gapInches > 0 && (
-              <g>
-                <rect x={0} y={gapYDs} width={wallWidthPx} height={gapInches * scale} fill={colors.cavity} stroke="#9ca3af" strokeWidth="1" />
-                {generateCavityPattern(0, wallWidthPx, gapYDs, gapInches * scale)}
-              </g>
-            )}
-            {renderStudCavity(outerCavityYDs, outerDepth, studSpacing)}
+            {/* Unified cavity fill — one insulation layer spanning inner studs + gap + outer studs */}
+            <rect x={0} y={dsCavityYDs} width={wallWidthPx} height={dsCavityDepth * scale}
+              fill={colors.cavity} stroke="#9ca3af" strokeWidth="1" />
+            {generateCavityPattern(0, wallWidthPx, dsCavityYDs, dsCavityDepth * scale)}
+            {/* Inner studs drawn on top of insulation */}
+            {renderStudsOnly(innerStudYDs, innerDepth, studSpacing)}
+            {/* Outer studs drawn on top of insulation */}
+            {renderStudsOnly(outerStudYDs, outerDepth, studSpacing)}
             <rect x={0} y={sheathingYDs} width={wallWidthPx} height={sheathingThickness * scale} fill={colors.sheathing} stroke="#6b7280" strokeWidth="1" />
             <rect x={0} y={claddingYDs} width={wallWidthPx} height={claddingThickness * scale} fill={colors.cladding} stroke="#4b5563" strokeWidth="1" />
             {(() => {
