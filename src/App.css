@@ -387,31 +387,6 @@ h1, h2, h3, h4, h5, h6 {
   color: white;
 }
 
-.wall-builder-disclaimer {
-  font-size: 0.8rem;
-  color: var(--text-secondary);
-  font-style: italic;
-  margin: 0 0 0.75rem 0;
-  padding: 0.5rem 0.75rem;
-  background: var(--gray-100);
-  border-radius: var(--radius);
-  border-left: 3px solid var(--gray-400);
-}
-
-.wall-selectors-group {
-  margin-bottom: 1rem;
-}
-
-.wall-selectors-group-label {
-  display: block;
-  font-size: 0.7rem;
-  font-weight: 700;
-  color: var(--gray-500);
-  text-transform: uppercase;
-  letter-spacing: 0.05em;
-  margin-bottom: 0.25rem;
-}
-
 .wall-selectors {
   display: grid;
   grid-template-columns: repeat(auto-fit, minmax(140px, 1fr));

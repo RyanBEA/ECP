@@ -204,6 +204,21 @@ Renders `OptionButton` grid from `wallCategory.options`. Selection tracked by `s
 
 ---
 
+## FieldGroup (`src/components/FieldGroup.jsx`)
+
+Presentational wrapper that renders a numbered card with a header badge and title. Used by WallBuilder to visually group related fields.
+
+### Props
+
+| Prop | Type | Default | Description |
+|------|------|---------|-------------|
+| `number` | `number` | required | Group sequence number (displayed in badge) |
+| `title` | `string` | required | Group heading text |
+| `variant` | `'default' \| 'footnote'` | `'default'` | Visual variant — footnote uses dashed border, smaller text |
+| `children` | `ReactNode` | required | Group content (dropdowns, toggles, text) |
+
+---
+
 ## WallSection (`src/components/WallSection.jsx`)
 
 Stateless SVG component rendering a top-down cross-section of the wall assembly. Supports three rendering modes based on `wallType`.
