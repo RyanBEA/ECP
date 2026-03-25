@@ -3,10 +3,12 @@ import React from 'react'
 /**
  * WallSection - Top-down cross-section of a wall assembly (rotated 90°)
  *
- * Three rendering modes:
+ * Rendering modes:
  * - Wood frame: studs with X pattern, cavity insulation, sheathing, optional continuous insulation
  * - Steel frame: C-channel studs, cavity insulation, sheathing, optional continuous insulation
  * - ICF: drywall -> EPS foam -> concrete -> EPS foam -> cladding
+ * - Double stud: two wood stud walls with optional gap and service wall
+ * - Single + service wall: primary stud wall with interior service cavity
  */
 export default function WallSection({
   wallType = 'wood',           // 'wood', 'steel', or 'icf'
@@ -16,6 +18,18 @@ export default function WallSection({
   cavityInsLabel = null,       // Full label like "2x6 R20"
   continuousInsLabel = null,   // Full label like "2\" XPS" or "None"
   icfFormThickness = 0,        // ICF only: inches per side
+  claddingLabel = null,        // Override label for cladding layer
+  sheathingLabel = null,       // Override label for sheathing layer
+  assemblyType = 'single',    // 'single' or 'doubleStud'
+  hasServiceWall = false,      // Whether to render a service wall
+  outerStudDepth = '2x4',     // Double stud: outer wall stud size
+  innerStudDepth = '2x4',     // Double stud: inner wall stud size
+  gapInches = 0,              // Double stud: gap between walls
+  serviceStudDepth = '2x4',   // Service wall stud size
+  serviceSpacingInches = 16,  // Service wall stud spacing
+  serviceCavityLabel = null,  // Label for service wall cavity
+  interiorLayerLabel = null,  // Label for interior layer (between service and primary)
+  interiorLayerThicknessInches = 0, // Thickness of interior layer
   width = 600,
 }) {
   // Use consistent scale for proper proportions
@@ -131,6 +145,60 @@ export default function WallSection({
     return <g>{paths}</g>
   }
 
+  // Deep stud dimension map
+  const studDepthMap = {
+    '2x4': 3.5, '2x6': 5.5, '2x8': 7.25, '2x10': 9.25, '2x12': 11.25,
+  }
+  const toStudDepthInches = (size) => studDepthMap[size] || 5.5
+  const studDepthInches = toStudDepthInches(studDepth)
+
+  // Compute wall length and width once for all wood rendering modes
+  const wallLengthInches = studSpacing * 1.5
+  const wallWidthPx = wallLengthInches * scale
+  const studWidthInches = 1.5
+
+  // Shared helper: renders a wood stud+cavity section
+  const renderStudCavity = (startY, depth, spacingIn) => {
+    const studH = depth * scale
+    const numSt = Math.ceil(wallLengthInches / spacingIn) + 1
+    return (
+      <g>
+        <rect x={0} y={startY} width={wallWidthPx} height={studH}
+          fill={colors.cavity} stroke="#9ca3af" strokeWidth="1" />
+        {Array.from({ length: numSt - 1 }).map((_, i) => {
+          const cavStartX = (i * spacingIn + studWidthInches) * scale
+          const cavW = (spacingIn - studWidthInches) * scale
+          if (cavStartX >= wallWidthPx) return null
+          return (
+            <g key={`cav-${startY}-${i}`}>
+              {generateCavityPattern(cavStartX, Math.min(cavW, wallWidthPx - cavStartX), startY, studH)}
+            </g>
+          )
+        })}
+        {Array.from({ length: numSt }).map((_, i) => {
+          const sx = i * spacingIn * scale
+          const sw = studWidthInches * scale
+          if (sx >= wallWidthPx) return null
+          const aw = Math.min(sw, wallWidthPx - sx)
+          return (
+            <g key={`stud-${startY}-${i}`}>
+              <rect x={sx} y={startY} width={aw} height={studH}
+                fill={colors.stud} stroke="#333" strokeWidth="1" />
+              {aw >= sw - 1 && (
+                <>
+                  <line x1={sx + 1} y1={startY + 1} x2={sx + sw - 1} y2={startY + studH - 1}
+                    stroke="#333" strokeWidth="1" />
+                  <line x1={sx + sw - 1} y1={startY + 1} x2={sx + 1} y2={startY + studH - 1}
+                    stroke="#333" strokeWidth="1" />
+                </>
+              )}
+            </g>
+          )
+        })}
+      </g>
+    )
+  }
+
   // --- ICF Rendering ---
   if (wallType === 'icf') {
     const epsThickness = icfFormThickness  // inches per side
@@ -244,14 +312,204 @@ export default function WallSection({
     )
   }
 
+  // --- Double Stud Rendering ---
+  if (assemblyType === 'doubleStud' && wallType === 'wood') {
+    const outerDepth = toStudDepthInches(outerStudDepth)
+    const innerDepth = toStudDepthInches(innerStudDepth)
+    const svcDepth = hasServiceWall ? toStudDepthInches(serviceStudDepth) : 0
+    const intLayerThick = hasServiceWall ? interiorLayerThicknessInches : 0
+
+    const totalThickness =
+      drywallThickness +
+      (hasServiceWall ? svcDepth + intLayerThick : 0) +
+      innerDepth + gapInches + outerDepth +
+      sheathingThickness + claddingThickness
+
+    const dsSvgWidth = wallWidthPx + 220
+    const dsSvgHeight = totalThickness * scale + 80
+    const dsStartY = 30
+
+    let yPos = dsStartY
+    const drywallYDs = yPos; yPos += drywallThickness * scale
+    const svcCavityYDs = hasServiceWall ? yPos : null
+    if (hasServiceWall) yPos += svcDepth * scale
+    const intLayerYDs = hasServiceWall ? yPos : null
+    if (hasServiceWall) yPos += intLayerThick * scale
+    const innerCavityYDs = yPos; yPos += innerDepth * scale
+    const gapYDs = yPos; yPos += gapInches * scale
+    const outerCavityYDs = yPos; yPos += outerDepth * scale
+    const sheathingYDs = yPos; yPos += sheathingThickness * scale
+    const claddingYDs = yPos
+
+    // Detect foam vs sheathing for interior layer rendering
+    const isFoamLayer = interiorLayerLabel && interiorLayerLabel.match(/EPS|XPS|Polyiso|Mineral Wool/)
+
+    const dsLayers = [
+      { name: '½" drywall', midY: drywallYDs + drywallThickness * scale / 2 },
+    ]
+    if (hasServiceWall) {
+      dsLayers.push({ name: serviceCavityLabel || 'service cavity', midY: svcCavityYDs + svcDepth * scale / 2 })
+      if (intLayerThick > 0) {
+        dsLayers.push({ name: interiorLayerLabel || 'interior layer', midY: intLayerYDs + intLayerThick * scale / 2 })
+      }
+    }
+    dsLayers.push({ name: cavityInsLabel ? `inner ${cavityInsLabel}` : 'inner studs', midY: innerCavityYDs + innerDepth * scale / 2 })
+    if (gapInches > 0) {
+      dsLayers.push({ name: 'gap (blown-in)', midY: gapYDs + gapInches * scale / 2 })
+    }
+    dsLayers.push({ name: 'outer studs', midY: outerCavityYDs + outerDepth * scale / 2 })
+    dsLayers.push({ name: sheathingLabel || '7/16" sheathing', midY: sheathingYDs + sheathingThickness * scale / 2 })
+    dsLayers.push({ name: claddingLabel || '½" cladding', midY: claddingYDs + claddingThickness * scale / 2 })
+
+    return (
+      <div className="wall-section" style={{ width: '100%', overflowX: 'auto' }}>
+        <svg width="100%" viewBox={`0 0 ${dsSvgWidth} ${dsSvgHeight}`}
+          preserveAspectRatio="xMidYMid meet"
+          style={{ background: '#fff', border: '1px solid #e5e7eb', borderRadius: '8px', maxHeight: '300px' }}>
+          <text x={dsSvgWidth / 2} y="18" textAnchor="middle" fontSize="11" fill="#6b7280" fontWeight="500">INTERIOR</text>
+          <g transform="translate(20, 0)">
+            <rect x={0} y={drywallYDs} width={wallWidthPx} height={drywallThickness * scale} fill={colors.drywall} stroke="#9ca3af" strokeWidth="1" />
+            {hasServiceWall && renderStudCavity(svcCavityYDs, svcDepth, serviceSpacingInches)}
+            {hasServiceWall && intLayerThick > 0 && (
+              <g>
+                <rect x={0} y={intLayerYDs} width={wallWidthPx} height={intLayerThick * scale}
+                  fill={isFoamLayer ? '#fce7f3' : colors.sheathing}
+                  stroke={isFoamLayer ? '#db2777' : '#6b7280'} strokeWidth="1" />
+                {isFoamLayer && generateContInsPattern(0, wallWidthPx, intLayerYDs, intLayerThick * scale)}
+              </g>
+            )}
+            {renderStudCavity(innerCavityYDs, innerDepth, studSpacing)}
+            {gapInches > 0 && (
+              <g>
+                <rect x={0} y={gapYDs} width={wallWidthPx} height={gapInches * scale} fill={colors.cavity} stroke="#9ca3af" strokeWidth="1" />
+                {generateCavityPattern(0, wallWidthPx, gapYDs, gapInches * scale)}
+              </g>
+            )}
+            {renderStudCavity(outerCavityYDs, outerDepth, studSpacing)}
+            <rect x={0} y={sheathingYDs} width={wallWidthPx} height={sheathingThickness * scale} fill={colors.sheathing} stroke="#6b7280" strokeWidth="1" />
+            <rect x={0} y={claddingYDs} width={wallWidthPx} height={claddingThickness * scale} fill={colors.cladding} stroke="#4b5563" strokeWidth="1" />
+            {(() => {
+              const labelSpacing = 14
+              const labelStartY = dsStartY + 5
+              const labelX = wallWidthPx + 80
+              return (
+                <g>
+                  {dsLayers.map((layer, i) => {
+                    const labelY = labelStartY + i * labelSpacing
+                    return (
+                      <g key={layer.name}>
+                        <path d={`M ${wallWidthPx + 20} ${layer.midY} L ${wallWidthPx + 40} ${layer.midY} L ${labelX - 5} ${labelY}`}
+                          fill="none" stroke="#9ca3af" strokeWidth="1" />
+                        <circle cx={wallWidthPx + 20} cy={layer.midY} r="2" fill="#9ca3af" />
+                        <text x={labelX} y={labelY + 3} fontSize="9" fill="#6b7280">{layer.name}</text>
+                      </g>
+                    )
+                  })}
+                </g>
+              )
+            })()}
+            <g transform={`translate(0, ${claddingYDs + claddingThickness * scale + 15})`}>
+              <line x1={0} y1="0" x2={studSpacing * scale} y2="0" stroke="#9ca3af" strokeWidth="1" />
+              <line x1={0} y1="-5" x2={0} y2="5" stroke="#9ca3af" strokeWidth="1" />
+              <line x1={studSpacing * scale} y1="-5" x2={studSpacing * scale} y2="5" stroke="#9ca3af" strokeWidth="1" />
+              <text x={studSpacing * scale / 2} y="15" textAnchor="middle" fontSize="10" fill="#6b7280">{studSpacing}" o.c.</text>
+            </g>
+          </g>
+          <text x={dsSvgWidth / 2} y={claddingYDs + claddingThickness * scale + 45}
+            textAnchor="middle" fontSize="11" fill="#6b7280" fontWeight="500">EXTERIOR</text>
+        </svg>
+      </div>
+    )
+  }
+
+  // --- Single Wall + Service Wall Rendering ---
+  if (assemblyType === 'single' && hasServiceWall) {
+    const primaryDepth = studDepthInches
+    const svcDepth = toStudDepthInches(serviceStudDepth)
+    const intLayerThick = interiorLayerThicknessInches
+    const isFoamLayer = interiorLayerLabel && interiorLayerLabel.match(/EPS|XPS|Polyiso|Mineral Wool/)
+
+    const totalThickness = drywallThickness + svcDepth + intLayerThick + primaryDepth + sheathingThickness + claddingThickness
+    const swSvgWidth = wallWidthPx + 220
+    const swSvgHeight = totalThickness * scale + 80
+    const swStartY = 30
+
+    let yPos = swStartY
+    const drywallYSw = yPos; yPos += drywallThickness * scale
+    const svcCavityYSw = yPos; yPos += svcDepth * scale
+    const intLayerYSw = yPos; yPos += intLayerThick * scale
+    const primaryCavityYSw = yPos; yPos += primaryDepth * scale
+    const sheathingYSw = yPos; yPos += sheathingThickness * scale
+    const claddingYSw = yPos
+
+    const swLayers = [
+      { name: '½" drywall', midY: drywallYSw + drywallThickness * scale / 2 },
+      { name: serviceCavityLabel || 'service cavity', midY: svcCavityYSw + svcDepth * scale / 2 },
+    ]
+    if (intLayerThick > 0) {
+      swLayers.push({ name: interiorLayerLabel || 'interior layer', midY: intLayerYSw + intLayerThick * scale / 2 })
+    }
+    swLayers.push(
+      { name: cavityInsLabel || `${studDepth} stud`, midY: primaryCavityYSw + primaryDepth * scale / 2 },
+      { name: sheathingLabel || '7/16" sheathing', midY: sheathingYSw + sheathingThickness * scale / 2 },
+      { name: claddingLabel || '½" cladding', midY: claddingYSw + claddingThickness * scale / 2 },
+    )
+
+    return (
+      <div className="wall-section" style={{ width: '100%', overflowX: 'auto' }}>
+        <svg width="100%" viewBox={`0 0 ${swSvgWidth} ${swSvgHeight}`}
+          preserveAspectRatio="xMidYMid meet"
+          style={{ background: '#fff', border: '1px solid #e5e7eb', borderRadius: '8px', maxHeight: '250px' }}>
+          <text x={swSvgWidth / 2} y="18" textAnchor="middle" fontSize="11" fill="#6b7280" fontWeight="500">INTERIOR</text>
+          <g transform="translate(20, 0)">
+            <rect x={0} y={drywallYSw} width={wallWidthPx} height={drywallThickness * scale} fill={colors.drywall} stroke="#9ca3af" strokeWidth="1" />
+            {renderStudCavity(svcCavityYSw, svcDepth, serviceSpacingInches)}
+            {intLayerThick > 0 && (
+              <g>
+                <rect x={0} y={intLayerYSw} width={wallWidthPx} height={intLayerThick * scale}
+                  fill={isFoamLayer ? '#fce7f3' : colors.sheathing}
+                  stroke={isFoamLayer ? '#db2777' : '#6b7280'} strokeWidth="1" />
+                {isFoamLayer && generateContInsPattern(0, wallWidthPx, intLayerYSw, intLayerThick * scale)}
+              </g>
+            )}
+            {wallType === 'wood' && renderStudCavity(primaryCavityYSw, primaryDepth, studSpacing)}
+            <rect x={0} y={sheathingYSw} width={wallWidthPx} height={sheathingThickness * scale} fill={colors.sheathing} stroke="#6b7280" strokeWidth="1" />
+            <rect x={0} y={claddingYSw} width={wallWidthPx} height={claddingThickness * scale} fill={colors.cladding} stroke="#4b5563" strokeWidth="1" />
+            {(() => {
+              const labelSpacing = 14
+              const labelStartY = swStartY + 5
+              const labelX = wallWidthPx + 80
+              return (
+                <g>
+                  {swLayers.map((layer, i) => {
+                    const labelY = labelStartY + i * labelSpacing
+                    return (
+                      <g key={layer.name}>
+                        <path d={`M ${wallWidthPx + 20} ${layer.midY} L ${wallWidthPx + 40} ${layer.midY} L ${labelX - 5} ${labelY}`}
+                          fill="none" stroke="#9ca3af" strokeWidth="1" />
+                        <circle cx={wallWidthPx + 20} cy={layer.midY} r="2" fill="#9ca3af" />
+                        <text x={labelX} y={labelY + 3} fontSize="9" fill="#6b7280">{layer.name}</text>
+                      </g>
+                    )
+                  })}
+                </g>
+              )
+            })()}
+            <g transform={`translate(0, ${claddingYSw + claddingThickness * scale + 15})`}>
+              <line x1={0} y1="0" x2={studSpacing * scale} y2="0" stroke="#9ca3af" strokeWidth="1" />
+              <line x1={0} y1="-5" x2={0} y2="5" stroke="#9ca3af" strokeWidth="1" />
+              <line x1={studSpacing * scale} y1="-5" x2={studSpacing * scale} y2="5" stroke="#9ca3af" strokeWidth="1" />
+              <text x={studSpacing * scale / 2} y="15" textAnchor="middle" fontSize="10" fill="#6b7280">{studSpacing}" o.c.</text>
+            </g>
+          </g>
+          <text x={swSvgWidth / 2} y={claddingYSw + claddingThickness * scale + 45}
+            textAnchor="middle" fontSize="11" fill="#6b7280" fontWeight="500">EXTERIOR</text>
+        </svg>
+      </div>
+    )
+  }
+
   // --- Wood/Steel Framed Wall Rendering ---
-
-  // Dynamic dimensions
-  const studDepthInches = studDepth === '2x4' ? 3.5 : 5.5
-  const studWidthInches = 1.5
-
-  // Wall length to show (inches) - 1.5 stud bays (2.5 studs visible)
-  const wallLengthInches = studSpacing * 1.5
 
   // Calculate total wall thickness
   const totalThickness =
@@ -262,7 +520,6 @@ export default function WallSection({
     claddingThickness
 
   // SVG dimensions
-  const wallWidthPx = wallLengthInches * scale
   const svgWidth = wallWidthPx + 180
   const svgHeight = totalThickness * scale + 80
 
@@ -430,9 +687,9 @@ export default function WallSection({
             const layers = [
               { name: '½" drywall', midY: drywallY + drywallThickness * scale / 2 },
               { name: cavityLabel, midY: studCavityY + studDepthInches * scale / 2 },
-              { name: '7/16" sheathing', midY: sheathingY + sheathingThickness * scale / 2 },
+              { name: sheathingLabel || '7/16" sheathing', midY: sheathingY + sheathingThickness * scale / 2 },
               ...(continuousIns > 0 ? [{ name: contInsDisplayLabel, midY: contInsY + continuousIns * scale / 2 }] : []),
-              { name: '½" cladding', midY: claddingY + claddingThickness * scale / 2 },
+              { name: claddingLabel || '½" cladding', midY: claddingY + claddingThickness * scale / 2 },
             ]
 
             const labelSpacing = 14
