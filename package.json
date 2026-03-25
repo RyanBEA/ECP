@@ -20,9 +20,12 @@
     "serve": "^14.2.5"
   },
   "devDependencies": {
+    "@testing-library/jest-dom": "^6.9.1",
+    "@testing-library/react": "^16.3.2",
     "@vitejs/plugin-react": "^4.2.1",
     "exceljs": "^4.4.0",
     "js-yaml": "^4.1.1",
+    "jsdom": "^29.0.1",
     "vite": "^5.0.0",
     "vitest": "^4.0.18"
   }
