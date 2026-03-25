@@ -13,7 +13,7 @@ import icfData from './generated/icf-data.json'
 import boundaryOptions from './generated/boundary-options.json'
 import thresholdsData from './generated/thresholds.json'
 import doubleStudData from './generated/double-stud-data.json'
-import { woodWallRsi, steelWallRsi, icfWallRsi, doubleStudWallRsi } from '@scripts/compute.js'
+import { woodWallRsi, steelWallRsi, icfWallRsi, doubleStudWallRsi, parallelPath, boundarySum } from '@scripts/compute.js'
 
 // --- Exports matching existing API (backward compatible) ---
 
@@ -223,6 +223,9 @@ export function calculateWallRsi({
   sheathingId, claddingId,
   assemblyType = 'single',
   outerStud, innerStud, plate, doubleStudMaterial,
+  hasServiceWall = false,
+  serviceSpacing, serviceCavityMaterial, serviceCavityType,
+  interiorLayerMaterial, interiorLayerThickness,
 } = {}) {
   // Build boundary layers (with optional custom cladding/sheathing)
   const boundary = getDefaultBoundary(wallType || 'wood')
@@ -236,6 +239,44 @@ export function calculateWallRsi({
   }
 
   const contInsRsi = getContinuousInsRsi(contInsType, contInsThickness)
+
+  // Service wall path (wood only, works with single or double stud primary)
+  if (hasServiceWall && wallType === 'wood') {
+    const spacing = studSpacing?.replace('"', '') || ''
+    const wt = wallData.wood
+
+    // Compute primary wall parallel-path
+    let primaryPP
+    if (assemblyType === 'doubleStud') {
+      const key = `${outerStud}+${innerStud}|${plate}|${doubleStudMaterial}`
+      const dsEntry = doubleStudData[spacing]?.[key]
+      if (!dsEntry) return null
+      primaryPP = dsEntry.totalPpRsi
+    } else {
+      // Single wall primary
+      if (!wt?.spacings?.[spacing]) return null
+      const sp = wt.spacings[spacing]
+      const entry = sp.materials[cavityMaterial]?.[cavityType]
+      if (!entry) return null
+      const studRsi = wt.studs[entry.stud].depth_mm * 0.0085
+      primaryPP = parallelPath(studRsi, entry.cavityRsi, sp.cavity_pct)
+    }
+
+    // Compute service wall parallel-path
+    const svcSpacing = serviceSpacing?.replace('"', '') || ''
+    if (!wt?.spacings?.[svcSpacing]) return null
+    const svcSp = wt.spacings[svcSpacing]
+    const svcEntry = svcSp.materials[serviceCavityMaterial]?.[serviceCavityType]
+    if (!svcEntry) return null
+    const svcStudRsi = wt.studs[svcEntry.stud].depth_mm * 0.0085
+    const servicePP = parallelPath(svcStudRsi, svcEntry.cavityRsi, svcSp.cavity_pct)
+
+    // Interior layer RSI
+    const intLayerRsi = getInteriorLayerRsi(interiorLayerMaterial, interiorLayerThickness)
+
+    // Total: boundary (no cont ins) + primary + interior layer + service
+    return boundarySum(boundary) + primaryPP + intLayerRsi + servicePP
+  }
 
   // ICF path
   if (wallType === 'icf') {

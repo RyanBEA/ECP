@@ -215,6 +215,97 @@ describe('variable boundary layers', () => {
   })
 })
 
+describe('calculateWallRsi with service wall', () => {
+  it('returns correct RSI for single wall + service wall + OSB interior layer', () => {
+    const rsi = calculateWallRsi({
+      wallType: 'wood',
+      studSpacing: '16"',
+      cavityMaterial: 'Fiberglass Batt',
+      cavityType: '2x6 R20',
+      hasServiceWall: true,
+      serviceSpacing: '16"',
+      serviceCavityMaterial: 'Fiberglass Batt',
+      serviceCavityType: '2x4 R12',
+      interiorLayerMaterial: 'osb_11',
+    })
+    expect(rsi).toBeGreaterThan(4.0)
+    expect(rsi).toBeLessThan(5.0)
+  })
+
+  it('returns correct RSI for single wall + service wall + 2" XPS interior layer', () => {
+    const rsi = calculateWallRsi({
+      wallType: 'wood',
+      studSpacing: '16"',
+      cavityMaterial: 'Fiberglass Batt',
+      cavityType: '2x6 R20',
+      hasServiceWall: true,
+      serviceSpacing: '16"',
+      serviceCavityMaterial: 'Fiberglass Batt',
+      serviceCavityType: '2x4 R12',
+      interiorLayerMaterial: 'XPS',
+      interiorLayerThickness: '2"',
+    })
+    expect(rsi).toBeGreaterThan(5.5)
+    expect(rsi).toBeLessThan(6.5)
+  })
+
+  it('returns correct RSI for double stud + service wall', () => {
+    const rsi = calculateWallRsi({
+      wallType: 'wood',
+      assemblyType: 'doubleStud',
+      studSpacing: '16"',
+      outerStud: '2x4',
+      innerStud: '2x4',
+      plate: '2x10',
+      doubleStudMaterial: 'Dense Pack Cellulose',
+      hasServiceWall: true,
+      serviceSpacing: '16"',
+      serviceCavityMaterial: 'Fiberglass Batt',
+      serviceCavityType: '2x4 R14',
+      interiorLayerMaterial: 'osb_11',
+    })
+    expect(rsi).toBeGreaterThan(5.0)
+  })
+
+  it('returns null when service wall fields incomplete', () => {
+    expect(calculateWallRsi({
+      wallType: 'wood',
+      studSpacing: '16"',
+      cavityMaterial: 'Fiberglass Batt',
+      cavityType: '2x6 R20',
+      hasServiceWall: true,
+    })).toBeNull()
+  })
+
+  it('ignores contInsType/contInsThickness when service wall is enabled', () => {
+    const withContIns = calculateWallRsi({
+      wallType: 'wood',
+      studSpacing: '16"',
+      cavityMaterial: 'Fiberglass Batt',
+      cavityType: '2x6 R20',
+      hasServiceWall: true,
+      serviceSpacing: '16"',
+      serviceCavityMaterial: 'Fiberglass Batt',
+      serviceCavityType: '2x4 R12',
+      interiorLayerMaterial: 'osb_11',
+      contInsType: 'XPS',
+      contInsThickness: '2"',
+    })
+    const withoutContIns = calculateWallRsi({
+      wallType: 'wood',
+      studSpacing: '16"',
+      cavityMaterial: 'Fiberglass Batt',
+      cavityType: '2x6 R20',
+      hasServiceWall: true,
+      serviceSpacing: '16"',
+      serviceCavityMaterial: 'Fiberglass Batt',
+      serviceCavityType: '2x4 R12',
+      interiorLayerMaterial: 'osb_11',
+    })
+    expect(withContIns).toBeCloseTo(withoutContIns, 4)
+  })
+})
+
 describe('getInteriorLayerRsi', () => {
   it('returns RSI for a sheathing ID', () => {
     expect(getInteriorLayerRsi('osb_11')).toBeCloseTo(0.108, 3)
