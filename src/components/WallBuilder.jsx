@@ -64,6 +64,31 @@ const plateOptions = ['2x8', '2x10', '2x12']
 const doubleStudSizes = ['2x4', '2x6']
 const blownInMaterials = ['Dense Pack Cellulose', 'Loose Fill Cellulose', 'Loose Fill Fiberglass']
 
+// Auto-defaults: populate when wall type / assembly / toggles change
+// ICF has no auto-defaults beyond wallType; EPS form thickness is selected manually
+const DEFAULTS = {
+  singleStud: {
+    studSpacing: '16"', cavityMaterial: 'Fiberglass Batt', cavityType: '2x6 R20',
+  },
+  doubleStud: {
+    studSpacing: '16"', outerStud: '2x4', innerStud: '2x4',
+    plate: '2x10', doubleStudMaterial: 'Loose Fill Cellulose',
+  },
+  serviceWall: {
+    serviceSpacing: '16"', serviceCavityMaterial: 'Fiberglass Batt', serviceCavityType: '2x4 R12',
+  },
+  interiorLayer: {
+    interiorLayerMaterial: 'osb_11',
+  },
+  // Exterior defaults are wall-type-aware (from boundary-options.json)
+  exterior: (wallType) => ({
+    claddingId: boundaryOpts.cladding.defaults[wallType],
+    ...(boundaryOpts.sheathing.applies_to.includes(wallType)
+      ? { sheathingId: boundaryOpts.sheathing.default }
+      : {}),
+  }),
+}
+
 export default function WallBuilder({ selection, onSelect }) {
   const [mode, setMode] = useState('builder')
 
@@ -92,8 +117,31 @@ export default function WallBuilder({ selection, onSelect }) {
 
   const handleFieldChange = (field, value) => {
     if (field === 'wallType') {
-      // Wall type change clears everything
-      onSelect({ wallType: value || undefined })
+      if (!value) {
+        onSelect({})
+        return
+      }
+      // Wood defaults to single stud with full framing + exterior defaults
+      if (value === 'wood') {
+        onSelect({
+          wallType: value,
+          assemblyType: 'single',
+          ...DEFAULTS.singleStud,
+          ...DEFAULTS.exterior(value),
+        })
+        return
+      }
+      // Steel defaults to single stud framing + exterior defaults
+      if (value === 'steel') {
+        onSelect({
+          wallType: value,
+          ...DEFAULTS.singleStud,
+          ...DEFAULTS.exterior(value),
+        })
+        return
+      }
+      // ICF — no auto-defaults; EPS form thickness selected manually
+      onSelect({ wallType: value })
       return
     }
     if (field === 'cavityMaterial') {
@@ -238,7 +286,14 @@ export default function WallBuilder({ selection, onSelect }) {
                         key={at.id}
                         type="button"
                         className={`option-button ${assemblyType === at.id ? 'selected' : ''}`}
-                        onClick={() => onSelect({ wallType, assemblyType: at.id })}
+                        onClick={() => {
+                          const base = { wallType, assemblyType: at.id }
+                          if (at.id === 'single') {
+                            onSelect({ ...base, ...DEFAULTS.singleStud, ...DEFAULTS.exterior('wood') })
+                          } else {
+                            onSelect({ ...base, ...DEFAULTS.doubleStud, ...DEFAULTS.exterior('wood') })
+                          }
+                        }}
                       >
                         {at.label}
                       </button>
@@ -261,7 +316,8 @@ export default function WallBuilder({ selection, onSelect }) {
                       onSelect({
                         ...selection,
                         hasServiceWall: true,
-                        interiorLayerMaterial: 'osb_11',
+                        ...DEFAULTS.serviceWall,
+                        ...DEFAULTS.interiorLayer,
                         contInsType: undefined,
                         contInsThickness: undefined,
                       })
