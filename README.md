@@ -3,7 +3,7 @@
 Energy Conservation Points calculator for NBC 2020 Tier 2/3 building code compliance in Nova Scotia. Helps builders and building officials determine if a residential design meets prescriptive energy performance thresholds.
 
 **Live:** Deployed on Railway (auto-deploys from `main`)
-**Stack:** React 18 + Vite 5 + Vitest, plain CSS, ExcelJS (dynamic import)
+**Stack:** React 18 + Vite 5 + Vitest, plain CSS
 
 ## Quick Start
 
@@ -61,25 +61,6 @@ src/data/generated/          # Committed JSON outputs
 | **Steel frame** | Steel studs with K-factor weighted method per NBC Table A-9.36.2.4.(1)-B. | K1 x RSI_T1 + K2 x RSI_T3 |
 | **ICF** | Insulated concrete forms. Pure series sum. | EPS form (x2) + concrete core + boundary |
 
-### Excel Export
-
-The wall builder includes an "Export to Excel" button that generates a `.xlsx` workbook entirely client-side:
-
-- **Live formulas** — change an input value, the total RSI recalculates
-- **Layer-by-layer breakdown** — every material, RSI contribution, and intermediate value
-- **NBC source citations** — column E references the specific NBC 2020 table for each value
-- **Wall section diagram** — embedded PNG of the SVG cross-section
-
-ExcelJS is dynamically imported (code-split, ~938KB chunk loaded only on export click).
-
-```
-src/utils/
-  resolveWallData.js       # Extracts all intermediate RSI values from selection
-  buildWallSheet.js        # Builds Excel sheet with live formulas (wood/steel/ICF)
-  exportWallAssembly.js    # Orchestrator: resolve -> sheet -> PNG -> download
-  svgToPng.js              # SVG DOM element -> base64 PNG via canvas
-```
-
 ## Project Structure
 
 ```
@@ -93,11 +74,9 @@ ecp-calculator/
     components/
       WallBuilder.jsx       # Wall assembly builder (simple + builder modes)
       WallSection.jsx       # SVG wall cross-section diagram
-      FieldGroup.jsx        # Numbered card wrapper for field groups
       CategoryCard.jsx      # Standard category selection UI
       OptionButton.jsx      # Individual option button
       PointsCounter.jsx     # ECP points progress display
-    utils/                  # Excel export utilities (see above)
   scripts/                  # Build pipeline + shared compute module
   data/materials/           # YAML source of truth
   docs/                     # Developer documentation
@@ -133,7 +112,6 @@ npm run build            # Production build
 - **Progressive disclosure** — wall builder shows only relevant fields per wall type
 - **CSS variables for theming** — dark mode via custom properties
 - **Dual wall input modes** — direct RSI selection or assembly-based calculation
-- **Client-side Excel export** — no server component, ExcelJS dynamically imported
 
 ## Documentation
 
@@ -141,7 +119,7 @@ npm run build            # Production build
 |-----|---------|
 | [architecture.md](docs/architecture.md) | Project overview, data flow, component tree, state management |
 | [data-layer.md](docs/data-layer.md) | ecpData.js reference, lookup tables, calculation formulas |
-| [components.md](docs/components.md) | All React components + export utilities |
+| [components.md](docs/components.md) | All React components — props, state, behaviors |
 | [styling.md](docs/styling.md) | CSS variables, theming, responsive breakpoints |
 | [infrastructure.md](docs/infrastructure.md) | Vite config, PWA, Railway deployment |
 
