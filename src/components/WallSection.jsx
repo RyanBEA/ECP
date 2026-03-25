@@ -152,8 +152,9 @@ export default function WallSection({
   const toStudDepthInches = (size) => studDepthMap[size] || 5.5
   const studDepthInches = toStudDepthInches(studDepth)
 
-  // Compute wall length and width once for all wood rendering modes
-  const wallLengthInches = studSpacing * 1.5
+  // Compute wall length from the widest stud spacing (so all stud rows are visible)
+  const maxSpacing = hasServiceWall ? Math.max(studSpacing, serviceSpacingInches) : studSpacing
+  const wallLengthInches = maxSpacing * 1.5
   const wallWidthPx = wallLengthInches * scale
   const studWidthInches = 1.5
 

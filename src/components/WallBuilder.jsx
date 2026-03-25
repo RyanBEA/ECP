@@ -665,17 +665,12 @@ export default function WallBuilder({ selection, onSelect }) {
                 : boundaryOpts.sheathing.options.find(o => o.id === interiorLayerMaterial)?.label)
               : null
 
-            // Use max spacing for diagram when service wall has different spacing
-            const primarySpacing = getStudSpacingNum(studSpacing)
-            const svcSpacing = hasServiceWall ? getStudSpacingNum(serviceSpacing) : primarySpacing
-            const diagramSpacing = Math.max(primarySpacing, svcSpacing)
-
             return (
               <div className="wall-section-container">
                 <WallSection
                   wallType={wallType}
                   studDepth={isSingleWall ? getStudDepth(cavityType) : '2x6'}
-                  studSpacing={diagramSpacing}
+                  studSpacing={getStudSpacingNum(studSpacing)}
                   continuousIns={!hasServiceWall && isSingleWall ? getContInsThicknessNum(contInsThickness) : 0}
                   cavityInsLabel={isSingleWall ? cavityType : doubleStudMaterial}
                   continuousInsLabel={!hasServiceWall && isSingleWall && contInsType && contInsThickness !== 'None' ? `${contInsThickness} ${contInsType}` : null}
