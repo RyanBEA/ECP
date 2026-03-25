@@ -44,7 +44,6 @@ scripts/
 
 src/data/generated/          # Committed JSON outputs
   wall-data.json             # Framed wall lookup (wood + steel)
-  double-stud-data.json      # Double stud pre-computed values
   continuous-ins.json         # Continuous insulation RSI by type/thickness
   icf-data.json              # ICF form data
   boundary-options.json       # Cladding, sheathing, air films
@@ -55,9 +54,7 @@ src/data/generated/          # Committed JSON outputs
 
 | Type | Description | Calculation |
 |------|-------------|-------------|
-| **Single stud** | Traditional 2x4 through 2x12. Optional continuous exterior insulation. | Parallel path + series boundary layers |
-| **Double stud** | Two stud rows on wider plate (2x4/2x6 studs, 2x8–2x12 plate). Blown-in insulation fills everything. | Parallel path per stud layer + isothermal gap |
-| **Interior service wall** | Toggle on single or double stud. Adds interior 2x4 service cavity + optional partition material (sheathing or rigid foam). | Primary wall PP + interior layer + service wall PP |
+| **Wood frame** | Single stud wall (2x4, 2x6). Optional continuous exterior rigid insulation. | Parallel path + series boundary layers |
 | **Steel frame** | Steel studs with K-factor weighted method per NBC Table A-9.36.2.4.(1)-B. | K1 x RSI_T1 + K2 x RSI_T3 |
 | **ICF** | Insulated concrete forms. Pure series sum. | EPS form (x2) + concrete core + boundary |
 
