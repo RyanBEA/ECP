@@ -15,7 +15,7 @@ export function loadMaterials() {
     framing: readYaml('framing.yaml'),
     cavity: readYaml('cavity-insulation.yaml'),
     continuous: readYaml('continuous-insulation.yaml'),
-    boundary: readYaml('boundary-layers.yaml'),
+    boundary: readYaml('sheathing-cladding.yaml'),
     icf: readYaml('icf.yaml'),
   }
 }
