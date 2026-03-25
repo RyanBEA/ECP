@@ -9,6 +9,7 @@
 :root {
   --primary: #4F3D63;
   --primary-dark: #3d2f4d;
+  --primary-light: #e8e0f0;
   --success: #16a34a;
   --success-light: #dcfce7;
   --danger: #dc2626;
@@ -32,6 +33,7 @@
 .dark {
   --primary: #8b7a9e;
   --primary-dark: #4F3D63;
+  --primary-light: #3d2f4d;
   --success: #4ade80;
   --success-light: #166534;
   --danger: #f87171;
@@ -450,6 +452,93 @@ h1, h2, h3, h4, h5, h6 {
   outline: none;
   border-color: var(--primary);
   box-shadow: 0 0 0 3px rgba(79, 61, 99, 0.15);
+}
+
+/* Field Group Cards */
+.field-group {
+  border: 2px solid var(--primary-light);
+  border-radius: 10px;
+  padding: 0.75rem 0.85rem;
+  margin-bottom: 0.75rem;
+  background: rgba(79, 61, 99, 0.02);
+}
+
+.field-group-head {
+  display: flex;
+  align-items: center;
+  gap: 0.4rem;
+  margin-bottom: 0.5rem;
+}
+
+.field-group-num {
+  width: 20px;
+  height: 20px;
+  border-radius: 50%;
+  background: var(--primary);
+  color: white;
+  font-size: 0.65rem;
+  font-weight: 700;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  flex-shrink: 0;
+}
+
+.field-group-title {
+  font-size: 0.75rem;
+  font-weight: 700;
+  color: var(--gray-700);
+}
+
+/* Footnote variant (Assumptions) */
+.field-group.footnote {
+  border: 1px dashed var(--gray-300);
+  background: transparent;
+  padding: 0.5rem 0.75rem;
+}
+
+.field-group.footnote .field-group-num {
+  background: var(--gray-400);
+  width: 16px;
+  height: 16px;
+  font-size: 0.55rem;
+}
+
+.field-group.footnote .field-group-title {
+  font-size: 0.65rem;
+  color: var(--gray-500);
+}
+
+/* Sub-labels within Main Wall group */
+.sub-label {
+  font-size: 0.6rem;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 0.04em;
+  color: var(--gray-400);
+  margin-bottom: 0.3rem;
+  margin-top: 0.5rem;
+}
+
+.sub-label:first-child {
+  margin-top: 0;
+}
+
+/* Assumptions read-only items */
+.assumptions-list {
+  display: flex;
+  gap: 1.25rem;
+  flex-wrap: wrap;
+}
+
+.assumption-item {
+  font-size: 0.7rem;
+  color: var(--gray-500);
+}
+
+.assumption-label {
+  font-weight: 600;
+  color: var(--gray-600);
 }
 
 .option-group {
