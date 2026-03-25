@@ -19,16 +19,16 @@ const WALL_TYPE_LABELS = { wood: 'Wood Frame', steel: 'Steel Frame', icf: 'ICF' 
  * Resolve boundary layers with RSI values and human-readable labels.
  */
 function resolveBoundary(wallType, sheathingId, claddingId) {
-  const outsideAir = { rsi: boundaryOptions.air_films.outside, label: 'Outside Air Film' }
-  const insideAir = { rsi: boundaryOptions.air_films.inside, label: 'Inside Air Film' }
-  const drywall = { rsi: boundaryOptions.drywall.default, label: '1/2" Gypsum' }
+  const outsideAir = { rsi: boundaryOptions.air_films.outside, label: 'Outside Air Film', source: 'NBC 2020 Table A-9.36.2.4.(1)' }
+  const insideAir = { rsi: boundaryOptions.air_films.inside, label: 'Inside Air Film', source: 'NBC 2020 Table A-9.36.2.4.(1)' }
+  const drywall = { rsi: boundaryOptions.drywall.default, label: '1/2" Gypsum', source: 'NBC 2020 Table A-9.36.2.4.(1)-D' }
 
   // Cladding
   const clId = claddingId || boundaryOptions.cladding.defaults[wallType]
   const clOption = boundaryOptions.cladding.options.find(o => o.id === clId)
   const cladding = clOption
-    ? { rsi: clOption.rsi, label: clOption.label, id: clId }
-    : { rsi: 0, label: 'None', id: null }
+    ? { rsi: clOption.rsi, label: clOption.label, id: clId, source: clOption.source || null }
+    : { rsi: 0, label: 'None', id: null, source: null }
 
   // Sheathing (wood only)
   let sheathing = null
@@ -36,14 +36,14 @@ function resolveBoundary(wallType, sheathingId, claddingId) {
     const shId = sheathingId || boundaryOptions.sheathing.default
     const shOption = boundaryOptions.sheathing.options.find(o => o.id === shId)
     sheathing = shOption
-      ? { rsi: shOption.rsi, label: shOption.label, id: shId }
-      : { rsi: 0, label: 'None', id: null }
+      ? { rsi: shOption.rsi, label: shOption.label, id: shId, source: shOption.source || null }
+      : { rsi: 0, label: 'None', id: null, source: null }
   }
 
   // Air space (steel only)
   let airSpace = null
   if (wallType === 'steel') {
-    airSpace = { rsi: boundaryOptions.steel_air_space.rsi, label: 'Air Space' }
+    airSpace = { rsi: boundaryOptions.steel_air_space.rsi, label: 'Air Space', source: 'NBC 2020 Table A-9.36.2.4.(1)' }
   }
 
   return { outsideAir, cladding, sheathing, airSpace, drywall, insideAir }

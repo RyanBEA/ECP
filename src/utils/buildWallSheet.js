@@ -69,11 +69,27 @@ function writeHeader(sheet, data) {
 /**
  * Set column widths for the standard 4-column layout.
  */
+const SOURCE_FONT = { size: 9, color: { argb: 'FF888888' }, italic: true }
+const CAVITY_SOURCE = 'NBC 2020 Table A-9.36.2.4.(1)-D'
+const FRAMING_SOURCE = 'NBC 2020 Table A-9.36.2.4.(1)-A'
+const STEEL_K_SOURCE = 'NBC 2020 Table A-9.36.2.4.(1)-B'
+
+/**
+ * Set a source citation in column E.
+ */
+function sourceCell(sheet, row, text) {
+  if (!text) return
+  const cell = sheet.getCell(`E${row}`)
+  cell.value = text
+  cell.font = SOURCE_FONT
+}
+
 function setColumnWidths(sheet) {
   sheet.getColumn('A').width = 30
   sheet.getColumn('B').width = 35
   sheet.getColumn('C').width = 20
   sheet.getColumn('D').width = 18
+  sheet.getColumn('E').width = 35
 }
 
 /**
@@ -115,15 +131,18 @@ function buildWoodSheet(sheet, data) {
   labelCell(sheet, 'B7', 'Material')
   labelCell(sheet, 'C7', 'Detail')
   labelCell(sheet, 'D7', 'RSI (m\u00B2\u00B7K/W)')
+  labelCell(sheet, 'E7', 'Source')
 
   // Row 8: Outside air film
   labelCell(sheet, 'A8', 'Outside Air Film')
   rsiCell(sheet, 'D8', boundary.outsideAir.rsi)
+  sourceCell(sheet, 8, boundary.outsideAir.source)
 
   // Row 9: Cladding
   labelCell(sheet, 'A9', 'Cladding')
   sheet.getCell('B9').value = boundary.cladding.label
   rsiCell(sheet, 'D9', boundary.cladding.rsi)
+  sourceCell(sheet, 9, boundary.cladding.source)
 
   // Row 10: Continuous insulation
   const hasContIns = contIns && contIns.rsi > 0
@@ -131,12 +150,14 @@ function buildWoodSheet(sheet, data) {
   sheet.getCell('B10').value = hasContIns ? contIns.type : '—'
   sheet.getCell('C10').value = hasContIns ? contIns.thickness : '—'
   rsiCell(sheet, 'D10', hasContIns ? contIns.rsi : 0, !hasContIns)
+  if (hasContIns) sourceCell(sheet, 10, CAVITY_SOURCE)
 
   // Row 11: Exterior sheathing
   const hasSh = boundary.sheathing !== null
   labelCell(sheet, 'A11', 'Exterior Sheathing', hasSh ? LABEL_FONT : INACTIVE_FONT)
   sheet.getCell('B11').value = hasSh ? boundary.sheathing.label : '—'
   rsiCell(sheet, 'D11', hasSh ? boundary.sheathing.rsi : 0, !hasSh)
+  if (hasSh) sourceCell(sheet, 11, boundary.sheathing.source)
 
   // Rows 12-16: Main wall / outer stud row
   const mainLabel = hasDs ? 'Outer Stud Row (parallel path)' : 'Main Wall (parallel path)'
@@ -149,11 +170,13 @@ function buildWoodSheet(sheet, data) {
 
   labelCell(sheet, 'A14', '\u2003Cavity %', SUB_FONT)
   rsiCell(sheet, 'D14', mainWall.cavityPct)
+  sourceCell(sheet, 14, FRAMING_SOURCE)
 
   labelCell(sheet, 'A15', '\u2003Cavity Insulation RSI', SUB_FONT)
   sheet.getCell('B15').value = mainWall.cavityMaterial
   sheet.getCell('C15').value = mainWall.cavityType || '—'
   rsiCell(sheet, 'D15', mainWall.cavityRsi)
+  sourceCell(sheet, 15, CAVITY_SOURCE)
 
   labelCell(sheet, 'A16', '\u2003Stud Depth (mm)', SUB_FONT)
   sheet.getCell('D16').value = mainWall.studDepthMm
@@ -201,10 +224,12 @@ function buildWoodSheet(sheet, data) {
     formulaCell(sheet, 'D24', 'D27*0.0085')
     labelCell(sheet, 'A25', '\u2003Service Cavity %', SUB_FONT)
     rsiCell(sheet, 'D25', sw.cavityPct)
+    sourceCell(sheet, 25, FRAMING_SOURCE)
     labelCell(sheet, 'A26', '\u2003Service Cavity RSI', SUB_FONT)
     sheet.getCell('B26').value = sw.cavityMaterial
     sheet.getCell('C26').value = sw.cavityType
     rsiCell(sheet, 'D26', sw.cavityRsi)
+    sourceCell(sheet, 26, CAVITY_SOURCE)
     labelCell(sheet, 'A27', '\u2003Service Stud Depth (mm)', SUB_FONT)
     sheet.getCell('D27').value = sw.studDepthMm
   } else {
@@ -219,10 +244,12 @@ function buildWoodSheet(sheet, data) {
   labelCell(sheet, 'A28', 'Drywall')
   sheet.getCell('B28').value = boundary.drywall.label
   rsiCell(sheet, 'D28', boundary.drywall.rsi)
+  sourceCell(sheet, 28, boundary.drywall.source)
 
   // Row 29: Inside air film
   labelCell(sheet, 'A29', 'Inside Air Film')
   rsiCell(sheet, 'D29', boundary.insideAir.rsi)
+  sourceCell(sheet, 29, boundary.insideAir.source)
 
   // Row 31: Total
   labelCell(sheet, 'A31', 'Total Effective RSI', TOTAL_FONT)
@@ -241,6 +268,7 @@ function buildSteelSheet(sheet, data) {
   labelCell(sheet, 'B7', 'Material / Value')
   labelCell(sheet, 'C7', 'Detail')
   labelCell(sheet, 'D7', 'RSI (m\u00B2\u00B7K/W)')
+  labelCell(sheet, 'E7', 'Source')
 
   // Boundary layers
   let row = 8
@@ -248,15 +276,18 @@ function buildSteelSheet(sheet, data) {
 
   labelCell(sheet, `A${row}`, 'Outside Air Film')
   rsiCell(sheet, `D${row}`, boundary.outsideAir.rsi)
+  sourceCell(sheet, row, boundary.outsideAir.source)
   boundaryRows.push(row++)
 
   labelCell(sheet, `A${row}`, 'Cladding')
   sheet.getCell(`B${row}`).value = boundary.cladding.label
   rsiCell(sheet, `D${row}`, boundary.cladding.rsi)
+  sourceCell(sheet, row, boundary.cladding.source)
   boundaryRows.push(row++)
 
   labelCell(sheet, `A${row}`, 'Air Space')
   rsiCell(sheet, `D${row}`, boundary.airSpace.rsi)
+  sourceCell(sheet, row, boundary.airSpace.source)
   boundaryRows.push(row++)
 
   const hasContIns = contIns && contIns.rsi > 0
@@ -264,15 +295,18 @@ function buildSteelSheet(sheet, data) {
   sheet.getCell(`B${row}`).value = hasContIns ? contIns.type : '—'
   sheet.getCell(`C${row}`).value = hasContIns ? contIns.thickness : '—'
   rsiCell(sheet, `D${row}`, hasContIns ? contIns.rsi : 0)
+  if (hasContIns) sourceCell(sheet, row, CAVITY_SOURCE)
   boundaryRows.push(row++)
 
   labelCell(sheet, `A${row}`, 'Drywall')
   sheet.getCell(`B${row}`).value = boundary.drywall.label
   rsiCell(sheet, `D${row}`, boundary.drywall.rsi)
+  sourceCell(sheet, row, boundary.drywall.source)
   boundaryRows.push(row++)
 
   labelCell(sheet, `A${row}`, 'Inside Air Film')
   rsiCell(sheet, `D${row}`, boundary.insideAir.rsi)
+  sourceCell(sheet, row, boundary.insideAir.source)
   boundaryRows.push(row++)
 
   // Boundary sum formula
@@ -292,6 +326,7 @@ function buildSteelSheet(sheet, data) {
   sheet.getCell(`B${row}`).value = mainWall.cavityMaterial
   sheet.getCell(`C${row}`).value = mainWall.cavityType
   rsiCell(sheet, `D${row}`, mainWall.cavityRsi)
+  sourceCell(sheet, row, CAVITY_SOURCE)
   const cavRsiRow = row++
 
   labelCell(sheet, `A${row}`, 'Stud Depth (mm)')
@@ -322,6 +357,7 @@ function buildSteelSheet(sheet, data) {
   labelCell(sheet, `A${row}`, 'K1')
   sheet.getCell(`C${row}`).value = 'NBC Table A-9.36.2.4.(1)-B'
   formulaCell(sheet, `D${row}`, `IF(D${spacingRow}>=24,0.5,IF(D${contInsRow}>0,0.4,0.33))`)
+  sourceCell(sheet, row, STEEL_K_SOURCE)
   const k1Row = row++
 
   labelCell(sheet, `A${row}`, 'K2')
@@ -368,18 +404,22 @@ function buildIcfSheet(sheet, data) {
   labelCell(sheet, 'B7', 'Material / Value')
   labelCell(sheet, 'C7', 'Detail')
   labelCell(sheet, 'D7', 'RSI (m\u00B2\u00B7K/W)')
+  labelCell(sheet, 'E7', 'Source')
 
   labelCell(sheet, 'A8', 'Outside Air Film')
   rsiCell(sheet, 'D8', boundary.outsideAir.rsi)
+  sourceCell(sheet, 8, boundary.outsideAir.source)
 
   labelCell(sheet, 'A9', 'Cladding')
   sheet.getCell('B9').value = boundary.cladding.label
   rsiCell(sheet, 'D9', boundary.cladding.rsi)
+  sourceCell(sheet, 9, boundary.cladding.source)
 
   labelCell(sheet, 'A10', 'EPS Form (x2 sides)')
   sheet.getCell('B10').value = icf.formLabel
   sheet.getCell('C10').value = `${icf.formThicknessMm} mm \u00D7 2 \u00D7 ${icf.epsRsiPerMm}`
   formulaCell(sheet, 'D10', `${icf.formThicknessMm}*2*${icf.epsRsiPerMm}`)
+  sourceCell(sheet, 10, CAVITY_SOURCE)
 
   labelCell(sheet, 'A11', 'Concrete Core')
   sheet.getCell('C11').value = `${icf.concreteCoreMm} mm \u00D7 ${icf.concreteRsiPerMm}`
@@ -388,9 +428,11 @@ function buildIcfSheet(sheet, data) {
   labelCell(sheet, 'A12', 'Drywall')
   sheet.getCell('B12').value = boundary.drywall.label
   rsiCell(sheet, 'D12', boundary.drywall.rsi)
+  sourceCell(sheet, 12, boundary.drywall.source)
 
   labelCell(sheet, 'A13', 'Inside Air Film')
   rsiCell(sheet, 'D13', boundary.insideAir.rsi)
+  sourceCell(sheet, 13, boundary.insideAir.source)
 
   // Total
   labelCell(sheet, 'A15', 'Total Effective RSI', TOTAL_FONT)
