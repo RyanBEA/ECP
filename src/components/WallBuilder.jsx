@@ -72,6 +72,9 @@ export default function WallBuilder({ selection, onSelect }) {
     contInsType, contInsThickness, icfFormThickness, simpleIndex,
     assemblyType = 'single',
     outerStud, innerStud, plate, doubleStudMaterial,
+    hasServiceWall = false,
+    serviceSpacing, serviceCavityMaterial, serviceCavityType,
+    interiorLayerMaterial, interiorLayerThickness,
   } = selection || {}
 
   const rsi = calculateWallRsi(selection || {})
@@ -103,6 +106,24 @@ export default function WallBuilder({ selection, onSelect }) {
       })
       return
     }
+    if (field === 'interiorLayerMaterial') {
+      onSelect({
+        ...selection,
+        simpleIndex: undefined,
+        interiorLayerMaterial: value || undefined,
+        interiorLayerThickness: undefined,
+      })
+      return
+    }
+    if (field === 'serviceCavityMaterial') {
+      onSelect({
+        ...selection,
+        simpleIndex: undefined,
+        serviceCavityMaterial: value || undefined,
+        serviceCavityType: undefined,
+      })
+      return
+    }
     onSelect({
       ...selection,
       simpleIndex: undefined,
@@ -119,6 +140,7 @@ export default function WallBuilder({ selection, onSelect }) {
   const isSingleWall = assemblyType === 'single'
   const isDoubleStud = assemblyType === 'doubleStud'
   const availableCavityTypes = getAvailableCavityTypes(wallType, studSpacing, cavityMaterial)
+  const serviceAvailableCavityTypes = getAvailableCavityTypes('wood', serviceSpacing, serviceCavityMaterial)
 
   // For double stud: filter plate options to those wider than outer + inner studs
   const availablePlates = plateOptions.filter(p => {
@@ -222,6 +244,132 @@ export default function WallBuilder({ selection, onSelect }) {
                       </button>
                     ))}
                   </div>
+                </div>
+              </div>
+            </div>
+          )}
+
+          {/* Service wall toggle (wood only) */}
+          {wallType === 'wood' && (
+            <div className="wall-selectors-group">
+              <label className="wall-selectors-group-label service-wall-toggle">
+                <input
+                  type="checkbox"
+                  checked={hasServiceWall}
+                  onChange={e => {
+                    if (e.target.checked) {
+                      onSelect({
+                        ...selection,
+                        hasServiceWall: true,
+                        interiorLayerMaterial: 'osb_11',
+                        contInsType: undefined,
+                        contInsThickness: undefined,
+                      })
+                    } else {
+                      onSelect({
+                        ...selection,
+                        hasServiceWall: false,
+                        serviceSpacing: undefined,
+                        serviceCavityMaterial: undefined,
+                        serviceCavityType: undefined,
+                        interiorLayerMaterial: undefined,
+                        interiorLayerThickness: undefined,
+                      })
+                    }
+                  }}
+                />
+                {' '}Add Interior Service Wall
+              </label>
+            </div>
+          )}
+
+          {/* Interior layer (between primary wall and service wall) */}
+          {hasServiceWall && (
+            <div className="wall-selectors-group">
+              <label className="wall-selectors-group-label">Interior Layer</label>
+              <div className="wall-selectors">
+                <div className="wall-selector">
+                  <label htmlFor="interiorLayerMaterial">Material</label>
+                  <select
+                    id="interiorLayerMaterial"
+                    value={interiorLayerMaterial || ''}
+                    onChange={e => handleFieldChange('interiorLayerMaterial', e.target.value)}
+                  >
+                    <option value="">Select...</option>
+                    <optgroup label="Sheathing">
+                      {boundaryOpts.sheathing.options.map(o => (
+                        <option key={o.id} value={o.id}>{o.label}</option>
+                      ))}
+                    </optgroup>
+                    <optgroup label="Rigid Insulation">
+                      {continuousInsTypes.map(t => (
+                        <option key={t} value={t}>{t}</option>
+                      ))}
+                    </optgroup>
+                  </select>
+                </div>
+                {interiorLayerMaterial && !boundaryOpts.sheathing.options.find(o => o.id === interiorLayerMaterial) && (
+                  <div className="wall-selector">
+                    <label htmlFor="interiorLayerThickness">Thickness</label>
+                    <select
+                      id="interiorLayerThickness"
+                      value={interiorLayerThickness || ''}
+                      onChange={e => handleFieldChange('interiorLayerThickness', e.target.value)}
+                    >
+                      <option value="">Select...</option>
+                      {continuousInsThicknesses.filter(t => t !== 'None').map(th => (
+                        <option key={th} value={th}>{th}</option>
+                      ))}
+                    </select>
+                  </div>
+                )}
+              </div>
+            </div>
+          )}
+
+          {/* Service wall framing */}
+          {hasServiceWall && (
+            <div className="wall-selectors-group">
+              <label className="wall-selectors-group-label">Service Wall</label>
+              <div className="wall-selectors">
+                <div className="wall-selector">
+                  <label htmlFor="serviceSpacing">Stud Spacing</label>
+                  <select
+                    id="serviceSpacing"
+                    value={serviceSpacing || ''}
+                    onChange={e => handleFieldChange('serviceSpacing', e.target.value)}
+                  >
+                    <option value="">Select...</option>
+                    {studSpacingOptions.map(opt => (
+                      <option key={opt.label} value={opt.label}>{opt.label} o.c.</option>
+                    ))}
+                  </select>
+                </div>
+                <div className="wall-selector">
+                  <label htmlFor="serviceCavityMaterial">Cavity Insulation</label>
+                  <select
+                    id="serviceCavityMaterial"
+                    value={serviceCavityMaterial || ''}
+                    onChange={e => handleFieldChange('serviceCavityMaterial', e.target.value)}
+                  >
+                    <option value="">Select...</option>
+                    {cavityMaterials.map(mat => (
+                      <option key={mat} value={mat}>{mat}</option>
+                    ))}
+                  </select>
+                </div>
+                <div className="wall-selector">
+                  <label htmlFor="serviceCavityType">Cavity Size</label>
+                  <select
+                    id="serviceCavityType"
+                    value={serviceCavityType || ''}
+                    onChange={e => handleFieldChange('serviceCavityType', e.target.value)}
+                  >
+                    <option value="">Select...</option>
+                    {serviceAvailableCavityTypes.map(ct => (
+                      <option key={ct} value={ct}>{ct}</option>
+                    ))}
+                  </select>
                 </div>
               </div>
             </div>
@@ -343,87 +491,87 @@ export default function WallBuilder({ selection, onSelect }) {
 
           {/* Single wall framing fields (wood/steel) */}
           {isFramedWall && isSingleWall && (
-            <>
-              <div className="wall-selectors-group">
-                <label className="wall-selectors-group-label">Framing</label>
-                <div className="wall-selectors">
-                  <div className="wall-selector">
-                    <label htmlFor="studSpacing">Stud Spacing</label>
-                    <select
-                      id="studSpacing"
-                      value={studSpacing || ''}
-                      onChange={e => handleFieldChange('studSpacing', e.target.value)}
-                    >
-                      <option value="">Select...</option>
-                      {studSpacingOptions.map(opt => (
-                        <option key={opt.label} value={opt.label}>{opt.label} o.c.</option>
-                      ))}
-                    </select>
-                  </div>
+            <div className="wall-selectors-group">
+              <label className="wall-selectors-group-label">Framing</label>
+              <div className="wall-selectors">
+                <div className="wall-selector">
+                  <label htmlFor="studSpacing">Stud Spacing</label>
+                  <select
+                    id="studSpacing"
+                    value={studSpacing || ''}
+                    onChange={e => handleFieldChange('studSpacing', e.target.value)}
+                  >
+                    <option value="">Select...</option>
+                    {studSpacingOptions.map(opt => (
+                      <option key={opt.label} value={opt.label}>{opt.label} o.c.</option>
+                    ))}
+                  </select>
+                </div>
 
-                  <div className="wall-selector">
-                    <label htmlFor="cavityMaterial">Cavity Insulation</label>
-                    <select
-                      id="cavityMaterial"
-                      value={cavityMaterial || ''}
-                      onChange={e => handleFieldChange('cavityMaterial', e.target.value)}
-                    >
-                      <option value="">Select...</option>
-                      {cavityMaterials.map(mat => (
-                        <option key={mat} value={mat}>{mat}</option>
-                      ))}
-                    </select>
-                  </div>
+                <div className="wall-selector">
+                  <label htmlFor="cavityMaterial">Cavity Insulation</label>
+                  <select
+                    id="cavityMaterial"
+                    value={cavityMaterial || ''}
+                    onChange={e => handleFieldChange('cavityMaterial', e.target.value)}
+                  >
+                    <option value="">Select...</option>
+                    {cavityMaterials.map(mat => (
+                      <option key={mat} value={mat}>{mat}</option>
+                    ))}
+                  </select>
+                </div>
 
-                  <div className="wall-selector">
-                    <label htmlFor="cavityType">Cavity Size</label>
-                    <select
-                      id="cavityType"
-                      value={cavityType || ''}
-                      onChange={e => handleFieldChange('cavityType', e.target.value)}
-                    >
-                      <option value="">Select...</option>
-                      {availableCavityTypes.map(ct => (
-                        <option key={ct} value={ct}>{ct}</option>
-                      ))}
-                    </select>
-                  </div>
+                <div className="wall-selector">
+                  <label htmlFor="cavityType">Cavity Size</label>
+                  <select
+                    id="cavityType"
+                    value={cavityType || ''}
+                    onChange={e => handleFieldChange('cavityType', e.target.value)}
+                  >
+                    <option value="">Select...</option>
+                    {availableCavityTypes.map(ct => (
+                      <option key={ct} value={ct}>{ct}</option>
+                    ))}
+                  </select>
                 </div>
               </div>
+            </div>
+          )}
 
-              <div className="wall-selectors-group">
-                <label className="wall-selectors-group-label">Continuous Insulation</label>
-                <div className="wall-selectors">
-                  <div className="wall-selector">
-                    <label htmlFor="contInsType">Type</label>
-                    <select
-                      id="contInsType"
-                      value={contInsType || ''}
-                      onChange={e => handleFieldChange('contInsType', e.target.value)}
-                    >
-                      <option value="">Select...</option>
-                      {continuousInsTypes.map(t => (
-                        <option key={t} value={t}>{t}</option>
-                      ))}
-                    </select>
-                  </div>
+          {isFramedWall && isSingleWall && !hasServiceWall && (
+            <div className="wall-selectors-group">
+              <label className="wall-selectors-group-label">Continuous Insulation</label>
+              <div className="wall-selectors">
+                <div className="wall-selector">
+                  <label htmlFor="contInsType">Type</label>
+                  <select
+                    id="contInsType"
+                    value={contInsType || ''}
+                    onChange={e => handleFieldChange('contInsType', e.target.value)}
+                  >
+                    <option value="">Select...</option>
+                    {continuousInsTypes.map(t => (
+                      <option key={t} value={t}>{t}</option>
+                    ))}
+                  </select>
+                </div>
 
-                  <div className="wall-selector">
-                    <label htmlFor="contInsThickness">Thickness</label>
-                    <select
-                      id="contInsThickness"
-                      value={contInsThickness || ''}
-                      onChange={e => handleFieldChange('contInsThickness', e.target.value)}
-                    >
-                      <option value="">Select...</option>
-                      {continuousInsThicknesses.map(th => (
-                        <option key={th} value={th}>{th}</option>
-                      ))}
-                    </select>
-                  </div>
+                <div className="wall-selector">
+                  <label htmlFor="contInsThickness">Thickness</label>
+                  <select
+                    id="contInsThickness"
+                    value={contInsThickness || ''}
+                    onChange={e => handleFieldChange('contInsThickness', e.target.value)}
+                  >
+                    <option value="">Select...</option>
+                    {continuousInsThicknesses.map(th => (
+                      <option key={th} value={th}>{th}</option>
+                    ))}
+                  </select>
                 </div>
               </div>
-            </>
+            </div>
           )}
 
           {/* ICF field */}
