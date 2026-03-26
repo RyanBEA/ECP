@@ -367,7 +367,7 @@ export const categories = [
   {
     id: 'airTightness',
     name: 'Air Tightness',
-    metric: 'ACH',
+    metric: '',
     unit: 'ACH @ 50Pa',
     description: 'Air changes per hour at 50 pascals pressure',
     direction: 'lower',
@@ -434,7 +434,7 @@ export const categories = [
   {
     id: 'volume',
     name: 'Heated Volume',
-    metric: 'Volume',
+    metric: '',
     unit: 'm³',
     imperial: { unit: 'ft³', factor: 35.315, decimals: 0, round: 10 },
     description: 'Total heated volume of the building',
