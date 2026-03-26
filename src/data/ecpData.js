@@ -358,7 +358,7 @@ export const categories = [
     name: 'Above Ground Walls',
     metric: 'RSI',
     unit: 'm²·K/W',
-    imperial: { unit: 'R-value', factor: 5.678, decimals: 1 },
+    imperial: { unit: 'R-value', factor: 5.678, decimals: 1, prefix: 'R-' },
     description: 'Thermal resistance of above-grade wall assemblies',
     direction: 'higher',
     type: 'wallBuilder',
@@ -384,7 +384,7 @@ export const categories = [
     name: 'Below Grade Walls',
     metric: 'RSI',
     unit: 'm²·K/W',
-    imperial: { unit: 'R-value', factor: 5.678, decimals: 1 },
+    imperial: { unit: 'R-value', factor: 5.678, decimals: 1, prefix: 'R-' },
     description: 'Thermal resistance of below-grade wall assemblies',
     direction: 'higher',
     options: [
@@ -436,7 +436,7 @@ export const categories = [
     name: 'Heated Volume',
     metric: 'Volume',
     unit: 'm³',
-    imperial: { unit: 'ft³', factor: 35.315, decimals: 0 },
+    imperial: { unit: 'ft³', factor: 35.315, decimals: 0, round: 10 },
     description: 'Total heated volume of the building',
     direction: 'lower',
     options: [

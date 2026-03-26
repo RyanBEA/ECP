@@ -4,8 +4,8 @@ export default function OptionButton({ option, direction, metric, imperial, isSe
   const directionSymbol = direction === 'higher' ? '≥' : '≤'
 
   const imperialText = imperial
-    ? ` (${imperial.decimals === 0
-        ? Math.round(option.value * imperial.factor).toLocaleString()
+    ? ` (${imperial.prefix || ''}${imperial.decimals === 0
+        ? (Math.round(option.value * imperial.factor / (imperial.round || 1)) * (imperial.round || 1)).toLocaleString()
         : (option.value * imperial.factor).toFixed(imperial.decimals)})`
     : ''
 
