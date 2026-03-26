@@ -67,7 +67,7 @@ describe('PrintSummary', () => {
     expect(details.length).toBe(0)
   })
 
-  it('shows Double Stud label for double stud assembly', () => {
+  it('shows Double Stud label and framing details for double stud assembly', () => {
     render(
       <PrintSummary
         selections={{}}
@@ -78,6 +78,9 @@ describe('PrintSummary', () => {
       />
     )
     expect(screen.getByText(/Double Stud/)).toBeTruthy()
+    expect(screen.getByText(/Studs: 2x4 \+ 2x4/)).toBeTruthy()
+    expect(screen.getByText(/Plate: 2x10/)).toBeTruthy()
+    expect(screen.getByText(/Fill: Loose Fill Cellulose/)).toBeTruthy()
   })
 
   it('shows pass status when target met', () => {

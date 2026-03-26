@@ -31,10 +31,38 @@ export default function PrintSummary({ selections, wallSelection, wallPoints, to
       const assemblyLabel = wallSelection.assemblyType === 'doubleStud' ? 'Double Stud' : 'Single Stud'
       const isIcf = wallSelection.wallType === 'icf'
 
+      const isDoubleStud = wallSelection.assemblyType === 'doubleStud'
+
+      // Build framing detail line based on assembly type
+      let framingDetail = null
+      if (!isIcf) {
+        if (isDoubleStud) {
+          const parts = [`Stud Spacing: ${wallSelection.studSpacing}`]
+          if (wallSelection.outerStud && wallSelection.innerStud) {
+            parts.push(`Studs: ${wallSelection.outerStud} + ${wallSelection.innerStud}`)
+          }
+          if (wallSelection.plate) parts.push(`Plate: ${wallSelection.plate}`)
+          if (wallSelection.doubleStudMaterial) parts.push(`Fill: ${wallSelection.doubleStudMaterial}`)
+          framingDetail = parts.join(' | ')
+        } else if (wallSelection.studSpacing) {
+          const parts = [`Stud Spacing: ${wallSelection.studSpacing}`]
+          const cavity = [wallSelection.cavityMaterial, wallSelection.cavityType].filter(Boolean).join(', ')
+          if (cavity) parts.push(`Cavity: ${cavity}`)
+          framingDetail = parts.join(' | ')
+        }
+      }
+
+      // Service wall detail
+      let serviceDetail = null
+      if (wallSelection.hasServiceWall && wallSelection.serviceCavityMaterial) {
+        const parts = [wallSelection.serviceSpacing, wallSelection.serviceCavityMaterial, wallSelection.serviceCavityType].filter(Boolean)
+        serviceDetail = `Service Wall: ${parts.join(', ')}`
+      }
+
       wallDetails = {
         wallType: isIcf ? wallTypeName : `${wallTypeName}, ${assemblyLabel}`,
-        cavity: !isIcf ? `${wallSelection.cavityMaterial || ''}, ${wallSelection.cavityType || ''}`.replace(/^, |, $/g, '') : null,
-        spacing: !isIcf ? wallSelection.studSpacing : null,
+        framing: framingDetail,
+        serviceWall: serviceDetail,
         contIns: wallSelection.contInsType && wallSelection.contInsThickness && wallSelection.contInsThickness !== 'None'
           ? `${wallSelection.contInsType}, ${wallSelection.contInsThickness}`
           : null,
@@ -83,9 +111,14 @@ export default function PrintSummary({ selections, wallSelection, wallPoints, to
                       <td colSpan="3">Wall Type: {wallDetails.wallType}</td>
                     </tr>
                   )}
-                  {wallDetails.spacing && wallDetails.cavity && (
+                  {wallDetails.framing && (
                     <tr className="print-wall-detail">
-                      <td colSpan="3">Stud Spacing: {wallDetails.spacing} | Cavity: {wallDetails.cavity}</td>
+                      <td colSpan="3">{wallDetails.framing}</td>
+                    </tr>
+                  )}
+                  {wallDetails.serviceWall && (
+                    <tr className="print-wall-detail">
+                      <td colSpan="3">{wallDetails.serviceWall}</td>
                     </tr>
                   )}
                   {wallDetails.contIns && (
