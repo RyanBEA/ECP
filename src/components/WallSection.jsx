@@ -238,7 +238,7 @@ export default function WallSection({
   // --- ICF Rendering ---
   if (wallType === 'icf') {
     const epsThickness = icfFormThickness  // inches per side
-    const concreteThickness = 8  // inches, fixed
+    const concreteThickness = 6  // inches, fixed (152.4mm standard core)
     const icfTotalThickness = drywallThickness + epsThickness + concreteThickness + epsThickness + claddingThickness
     const icfWallLength = 24  // fixed display width in inches
     const icfWallWidthPx = icfWallLength * scale
@@ -255,7 +255,7 @@ export default function WallSection({
     const icfLayers = [
       { name: '1/2" drywall', midY: icfDrywallY + drywallThickness * scale / 2 },
       { name: `${icfFormThickness}" EPS (interior)`, midY: icfEpsIntY + epsThickness * scale / 2 },
-      { name: '8" concrete', midY: icfConcreteY + concreteThickness * scale / 2 },
+      { name: '6" concrete', midY: icfConcreteY + concreteThickness * scale / 2 },
       { name: `${icfFormThickness}" EPS (exterior)`, midY: icfEpsExtY + epsThickness * scale / 2 },
       { name: '1/2" cladding', midY: icfCladdingY + claddingThickness * scale / 2 },
     ]

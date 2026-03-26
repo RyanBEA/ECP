@@ -339,7 +339,7 @@ Completely different layer structure (no studs, no stud spacing):
 |-------|-----------|-------|---------|
 | Drywall | 0.5" fixed | gray `#e5e7eb` | solid fill |
 | EPS (interior) | per `icfFormThickness` | pink `#fce7f3` | staggered vertical lines |
-| Concrete core | 8" fixed | gray `#6b7280` | solid fill + deterministic speckle aggregate |
+| Concrete core | 6" fixed | gray `#6b7280` | solid fill + deterministic speckle aggregate |
 | EPS (exterior) | per `icfFormThickness` | pink `#fce7f3` | staggered vertical lines |
 | Cladding | 0.5" fixed | dark gray `#9ca3af` | solid fill |
 
