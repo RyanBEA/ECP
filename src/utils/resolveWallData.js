@@ -37,10 +37,10 @@ function resolveBoundary(wallType, sheathingId, claddingId) {
     ? { rsi: clOption.rsi, label: clOption.label, id: clId, source: normalizeSource(clOption.source) }
     : { rsi: 0, label: 'None', id: null, source: null }
 
-  // Sheathing (wood only)
+  // Sheathing (wood and steel)
   let sheathing = null
   if (boundaryOptions.sheathing.applies_to.includes(wallType)) {
-    const shId = sheathingId || boundaryOptions.sheathing.default
+    const shId = sheathingId || boundaryOptions.sheathing.defaults?.[wallType] || boundaryOptions.sheathing.defaults?.wood
     const shOption = boundaryOptions.sheathing.options.find(o => o.id === shId)
     sheathing = shOption
       ? { rsi: shOption.rsi, label: shOption.label, id: shId, source: normalizeSource(shOption.source) }
@@ -259,9 +259,9 @@ export function resolveWallData(selection) {
       // Use steelCavityPct() for consistency with compute.js (not the JSON value)
       base.mainWall.cavityPct = steelCavityPct(spacingInches)
 
-      // Boundary sum for steel (no sheathing)
+      // Boundary sum for steel (includes sheathing and air space)
       const bSum = boundaryObj.outside_air + boundaryObj.cladding
-        + (boundaryObj.air_space || 0) + contInsRsi
+        + (boundaryObj.sheathing || 0) + (boundaryObj.air_space || 0) + contInsRsi
         + boundaryObj.drywall + boundaryObj.inside_air
 
       const cavityPct = base.mainWall.cavityPct

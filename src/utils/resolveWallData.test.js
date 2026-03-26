@@ -153,9 +153,10 @@ describe('resolveWallData', () => {
       expect(result.steel.k2).toBe(0.6)
     })
 
-    it('has air space instead of sheathing', () => {
+    it('has gypsum sheathing and air space', () => {
       const result = resolveWallData(selection)
-      expect(result.boundary.sheathing).toBeNull()
+      expect(result.boundary.sheathing).not.toBeNull()
+      expect(result.boundary.sheathing.rsi).toBe(0.08)  // gypsum sheathing
       expect(result.boundary.airSpace).not.toBeNull()
       expect(result.boundary.airSpace.rsi).toBe(0.18)
     })

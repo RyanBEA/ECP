@@ -196,7 +196,7 @@ describe('variable boundary layers', () => {
   it('getDefaultBoundary returns steel defaults', () => {
     const b = getDefaultBoundary('steel')
     expect(b.cladding).toBe(0.11)   // metal siding
-    expect(b.sheathing).toBe(0)     // no sheathing
+    expect(b.sheathing).toBe(0.08)  // gypsum sheathing (non-combustible)
     expect(b.air_space).toBe(0.18)
   })
 

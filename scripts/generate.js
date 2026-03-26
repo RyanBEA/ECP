@@ -198,7 +198,7 @@ function generateBoundaryOptions() {
     drywall: m.boundary.drywall,
     sheathing: {
       applies_to: m.boundary.sheathing.applies_to,
-      default: m.boundary.sheathing.default,
+      defaults: m.boundary.sheathing.defaults,
       options: m.boundary.sheathing.options,
     },
     cladding: {
@@ -381,7 +381,7 @@ async function generateExcel(wallData) {
   ]
   steel.getRow(1).font = { bold: true }
 
-  const steelBoundary = { outside_air: 0.03, cladding: 0.07, sheathing: 0, drywall: 0.08, inside_air: 0.12 }
+  const steelBoundary = { outside_air: 0.03, cladding: 0.07, sheathing: 0.08, drywall: 0.08, inside_air: 0.12 }
 
   for (const [spacing, spData] of Object.entries(wallData.steel.spacings)) {
     for (const [matLabel, entries] of Object.entries(spData.materials)) {

@@ -13,8 +13,10 @@ drywall:
 
 sheathing:
   selectable: true
-  applies_to: [wood]   # steel and ICF do not use structural sheathing
-  default: "osb_11"
+  applies_to: [wood, steel]
+  defaults:
+    wood: "osb_11"
+    steel: "gypsum_12_7"   # steel framing typically requires non-combustible sheathing
   options:
     - id: "osb_11"
       label: '7/16" (11 mm) OSB'

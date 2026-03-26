@@ -122,9 +122,10 @@ export function steelWallRsi({
   const hasInsulatingSheathing = contInsRsi > 0
   const { k1, k2 } = steelKValues(spacingInches, hasInsulatingSheathing)
 
-  // Boundary sum for steel (includes air space, no sheathing typically)
+  // Boundary sum for steel (includes air space and sheathing)
   const bSum = (boundary.outside_air || 0)
     + (boundary.cladding || 0)
+    + (boundary.sheathing || 0)
     + (airSpace || 0)
     + (contInsRsi || 0)
     + (boundary.drywall || 0)

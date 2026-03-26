@@ -184,7 +184,7 @@ export function getDefaultBoundary(wallType) {
   b.cladding = cladding?.rsi || 0
 
   if (boundaryOptions.sheathing.applies_to.includes(wallType)) {
-    const sheathingId = boundaryOptions.sheathing.default
+    const sheathingId = boundaryOptions.sheathing.defaults?.[wallType] || boundaryOptions.sheathing.default
     const sheathing = boundaryOptions.sheathing.options.find(o => o.id === sheathingId)
     b.sheathing = sheathing?.rsi || 0
   }

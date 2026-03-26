@@ -10,9 +10,13 @@
   },
   "sheathing": {
     "applies_to": [
-      "wood"
+      "wood",
+      "steel"
     ],
-    "default": "osb_11",
+    "defaults": {
+      "wood": "osb_11",
+      "steel": "gypsum_12_7"
+    },
     "options": [
       {
         "id": "osb_11",

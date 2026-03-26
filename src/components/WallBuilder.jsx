@@ -86,7 +86,7 @@ const DEFAULTS = {
   exterior: (wallType) => ({
     claddingId: boundaryOpts.cladding.defaults[wallType],
     ...(boundaryOpts.sheathing.applies_to.includes(wallType)
-      ? { sheathingId: boundaryOpts.sheathing.default }
+      ? { sheathingId: boundaryOpts.sheathing.defaults?.[wallType] || boundaryOpts.sheathing.defaults?.wood }
       : {}),
   }),
 }
@@ -564,7 +564,7 @@ export default function WallBuilder({ selection, onSelect }) {
                         <label htmlFor="sheathingId">Exterior Sheathing</label>
                         <select
                           id="sheathingId"
-                          value={selection?.sheathingId || boundaryOpts.sheathing.default}
+                          value={selection?.sheathingId || boundaryOpts.sheathing.defaults?.[wallType] || boundaryOpts.sheathing.defaults?.wood}
                           onChange={e => handleFieldChange('sheathingId', e.target.value)}
                         >
                           {boundaryOpts.sheathing.options.map(o => (
@@ -751,7 +751,7 @@ export default function WallBuilder({ selection, onSelect }) {
                   cavityInsLabel={isSingleWall ? cavityType : doubleStudMaterial}
                   continuousInsLabel={!hasServiceWall && isSingleWall && contInsType && contInsThickness !== 'None' ? `${contInsThickness} ${contInsType}` : null}
                   claddingLabel={boundaryOpts.cladding.options.find(o => o.id === (selection?.claddingId || boundaryOpts.cladding.defaults[wallType]))?.label}
-                  sheathingLabel={boundaryOpts.sheathing.options.find(o => o.id === (selection?.sheathingId || boundaryOpts.sheathing.default))?.label}
+                  sheathingLabel={boundaryOpts.sheathing.options.find(o => o.id === (selection?.sheathingId || boundaryOpts.sheathing.defaults?.[wallType] || boundaryOpts.sheathing.defaults?.wood))?.label}
                   assemblyType={assemblyType}
                   hasServiceWall={hasServiceWall && hasServiceInfo}
                   outerStudDepth={outerStud || '2x4'}
