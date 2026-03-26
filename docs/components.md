@@ -286,7 +286,7 @@ Stateless SVG component rendering a top-down cross-section of the wall assembly.
 | Prop | Type | Default | Description |
 |------|------|---------|-------------|
 | `wallType` | `'wood'` \| `'steel'` \| `'icf'` | `'wood'` | Determines rendering mode |
-| `studDepth` | `'2x4'` \| `'2x6'` | `'2x6'` | Stud size → cavity depth (3.5" or 5.5") |
+| `studDepth` | `'2x4'` \| `'2x6'` \| `'2x8'` \| `'2x10'` \| `'2x12'` | `'2x6'` | Stud size → cavity depth (3.5" to 11.25") |
 | `studSpacing` | number | `16` | On-center spacing in inches |
 | `continuousIns` | number | `0` | Continuous insulation thickness (0–3 inches) |
 | `cavityInsLabel` | string \| null | `null` | Overrides generic cavity label in diagram |
@@ -313,7 +313,7 @@ Stateless SVG component rendering a top-down cross-section of the wall assembly.
 | Layer | Thickness | Color | Pattern |
 |-------|-----------|-------|---------|
 | Drywall | 0.5" fixed | gray `#e5e7eb` | solid fill |
-| Stud cavity | 3.5" or 5.5" | pink `#fce7f3` | batt insulation (semicircles + diagonal lines) |
+| Stud cavity | 3.5"–11.25" (per studDepth) | pink `#fce7f3` | batt insulation (semicircles + diagonal lines) |
 | Studs | 1.5" wide at spacing | brown `#d4a574` | X cross pattern |
 | Sheathing | 7/16" fixed | gray `#d1d5db` | solid fill |
 | Continuous insulation | 0–3" dynamic | pink `#fce7f3` | staggered vertical lines |
