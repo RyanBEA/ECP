@@ -661,3 +661,120 @@ h1, h2, h3, h4, h5, h6 {
     min-width: 70px;
   }
 }
+
+/* Print button */
+.print-button {
+  padding: 0.4rem 1rem;
+  border: 1px solid var(--primary);
+  border-radius: var(--radius);
+  background: var(--primary);
+  color: white;
+  font-size: 0.8rem;
+  font-weight: 600;
+  cursor: pointer;
+  transition: opacity 0.15s ease;
+}
+
+.print-button:hover:not(:disabled) {
+  opacity: 0.9;
+}
+
+.print-button:disabled {
+  opacity: 0.4;
+  cursor: not-allowed;
+}
+
+/* Print summary — hidden on screen */
+.print-summary {
+  display: none;
+}
+
+/* Print styles */
+@media print {
+  /* Hide interactive UI */
+  .app-header,
+  .app-intro,
+  .categories-container,
+  .app-footer {
+    display: none !important;
+  }
+
+  /* Show print summary */
+  .print-summary {
+    display: block !important;
+    color: #111;
+    background: white;
+    font-family: 'Open Sans', sans-serif;
+    font-size: 11pt;
+    padding: 0;
+  }
+
+  /* Force light mode */
+  body, .app, .app.dark {
+    background: white !important;
+    color: #111 !important;
+  }
+
+  @page {
+    margin: 1cm;
+  }
+
+  .print-header {
+    display: flex;
+    justify-content: space-between;
+    font-weight: 700;
+    font-size: 13pt;
+    border-bottom: 2px solid #111;
+    padding-bottom: 0.4rem;
+    margin-bottom: 1rem;
+  }
+
+  .print-table {
+    width: 100%;
+    border-collapse: collapse;
+    margin-bottom: 1rem;
+  }
+
+  .print-table th {
+    text-align: left;
+    font-weight: 700;
+    border-bottom: 1px solid #999;
+    padding: 0.3rem 0.5rem;
+  }
+
+  .print-table td {
+    padding: 0.25rem 0.5rem;
+    vertical-align: top;
+  }
+
+  .print-pts {
+    text-align: right;
+    white-space: nowrap;
+  }
+
+  .print-wall-detail td {
+    padding-left: 1.5rem;
+    font-size: 9pt;
+    color: #555;
+  }
+
+  .print-total td {
+    border-top: 2px solid #111;
+    font-weight: 700;
+    padding-top: 0.4rem;
+  }
+
+  .print-status td {
+    text-align: right;
+    font-weight: 700;
+    font-size: 12pt;
+    padding-top: 0.25rem;
+  }
+
+  .print-footer {
+    margin-top: 2rem;
+    font-size: 8pt;
+    color: #999;
+    text-align: center;
+  }
+}
