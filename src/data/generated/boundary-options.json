@@ -59,7 +59,7 @@
     "defaults": {
       "wood": "vinyl_siding",
       "steel": "metal_siding",
-      "icf": "stucco_19"
+      "icf": "vinyl_siding"
     },
     "options": [
       {

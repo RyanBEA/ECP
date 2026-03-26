@@ -53,8 +53,8 @@ describe('calculateWallRsi', () => {
       wallType: 'icf',
       icfFormThickness: '3-1/8"'
     })
-    // 0.03 + 0.017(stucco default) + 79.375*2*0.026 + 152.4*0.0004 + 0.08 + 0.12 = 4.4355
-    expect(rsi).toBeCloseTo(4.44, 1)
+    // 0.03 + 0.11(vinyl default) + 79.375*2*0.026 + 152.4*0.0004 + 0.08 + 0.12 = 4.5285
+    expect(rsi).toBeCloseTo(4.53, 1)
   })
 
   it('returns null when required fields are missing', () => {
