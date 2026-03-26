@@ -3,6 +3,7 @@ import { categories, tiers, calculateWallRsi, getWallPoints } from './data/ecpDa
 import CategoryCard from './components/CategoryCard'
 import WallBuilder from './components/WallBuilder'
 import PointsCounter from './components/PointsCounter'
+import PrintSummary from './components/PrintSummary'
 
 export default function App() {
   // Track dark mode - default to system preference
@@ -166,9 +167,24 @@ export default function App() {
           }
         </p>
         <div className="footer-meta">
+          <button
+            className="print-button"
+            onClick={() => window.print()}
+            disabled={totalPoints === 0}
+          >
+            Save / Print
+          </button>
           <span className="footer-version">v1.0 — Updated 2026-03-26</span>
         </div>
       </footer>
+
+      <PrintSummary
+        selections={selections}
+        wallSelection={wallSelection}
+        wallPoints={wallPoints}
+        totalPoints={totalPoints}
+        selectedTier={selectedTier}
+      />
     </div>
   )
 }
