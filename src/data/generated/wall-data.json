@@ -65,12 +65,6 @@
               "cavityRsi": 5.46,
               "ppRsi": 3.903664
             },
-            "2x10 R35": {
-              "stud": "2x10",
-              "studRsi": 1.9975,
-              "cavityRsi": 6.16,
-              "ppRsi": 4.164169
-            },
             "2x12 R40": {
               "stud": "2x12",
               "studRsi": 2.431,
@@ -254,12 +248,6 @@
               "cavityRsi": 5.46,
               "ppRsi": 3.977607
             },
-            "2x10 R35": {
-              "stud": "2x10",
-              "studRsi": 1.9975,
-              "cavityRsi": 6.16,
-              "ppRsi": 4.254059
-            },
             "2x12 R40": {
               "stud": "2x12",
               "studRsi": 2.431,
@@ -442,12 +430,6 @@
               "studRsi": 1.9975,
               "cavityRsi": 5.46,
               "ppRsi": 4.054405
-            },
-            "2x10 R35": {
-              "stud": "2x10",
-              "studRsi": 1.9975,
-              "cavityRsi": 6.16,
-              "ppRsi": 4.347915
             },
             "2x12 R40": {
               "stud": "2x12",

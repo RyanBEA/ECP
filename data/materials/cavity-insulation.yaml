@@ -43,10 +43,6 @@ fiberglass_batt:
       rsi: 5.46
       wood_studs: ["2x10"]
       note: "241 mm cavity"
-    - id: "2x10 R35"
-      rsi: 6.16
-      wood_studs: ["2x10"]
-      note: "267 mm cavity"
     - id: "2x12 R40"
       rsi: 7.04
       wood_studs: ["2x12"]
