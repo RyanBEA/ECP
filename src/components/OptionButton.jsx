@@ -1,7 +1,13 @@
 import React from 'react'
 
-export default function OptionButton({ option, direction, metric, isSelected, onClick }) {
+export default function OptionButton({ option, direction, metric, imperial, isSelected, onClick }) {
   const directionSymbol = direction === 'higher' ? '≥' : '≤'
+
+  const imperialText = imperial
+    ? ` (${imperial.decimals === 0
+        ? Math.round(option.value * imperial.factor).toLocaleString()
+        : (option.value * imperial.factor).toFixed(imperial.decimals)})`
+    : ''
 
   return (
     <button
@@ -13,7 +19,7 @@ export default function OptionButton({ option, direction, metric, isSelected, on
         <span className="option-label">{option.label}</span>
       )}
       <span className="option-value">
-        {directionSymbol} {option.value}
+        {directionSymbol} {option.value}{imperialText}
       </span>
       <span className="option-points">
         +{option.points} pts

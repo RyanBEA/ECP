@@ -692,16 +692,16 @@ export default function WallBuilder({ selection, onSelect }) {
               <>
                 <div className={`wall-rsi ${belowCode ? 'below-code' : ''}`}>
                   <span className="label">Effective RSI:</span>
-                  <span className="value">{rsi.toFixed(2)}</span>
+                  <span className="value">{rsi.toFixed(2)} (R-{(rsi * 5.678).toFixed(1)})</span>
                 </div>
                 {belowCode ? (
                   <>
                     <div className="wall-rsi">
                       <span className="label">Min. RSI:</span>
-                      <span className="value">{MIN_WALL_RSI}</span>
+                      <span className="value">{MIN_WALL_RSI} (R-{(MIN_WALL_RSI * 5.678).toFixed(1)})</span>
                     </div>
                     <div className="wall-warning">
-                      ⚠ Does not meet code — {(MIN_WALL_RSI - rsi).toFixed(2)} below minimum
+                      ⚠ Does not meet code — {(MIN_WALL_RSI - rsi).toFixed(2)} RSI below minimum
                     </div>
                   </>
                 ) : (
