@@ -13,7 +13,7 @@ Prerequisites: [Node.js](https://nodejs.org/) 18 or later.
 npm install              # Install dependencies
 npm run generate         # Rebuild JSON data from YAML sources (ensures data is current)
 npm run dev              # Start dev server at localhost:5173
-npm test                 # Verify everything works (194 tests)
+npm test                 # Verify everything works (392 tests)
 ```
 
 ## Architecture

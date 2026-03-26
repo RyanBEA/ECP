@@ -171,14 +171,14 @@ A passing run looks like this:
 ```
  ✓ scripts/compute.test.js (22 tests)
  ✓ scripts/loadMaterials.test.js (9 tests)
- ✓ scripts/validate.test.js (84 tests)
+ ✓ scripts/validate.test.js (282 tests)
  ✓ src/data/ecpData.test.js (35 tests)
  ✓ src/utils/resolveWallData.test.js (24 tests)
  ✓ src/utils/buildWallSheet.test.js (16 tests)
  ✓ src/components/FieldGroup.test.jsx (4 tests)
 
  Test Files  7 passed (7)
-       Tests  194 passed (194)
+       Tests  392 passed (392)
 ```
 
 ### What each test file covers
@@ -187,7 +187,7 @@ A passing run looks like this:
 |-----------|---------------|
 | `compute.test.js` | Core thermal math: parallel-path RSI, wood/steel/ICF/double-stud wall calculations |
 | `loadMaterials.test.js` | YAML loading: ensures all material files parse correctly and have required fields |
-| `validate.test.js` | Generated JSON validation: checks every entry in the JSON files against the YAML sources (84 tests — the biggest suite) |
+| `validate.test.js` | Round-trip validation: re-computes every entry in the generated JSON from YAML sources (282 tests covering all 87 wood, 42 steel, 72 double stud, 25 continuous insulation, 3 ICF, 15 boundary, and 11 threshold entries) |
 | `ecpData.test.js` | Data layer API: verifies exports, lookup functions, threshold lookups, and category definitions |
 | `resolveWallData.test.js` | Wall data resolution: ensures the Excel export utility can extract correct intermediate RSI values |
 | `buildWallSheet.test.js` | Excel sheet builder: validates that the wall assembly export produces correct formulas and structure |
