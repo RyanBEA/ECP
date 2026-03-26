@@ -166,15 +166,7 @@ export default function App() {
           }
         </p>
         <div className="footer-meta">
-          <span className="footer-version">v0.9.1 — Updated 2026-03-10</span>
-          <a
-            className="source-link"
-            href="https://beafiles.blob.core.windows.net/public/RSI-calc.xlsx"
-            target="_blank"
-            rel="noopener noreferrer"
-          >
-            Excel source
-          </a>
+          <span className="footer-version">v1.0 — Updated 2026-03-26</span>
         </div>
       </footer>
     </div>
