@@ -672,6 +672,20 @@ export default function WallBuilder({ selection, onSelect }) {
             </FieldGroup>
           )}
 
+          {/* Moisture management disclaimer — shown in builder mode only */}
+          {mode === 'builder' && wallType && (
+            <div className="wall-disclaimer">
+              <strong>Note:</strong> This tool calculates effective RSI for the purpose of
+              determining energy conservation points only. Not all material combinations
+              are appropriate from a moisture management perspective. Wall assemblies
+              that combine exterior insulation with cavity insulation require careful
+              consideration of vapour permeance, drying potential, and condensation
+              risk. Consult a building science professional or
+              the <a href="https://natural-resources.canada.ca/energy-efficiency/home-energy-efficiency/leep-nze-wall-guides" target="_blank" rel="noopener noreferrer">NRCan LEEP Wall Assembly Guides</a> before
+              finalizing your wall design.
+            </div>
+          )}
+
           {/* Results */}
           <div className="wall-result">
             {rsi ? (
