@@ -43,18 +43,6 @@
         "source": "Table D, softwood"
       },
       {
-        "id": "plywood_df_9_5",
-        "label": "3/8\" (9.5 mm) Douglas Fir Plywood",
-        "rsi": 0.105,
-        "source": "Table D"
-      },
-      {
-        "id": "plywood_df_12_5",
-        "label": "1/2\" (12.5 mm) Douglas Fir Plywood",
-        "rsi": 0.139,
-        "source": "Table D"
-      },
-      {
         "id": "gypsum_12_7",
         "label": "1/2\" (12.7 mm) Gypsum Sheathing",
         "rsi": 0.08,
