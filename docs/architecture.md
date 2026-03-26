@@ -48,6 +48,7 @@ ecp-calculator/
 │   ├── main.jsx                 # Entry point, service worker registration
 │   ├── App.jsx                  # Root component, all state management
 │   ├── App.css                  # All styles, CSS variables, theming
+│   ├── WallSectionDemo.jsx      # Standalone demo page for WallSection testing
 │   ├── data/
 │   │   ├── ecpData.js           # API layer: imports generated JSON + compute module
 │   │   ├── ecpData.test.js      # Unit tests for wall RSI and points
@@ -72,7 +73,9 @@ ecp-calculator/
 │       ├── WallSection.jsx      # SVG wall cross-section diagram (wood/steel/ICF)
 │       ├── FieldGroup.jsx       # Numbered card wrapper for field groups
 │       ├── FieldGroup.test.jsx  # Unit tests for FieldGroup
-│       └── PointsCounter.jsx    # ECP points progress display
+│       ├── PointsCounter.jsx    # ECP points progress display
+│       ├── PrintSummary.jsx     # Print-only ECP summary table
+│       └── PrintSummary.test.jsx # Unit tests for PrintSummary
 ├── index.html
 ├── vite.config.js
 └── package.json
@@ -103,7 +106,10 @@ App.jsx (state: selections, wallSelection, selectedTierId, darkMode)
      │
      ├── CategoryCard ──► OptionButton (one per threshold)
      │
-     └── PointsCounter (totalPoints vs targetPoints)
+     ├── PointsCounter (totalPoints vs targetPoints)
+     │
+     └── PrintSummary (hidden on screen, visible in @media print)
+           └── Summary table of selected categories + wall details
 ```
 
 ## State Management
@@ -163,8 +169,12 @@ App
 │   └── CategoryCard × 7 (standard categories)
 │       └── OptionButton × N per category
 │
-└── <footer>
-    └── Status message (points remaining or "Target met!")
+├── <footer>
+│   ├── Status message (points remaining or "Target met!")
+│   └── Save / Print button (calls window.print(), disabled when no selections)
+│
+└── PrintSummary (display: none on screen, visible in @media print)
+    └── Summary table: header, selected categories, wall details, total, pass/fail
 ```
 
 ## Key Design Decisions
@@ -187,9 +197,13 @@ App
 
 9. **Wall assembly Excel export** — The "Export to Excel" button generates a `.xlsx` workbook entirely client-side using ExcelJS (dynamically imported, code-split into its own chunk). The workbook contains live Excel formulas replicating the parallel-path RSI calculation, a source column with NBC table references, and an embedded PNG of the wall section diagram. Three sheet layouts: universal wood template (single/double/service wall), steel K-factor method, and ICF series sum.
 
+10. **Print/PDF export** — A "Save / Print" button in the footer calls `window.print()`. A hidden `PrintSummary` component renders a clean one-page summary table (selected categories, points, wall builder details when applicable). `@media print` CSS hides the interactive UI and shows only the summary. Forces light mode in print. Zero additional dependencies.
+
 ## Cross-References
 
 - [Data Layer Reference](data-layer.md) — ecpData.js exports, lookup tables, calculation formulas, point tables
+- [Data Pipeline](data-pipeline.md) — YAML-to-JSON build pipeline, adding materials, updating thresholds
+- [Common Tasks](common-tasks.md) — Operational runbook: deploy, update text, bust cache, run tests
 - [Components Reference](components.md) — Props, state, behaviors for each component
 - [Styling Reference](styling.md) — CSS variables, theming, responsive breakpoints
 - [Infrastructure](infrastructure.md) — Vite config, PWA, deployment

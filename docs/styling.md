@@ -112,7 +112,34 @@ Single breakpoint at 600px:
 
 The wall selectors grid handles its own responsiveness via `auto-fit` without a media query.
 
-No tablet breakpoints, no print styles.
+No tablet breakpoints.
+
+### Print Styles (`@media print`)
+
+Used by the Save / Print feature. Hides the interactive UI and shows only the `PrintSummary` component.
+
+```css
+@media print {
+  .app-header, .app-intro, .categories-container, .app-footer → display: none
+  .print-summary → display: block (was display: none on screen)
+  body, .app, .app.dark → white background, dark text (forces light mode)
+  @page { margin: 1cm }
+}
+```
+
+Print-specific classes (only styled inside `@media print`):
+
+| Class | Purpose |
+|-------|---------|
+| `.print-summary` | Container — `display: none` on screen, `display: block` in print |
+| `.print-header` | Flex row: title + date, bold 13pt, bottom border |
+| `.print-table` | Full-width table with collapse borders |
+| `.print-row` | Standard category row |
+| `.print-wall-detail` | Indented sub-row (9pt, gray) for wall builder details |
+| `.print-total` | Bold total row with top border |
+| `.print-status` | Right-aligned pass/fail status (12pt bold) |
+| `.print-pts` | Right-aligned points column |
+| `.print-footer` | Centered 8pt gray disclaimer |
 
 ---
 
@@ -141,7 +168,7 @@ All motion is via `transition` — no keyframe animations.
 
 Flat hyphen-separated names (BEM-like but without `__` or `--` syntax):
 
-- **Blocks:** `.app`, `.category-card`, `.option-button`, `.wall-builder`, `.points-counter`, `.field-group`, `.view-toggle`
+- **Blocks:** `.app`, `.category-card`, `.option-button`, `.wall-builder`, `.points-counter`, `.field-group`, `.view-toggle`, `.print-summary`
 - **Elements:** `.category-name`, `.option-value`, `.wall-selector`, `.points-label`, `.field-group-num`, `.field-group-title`, `.sub-label`
 - **State modifiers:** additional class names — `.selected`, `.active`, `.complete`, `.disabled`, `.has-points`, `.has-label`, `.below-code`, `.footnote`
 

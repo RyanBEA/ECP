@@ -12,10 +12,11 @@ ECP Calculator is a React web app for calculating Energy Conservation Points (EC
 |------|------|
 | `src/App.jsx` | Root component — owns all application state |
 | `src/App.css` | All styles — CSS custom properties, dark/light theming |
-| `src/data/ecpData.js` | Data API layer — imports generated JSON + compute module |
+| `src/data/ecpData.js` | API layer — imports generated JSON + compute module |
 | `src/components/WallBuilder.jsx` | Wall assembly builder (simple + builder modes) |
 | `src/components/WallSection.jsx` | SVG wall cross-section diagram |
 | `src/components/CategoryCard.jsx` | Standard category selection card |
+| `src/components/PrintSummary.jsx` | Print-only ECP summary table (Save/Print feature) |
 | `scripts/generate.js` | Data pipeline: YAML → JSON lookups + audit workbook |
 | `scripts/compute.js` | Thermal RSI formulas (shared between pipeline and React app) |
 | `data/materials/*.yaml` | Source of truth for all material properties |
@@ -27,7 +28,7 @@ ECP Calculator is a React web app for calculating Energy Conservation Points (EC
 npm install              # Install dependencies (once)
 npm run dev              # Dev server at localhost:5173
 npm run build            # Production build to dist/
-npm test                 # Run all tests (Vitest, 392 tests)
+npm test                 # Run all tests (Vitest, 384 tests)
 npm run generate         # Rebuild JSON from YAML materials
 npm run generate:audit   # Generate + compare against previous JSON
 ```
@@ -61,9 +62,9 @@ The wall builder supports five assembly types:
 ## ECP Categories
 
 Eight scoring categories, each with point thresholds from NBC 2020 Tables 9.36.8.4–9.36.8.10:
-- Above-Ground Walls, Windows/Doors, Airtightness
+- Above-Ground Walls, Below Grade Walls, Windows/Doors, Airtightness
 - Hot Water (Electric), Hot Water (Non-Electric) — mutually exclusive
-- HRV/ERV, Space Heating/Cooling, House Volume
+- Ventilation (HRV/ERV), Heated Volume
 
 ## Documentation
 
