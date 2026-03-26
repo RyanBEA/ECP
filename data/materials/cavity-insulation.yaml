@@ -70,9 +70,6 @@ mineral_wool_batt:
     - id: "2x8 R28"
       rsi: 4.93
       wood_studs: ["2x8"]
-    - id: "2x10 R31"
-      rsi: 5.46
-      wood_studs: ["2x10"]
 
 loose_fill_cellulose:
   label: "Loose Fill Cellulose"

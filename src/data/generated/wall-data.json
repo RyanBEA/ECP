@@ -96,12 +96,6 @@
               "studRsi": 1.564,
               "cavityRsi": 4.93,
               "ppRsi": 3.297659
-            },
-            "2x10 R31": {
-              "stud": "2x10",
-              "studRsi": 1.9975,
-              "cavityRsi": 5.46,
-              "ppRsi": 3.903664
             }
           },
           "Loose Fill Cellulose": {
@@ -279,12 +273,6 @@
               "studRsi": 1.564,
               "cavityRsi": 4.93,
               "ppRsi": 3.370439
-            },
-            "2x10 R31": {
-              "stud": "2x10",
-              "studRsi": 1.9975,
-              "cavityRsi": 5.46,
-              "ppRsi": 3.977607
             }
           },
           "Loose Fill Cellulose": {
@@ -462,12 +450,6 @@
               "studRsi": 1.564,
               "cavityRsi": 4.93,
               "ppRsi": 3.446505
-            },
-            "2x10 R31": {
-              "stud": "2x10",
-              "studRsi": 1.9975,
-              "cavityRsi": 5.46,
-              "ppRsi": 4.054405
             }
           },
           "Loose Fill Cellulose": {
