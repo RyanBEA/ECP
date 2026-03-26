@@ -221,7 +221,7 @@ export default function WallBuilder({ selection, onSelect }) {
     <div className="category-card wall-builder">
       <div className="category-header">
         <h2 className="category-name">Above Ground Walls</h2>
-        <span className="category-metric">RSI (m²·K/W)</span>
+        <span className="category-metric">RSI ({wallCategory.imperial ? wallCategory.imperial.unit : 'm²·K/W'})</span>
       </div>
 
       <div className="mode-toggle">
@@ -253,6 +253,7 @@ export default function WallBuilder({ selection, onSelect }) {
                 option={option}
                 direction="higher"
                 metric="RSI"
+                imperial={wallCategory.imperial}
                 isSelected={simpleIndex === index}
                 onClick={() => handleSimpleSelect(index)}
               />
