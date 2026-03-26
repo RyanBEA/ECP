@@ -329,7 +329,7 @@ Same layer structure as wood frame, but studs render as **C-channels** instead o
 - Web on one side (1.5px wide, full stud height)
 - Color: slate gray `#94a3b8` with `#475569` stroke
 
-The C-channel is hollow — insulation fills the bays between studs, not inside the channel.
+Insulation fills both the bays between studs and the interior of the C-channel itself.
 
 #### ICF (`wallType === 'icf'`)
 
