@@ -88,9 +88,9 @@
       },
       {
         "id": "fiber_cement",
-        "label": "Fibre Cement",
-        "rsi": 0.026,
-        "source": "Table D, 8 mm"
+        "label": "Fibre Cement (6.35 mm)",
+        "rsi": 0.023,
+        "source": "Table D, 6.35 mm"
       },
       {
         "id": "metal_siding",
