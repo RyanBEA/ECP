@@ -6,7 +6,7 @@ export default function CategoryCard({ category, selectedOption, onSelect, disab
     <div className={`category-card ${disabled ? 'disabled' : ''}`}>
       <div className="category-header">
         <h2 className="category-name">{category.name}</h2>
-        <span className="category-metric">{category.metric} ({category.unit})</span>
+        <span className="category-metric">{category.metric}{category.metric ? ' ' : ''}{category.imperial?.replaceUnit ? `(${category.imperial.unit})` : `${category.unit}${category.imperial ? ` (${category.imperial.unit})` : ''}`}</span>
       </div>
       <p className="category-description">{category.description}</p>
       <div className="options-grid">
@@ -16,6 +16,7 @@ export default function CategoryCard({ category, selectedOption, onSelect, disab
             option={option}
             direction={category.direction}
             metric={category.metric}
+            imperial={category.imperial}
             isSelected={selectedOption === index}
             onClick={() => !disabled && onSelect(category.id, index)}
           />

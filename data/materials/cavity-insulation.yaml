@@ -1,0 +1,105 @@
+# Cavity insulation materials and RSI values
+# Source: RSI-calc.xlsx ref sheet, NRCan Table A-9.36.2.4.(1)-D
+#
+# Batt materials: RSI per specific cavity type (manufacturer rated)
+# Blown-in materials: RSI derived from cavity depth * rsi_per_mm
+#
+# stud_keys reference framing.yaml stud IDs within a wall type.
+# For batts, wood and steel may have DIFFERENT cavity RSI for the
+# same nominal product if the cavity depths differ.
+
+fiberglass_batt:
+  label: "Fiberglass Batt"
+  type: batt
+  source: "NBC 2020 Table A-9.36.2.4.(1)-D, CAN/ULC-S702.1"
+  cavities:
+    - id: "2x4 R12"
+      rsi: 2.11
+      wood_studs: ["2x4"]
+      steel_studs: ["2x3-5/8"]
+    - id: "2x4 R14"
+      rsi: 2.46
+      wood_studs: ["2x4"]
+      steel_studs: ["2x3-5/8"]
+    - id: "2x6 R20"
+      wood_rsi: 3.34       # R20 batt compressed into 140mm = R19 per Note (7)
+      steel_rsi: 3.52      # R20 batt uncompressed in 152mm = full R20
+      wood_studs: ["2x6"]
+      steel_studs: ["2x6"]
+    - id: "2x6 R22"
+      rsi: 3.87
+      wood_studs: ["2x6"]
+      steel_studs: ["2x6"]
+    - id: "2x6 R24"
+      rsi: 4.23
+      wood_studs: ["2x6"]
+      steel_studs: ["2x6"]
+    # Deep cavity batts (for 2x8, 2x10, 2x12)
+    - id: "2x8 R28"
+      rsi: 4.93
+      wood_studs: ["2x8"]
+      note: "178/216 mm cavity"
+    - id: "2x10 R31"
+      rsi: 5.46
+      wood_studs: ["2x10"]
+      note: "241 mm cavity"
+    - id: "2x12 R40"
+      rsi: 7.04
+      wood_studs: ["2x12"]
+      note: "279/300 mm cavity"
+
+mineral_wool_batt:
+  label: "Mineral Wool Batt"
+  type: batt
+  source: "NBC 2020 Table A-9.36.2.4.(1)-D, CAN/ULC-S702.1"
+  note: "Rock or glass mineral fibre — same RSI designations as fiberglass per NBC"
+  cavities:
+    - id: "2x4 R14"
+      rsi: 2.46
+      wood_studs: ["2x4"]
+      steel_studs: ["2x3-5/8"]
+    - id: "2x6 R22"
+      rsi: 3.87
+      wood_studs: ["2x6"]
+      steel_studs: ["2x6"]
+    - id: "2x6 R24"
+      rsi: 4.23
+      wood_studs: ["2x6"]
+      steel_studs: ["2x6"]
+    # Deep cavity batts
+    - id: "2x8 R28"
+      rsi: 4.93
+      wood_studs: ["2x8"]
+
+loose_fill_cellulose:
+  label: "Loose Fill Cellulose"
+  type: blown
+  rsi_per_mm: 0.025
+  source: "NBC 2020 Table A-9.36.2.4.(1)-D, CAN/ULC-S703"
+  # Cavity RSI computed from: stud_depth_mm * rsi_per_mm
+  # Available in ALL stud sizes (blown-in fills any cavity)
+
+dense_pack_cellulose:
+  label: "Dense Pack Cellulose"
+  type: blown
+  rsi_per_mm: 0.024
+  source: "Sprayed cellulosic fibre settled value, CAN/ULC-S703"
+  note: "Not separately listed in NBC Table D. 0.024 from spray-applied settled density."
+
+loose_fill_fiberglass:
+  label: "Loose Fill Fiberglass"
+  type: blown
+  source: "NBC 2020 Table A-9.36.2.4.(1)-D, CAN/ULC-S702.1"
+  note: |
+    NBC lists depth-specific RSI/mm values:
+      89 mm = 0.02865, 140 mm = 0.0289, 152 mm = 0.030
+    For consistency, we use per-depth values for standard cavities
+    and interpolate for deep cavities.
+  # Per-depth RSI values from NBC table (more accurate than single RSI/mm)
+  depth_specific:
+    89:    { rsi_per_mm: 0.02865, rsi: 2.55 }     # 2x4 wood
+    92.075: { rsi_per_mm: 0.02865, rsi: 2.638 }    # 2x3-5/8 steel (same as 89mm rate)
+    140:   { rsi_per_mm: 0.02893, rsi: 4.05 }      # 2x6 wood
+    152:   { rsi_per_mm: 0.02783, rsi: 4.23 }      # 2x6 steel
+  # For deep cavities (2x8+), use interpolated RSI/mm = 0.029
+  rsi_per_mm_deep: 0.029

@@ -1,0 +1,879 @@
+{
+  "wood": {
+    "studs": {
+      "2x4": {
+        "depth_mm": 89
+      },
+      "2x6": {
+        "depth_mm": 140
+      },
+      "2x8": {
+        "depth_mm": 184
+      },
+      "2x10": {
+        "depth_mm": 235
+      },
+      "2x12": {
+        "depth_mm": 286
+      }
+    },
+    "rsi_per_mm": 0.0085,
+    "spacings": {
+      "16": {
+        "cavity_pct": 77,
+        "materials": {
+          "Fiberglass Batt": {
+            "2x4 R12": {
+              "stud": "2x4",
+              "studRsi": 0.7565,
+              "cavityRsi": 2.11,
+              "ppRsi": 1.494856
+            },
+            "2x4 R14": {
+              "stud": "2x4",
+              "studRsi": 0.7565,
+              "cavityRsi": 2.46,
+              "ppRsi": 1.620641
+            },
+            "2x6 R20": {
+              "stud": "2x6",
+              "studRsi": 1.19,
+              "cavityRsi": 3.34,
+              "ppRsi": 2.359513
+            },
+            "2x6 R22": {
+              "stud": "2x6",
+              "studRsi": 1.19,
+              "cavityRsi": 3.87,
+              "ppRsi": 2.549435
+            },
+            "2x6 R24": {
+              "stud": "2x6",
+              "studRsi": 1.19,
+              "cavityRsi": 4.23,
+              "ppRsi": 2.664461
+            },
+            "2x8 R28": {
+              "stud": "2x8",
+              "studRsi": 1.564,
+              "cavityRsi": 4.93,
+              "ppRsi": 3.297659
+            },
+            "2x10 R31": {
+              "stud": "2x10",
+              "studRsi": 1.9975,
+              "cavityRsi": 5.46,
+              "ppRsi": 3.903664
+            },
+            "2x12 R40": {
+              "stud": "2x12",
+              "studRsi": 2.431,
+              "cavityRsi": 7.04,
+              "ppRsi": 4.902291
+            }
+          },
+          "Mineral Wool Batt": {
+            "2x4 R14": {
+              "stud": "2x4",
+              "studRsi": 0.7565,
+              "cavityRsi": 2.46,
+              "ppRsi": 1.620641
+            },
+            "2x6 R22": {
+              "stud": "2x6",
+              "studRsi": 1.19,
+              "cavityRsi": 3.87,
+              "ppRsi": 2.549435
+            },
+            "2x6 R24": {
+              "stud": "2x6",
+              "studRsi": 1.19,
+              "cavityRsi": 4.23,
+              "ppRsi": 2.664461
+            },
+            "2x8 R28": {
+              "stud": "2x8",
+              "studRsi": 1.564,
+              "cavityRsi": 4.93,
+              "ppRsi": 3.297659
+            }
+          },
+          "Loose Fill Cellulose": {
+            "2x4": {
+              "stud": "2x4",
+              "studRsi": 0.7565,
+              "cavityRsi": 2.225,
+              "ppRsi": 1.538227
+            },
+            "2x6": {
+              "stud": "2x6",
+              "studRsi": 1.19,
+              "cavityRsi": 3.5,
+              "ppRsi": 2.419683
+            },
+            "2x8": {
+              "stud": "2x8",
+              "studRsi": 1.564,
+              "cavityRsi": 4.6,
+              "ppRsi": 3.180155
+            },
+            "2x10": {
+              "stud": "2x10",
+              "studRsi": 1.9975,
+              "cavityRsi": 5.875,
+              "ppRsi": 4.06161
+            },
+            "2x12": {
+              "stud": "2x12",
+              "studRsi": 2.431,
+              "cavityRsi": 7.15,
+              "ppRsi": 4.943066
+            }
+          },
+          "Dense Pack Cellulose": {
+            "2x4": {
+              "stud": "2x4",
+              "studRsi": 0.7565,
+              "cavityRsi": 2.136,
+              "ppRsi": 1.504849
+            },
+            "2x6": {
+              "stud": "2x6",
+              "studRsi": 1.19,
+              "cavityRsi": 3.36,
+              "ppRsi": 2.367178
+            },
+            "2x8": {
+              "stud": "2x8",
+              "studRsi": 1.564,
+              "cavityRsi": 4.416,
+              "ppRsi": 3.111148
+            },
+            "2x10": {
+              "stud": "2x10",
+              "studRsi": 1.9975,
+              "cavityRsi": 5.64,
+              "ppRsi": 3.973477
+            },
+            "2x12": {
+              "stud": "2x12",
+              "studRsi": 2.431,
+              "cavityRsi": 6.864,
+              "ppRsi": 4.835806
+            }
+          },
+          "Loose Fill Fiberglass": {
+            "2x4": {
+              "stud": "2x4",
+              "studRsi": 0.7565,
+              "cavityRsi": 2.55,
+              "ppRsi": 1.650185
+            },
+            "2x6": {
+              "stud": "2x6",
+              "studRsi": 1.19,
+              "cavityRsi": 4.05,
+              "ppRsi": 2.608237
+            },
+            "2x8": {
+              "stud": "2x8",
+              "studRsi": 1.564,
+              "cavityRsi": 5.336,
+              "ppRsi": 3.43216
+            },
+            "2x10": {
+              "stud": "2x10",
+              "studRsi": 1.9975,
+              "cavityRsi": 6.815,
+              "ppRsi": 4.383466
+            },
+            "2x12": {
+              "stud": "2x12",
+              "studRsi": 2.431,
+              "cavityRsi": 8.294,
+              "ppRsi": 5.334771
+            }
+          }
+        }
+      },
+      "19": {
+        "cavity_pct": 78.5,
+        "materials": {
+          "Fiberglass Batt": {
+            "2x4 R12": {
+              "stud": "2x4",
+              "studRsi": 0.7565,
+              "cavityRsi": 2.11,
+              "ppRsi": 1.523829
+            },
+            "2x4 R14": {
+              "stud": "2x4",
+              "studRsi": 0.7565,
+              "cavityRsi": 2.46,
+              "ppRsi": 1.657525
+            },
+            "2x6 R20": {
+              "stud": "2x6",
+              "studRsi": 1.19,
+              "cavityRsi": 3.34,
+              "ppRsi": 2.405568
+            },
+            "2x6 R22": {
+              "stud": "2x6",
+              "studRsi": 1.19,
+              "cavityRsi": 3.87,
+              "ppRsi": 2.607462
+            },
+            "2x6 R24": {
+              "stud": "2x6",
+              "studRsi": 1.19,
+              "cavityRsi": 4.23,
+              "ppRsi": 2.730365
+            },
+            "2x8 R28": {
+              "stud": "2x8",
+              "studRsi": 1.564,
+              "cavityRsi": 4.93,
+              "ppRsi": 3.370439
+            },
+            "2x10 R31": {
+              "stud": "2x10",
+              "studRsi": 1.9975,
+              "cavityRsi": 5.46,
+              "ppRsi": 3.977607
+            },
+            "2x12 R40": {
+              "stud": "2x12",
+              "studRsi": 2.431,
+              "cavityRsi": 7.04,
+              "ppRsi": 5.001334
+            }
+          },
+          "Mineral Wool Batt": {
+            "2x4 R14": {
+              "stud": "2x4",
+              "studRsi": 0.7565,
+              "cavityRsi": 2.46,
+              "ppRsi": 1.657525
+            },
+            "2x6 R22": {
+              "stud": "2x6",
+              "studRsi": 1.19,
+              "cavityRsi": 3.87,
+              "ppRsi": 2.607462
+            },
+            "2x6 R24": {
+              "stud": "2x6",
+              "studRsi": 1.19,
+              "cavityRsi": 4.23,
+              "ppRsi": 2.730365
+            },
+            "2x8 R28": {
+              "stud": "2x8",
+              "studRsi": 1.564,
+              "cavityRsi": 4.93,
+              "ppRsi": 3.370439
+            }
+          },
+          "Loose Fill Cellulose": {
+            "2x4": {
+              "stud": "2x4",
+              "studRsi": 0.7565,
+              "cavityRsi": 2.225,
+              "ppRsi": 1.569828
+            },
+            "2x6": {
+              "stud": "2x6",
+              "studRsi": 1.19,
+              "cavityRsi": 3.5,
+              "ppRsi": 2.469392
+            },
+            "2x8": {
+              "stud": "2x8",
+              "studRsi": 1.564,
+              "cavityRsi": 4.6,
+              "ppRsi": 3.245487
+            },
+            "2x10": {
+              "stud": "2x10",
+              "studRsi": 1.9975,
+              "cavityRsi": 5.875,
+              "ppRsi": 4.145051
+            },
+            "2x12": {
+              "stud": "2x12",
+              "studRsi": 2.431,
+              "cavityRsi": 7.15,
+              "ppRsi": 5.044615
+            }
+          },
+          "Dense Pack Cellulose": {
+            "2x4": {
+              "stud": "2x4",
+              "studRsi": 0.7565,
+              "cavityRsi": 2.136,
+              "ppRsi": 1.534418
+            },
+            "2x6": {
+              "stud": "2x6",
+              "studRsi": 1.19,
+              "cavityRsi": 3.36,
+              "ppRsi": 2.413691
+            },
+            "2x8": {
+              "stud": "2x8",
+              "studRsi": 1.564,
+              "cavityRsi": 4.416,
+              "ppRsi": 3.17228
+            },
+            "2x10": {
+              "stud": "2x10",
+              "studRsi": 1.9975,
+              "cavityRsi": 5.64,
+              "ppRsi": 4.051553
+            },
+            "2x12": {
+              "stud": "2x12",
+              "studRsi": 2.431,
+              "cavityRsi": 6.864,
+              "ppRsi": 4.930826
+            }
+          },
+          "Loose Fill Fiberglass": {
+            "2x4": {
+              "stud": "2x4",
+              "studRsi": 0.7565,
+              "cavityRsi": 2.55,
+              "ppRsi": 1.689056
+            },
+            "2x6": {
+              "stud": "2x6",
+              "studRsi": 1.19,
+              "cavityRsi": 4.05,
+              "ppRsi": 2.670231
+            },
+            "2x8": {
+              "stud": "2x8",
+              "studRsi": 1.564,
+              "cavityRsi": 5.336,
+              "ppRsi": 3.513926
+            },
+            "2x10": {
+              "stud": "2x10",
+              "studRsi": 1.9975,
+              "cavityRsi": 6.815,
+              "ppRsi": 4.487895
+            },
+            "2x12": {
+              "stud": "2x12",
+              "studRsi": 2.431,
+              "cavityRsi": 8.294,
+              "ppRsi": 5.461863
+            }
+          }
+        }
+      },
+      "24": {
+        "cavity_pct": 80,
+        "materials": {
+          "Fiberglass Batt": {
+            "2x4 R12": {
+              "stud": "2x4",
+              "studRsi": 0.7565,
+              "cavityRsi": 2.11,
+              "ppRsi": 1.553948
+            },
+            "2x4 R14": {
+              "stud": "2x4",
+              "studRsi": 0.7565,
+              "cavityRsi": 2.46,
+              "ppRsi": 1.696127
+            },
+            "2x6 R20": {
+              "stud": "2x6",
+              "studRsi": 1.19,
+              "cavityRsi": 3.34,
+              "ppRsi": 2.453457
+            },
+            "2x6 R22": {
+              "stud": "2x6",
+              "studRsi": 1.19,
+              "cavityRsi": 3.87,
+              "ppRsi": 2.668192
+            },
+            "2x6 R24": {
+              "stud": "2x6",
+              "studRsi": 1.19,
+              "cavityRsi": 4.23,
+              "ppRsi": 2.799611
+            },
+            "2x8 R28": {
+              "stud": "2x8",
+              "studRsi": 1.564,
+              "cavityRsi": 4.93,
+              "ppRsi": 3.446505
+            },
+            "2x10 R31": {
+              "stud": "2x10",
+              "studRsi": 1.9975,
+              "cavityRsi": 5.46,
+              "ppRsi": 4.054405
+            },
+            "2x12 R40": {
+              "stud": "2x12",
+              "studRsi": 2.431,
+              "cavityRsi": 7.04,
+              "ppRsi": 5.104462
+            }
+          },
+          "Mineral Wool Batt": {
+            "2x4 R14": {
+              "stud": "2x4",
+              "studRsi": 0.7565,
+              "cavityRsi": 2.46,
+              "ppRsi": 1.696127
+            },
+            "2x6 R22": {
+              "stud": "2x6",
+              "studRsi": 1.19,
+              "cavityRsi": 3.87,
+              "ppRsi": 2.668192
+            },
+            "2x6 R24": {
+              "stud": "2x6",
+              "studRsi": 1.19,
+              "cavityRsi": 4.23,
+              "ppRsi": 2.799611
+            },
+            "2x8 R28": {
+              "stud": "2x8",
+              "studRsi": 1.564,
+              "cavityRsi": 4.93,
+              "ppRsi": 3.446505
+            }
+          },
+          "Loose Fill Cellulose": {
+            "2x4": {
+              "stud": "2x4",
+              "studRsi": 0.7565,
+              "cavityRsi": 2.225,
+              "ppRsi": 1.602754
+            },
+            "2x6": {
+              "stud": "2x6",
+              "studRsi": 1.19,
+              "cavityRsi": 3.5,
+              "ppRsi": 2.521186
+            },
+            "2x8": {
+              "stud": "2x8",
+              "studRsi": 1.564,
+              "cavityRsi": 4.6,
+              "ppRsi": 3.313559
+            },
+            "2x10": {
+              "stud": "2x10",
+              "studRsi": 1.9975,
+              "cavityRsi": 5.875,
+              "ppRsi": 4.231992
+            },
+            "2x12": {
+              "stud": "2x12",
+              "studRsi": 2.431,
+              "cavityRsi": 7.15,
+              "ppRsi": 5.150424
+            }
+          },
+          "Dense Pack Cellulose": {
+            "2x4": {
+              "stud": "2x4",
+              "studRsi": 0.7565,
+              "cavityRsi": 2.136,
+              "ppRsi": 1.565172
+            },
+            "2x6": {
+              "stud": "2x6",
+              "studRsi": 1.19,
+              "cavityRsi": 3.36,
+              "ppRsi": 2.462069
+            },
+            "2x8": {
+              "stud": "2x8",
+              "studRsi": 1.564,
+              "cavityRsi": 4.416,
+              "ppRsi": 3.235862
+            },
+            "2x10": {
+              "stud": "2x10",
+              "studRsi": 1.9975,
+              "cavityRsi": 5.64,
+              "ppRsi": 4.132759
+            },
+            "2x12": {
+              "stud": "2x12",
+              "studRsi": 2.431,
+              "cavityRsi": 6.864,
+              "ppRsi": 5.029655
+            }
+          },
+          "Loose Fill Fiberglass": {
+            "2x4": {
+              "stud": "2x4",
+              "studRsi": 0.7565,
+              "cavityRsi": 2.55,
+              "ppRsi": 1.729802
+            },
+            "2x6": {
+              "stud": "2x6",
+              "studRsi": 1.19,
+              "cavityRsi": 4.05,
+              "ppRsi": 2.735244
+            },
+            "2x8": {
+              "stud": "2x8",
+              "studRsi": 1.564,
+              "cavityRsi": 5.336,
+              "ppRsi": 3.599683
+            },
+            "2x10": {
+              "stud": "2x10",
+              "studRsi": 1.9975,
+              "cavityRsi": 6.815,
+              "ppRsi": 4.597421
+            },
+            "2x12": {
+              "stud": "2x12",
+              "studRsi": 2.431,
+              "cavityRsi": 8.294,
+              "ppRsi": 5.595159
+            }
+          }
+        }
+      }
+    }
+  },
+  "steel": {
+    "studs": {
+      "2x3-5/8": {
+        "depth_mm": 92.075
+      },
+      "2x6": {
+        "depth_mm": 152
+      }
+    },
+    "rsi_per_mm": 0.0000161,
+    "k_values": {
+      "under_500_no_ins": {
+        "k1": 0.33,
+        "k2": 0.67
+      },
+      "under_500_with_ins": {
+        "k1": 0.4,
+        "k2": 0.6
+      },
+      "over_500": {
+        "k1": 0.5,
+        "k2": 0.5
+      }
+    },
+    "spacings": {
+      "16": {
+        "cavity_pct": 99.21875,
+        "materials": {
+          "Fiberglass Batt": {
+            "2x4 R12": {
+              "stud": "2x3-5/8",
+              "studRsi": 0.001482,
+              "cavityRsi": 2.11,
+              "ppRsi": 0.174205
+            },
+            "2x4 R14": {
+              "stud": "2x3-5/8",
+              "studRsi": 0.001482,
+              "cavityRsi": 2.46,
+              "ppRsi": 0.176259
+            },
+            "2x6 R20": {
+              "stud": "2x6",
+              "studRsi": 0.002447,
+              "cavityRsi": 3.52,
+              "ppRsi": 0.287828
+            },
+            "2x6 R22": {
+              "stud": "2x6",
+              "studRsi": 0.002447,
+              "cavityRsi": 3.87,
+              "ppRsi": 0.289956
+            },
+            "2x6 R24": {
+              "stud": "2x6",
+              "studRsi": 0.002447,
+              "cavityRsi": 4.23,
+              "ppRsi": 0.291802
+            }
+          },
+          "Mineral Wool Batt": {
+            "2x4 R14": {
+              "stud": "2x3-5/8",
+              "studRsi": 0.001482,
+              "cavityRsi": 2.46,
+              "ppRsi": 0.176259
+            },
+            "2x6 R22": {
+              "stud": "2x6",
+              "studRsi": 0.002447,
+              "cavityRsi": 3.87,
+              "ppRsi": 0.289956
+            },
+            "2x6 R24": {
+              "stud": "2x6",
+              "studRsi": 0.002447,
+              "cavityRsi": 4.23,
+              "ppRsi": 0.291802
+            }
+          },
+          "Loose Fill Cellulose": {
+            "2x3-5/8": {
+              "stud": "2x3-5/8",
+              "studRsi": 0.001482,
+              "cavityRsi": 2.301875,
+              "ppRsi": 0.175402
+            },
+            "2x6": {
+              "stud": "2x6",
+              "studRsi": 0.002447,
+              "cavityRsi": 3.8,
+              "ppRsi": 0.289559
+            }
+          },
+          "Dense Pack Cellulose": {
+            "2x3-5/8": {
+              "stud": "2x3-5/8",
+              "studRsi": 0.001482,
+              "cavityRsi": 2.2098,
+              "ppRsi": 0.174852
+            },
+            "2x6": {
+              "stud": "2x6",
+              "studRsi": 0.002447,
+              "cavityRsi": 3.648,
+              "ppRsi": 0.28865
+            }
+          },
+          "Loose Fill Fiberglass": {
+            "2x3-5/8": {
+              "stud": "2x3-5/8",
+              "studRsi": 0.001482,
+              "cavityRsi": 2.638,
+              "ppRsi": 0.177108
+            },
+            "2x6": {
+              "stud": "2x6",
+              "studRsi": 0.002447,
+              "cavityRsi": 4.23,
+              "ppRsi": 0.291802
+            }
+          }
+        }
+      },
+      "19": {
+        "cavity_pct": 99.342105,
+        "materials": {
+          "Fiberglass Batt": {
+            "2x4 R12": {
+              "stud": "2x3-5/8",
+              "studRsi": 0.001482,
+              "cavityRsi": 2.11,
+              "ppRsi": 0.203714
+            },
+            "2x4 R14": {
+              "stud": "2x3-5/8",
+              "studRsi": 0.001482,
+              "cavityRsi": 2.46,
+              "ppRsi": 0.206533
+            },
+            "2x6 R20": {
+              "stud": "2x6",
+              "studRsi": 0.002447,
+              "cavityRsi": 3.52,
+              "ppRsi": 0.336635
+            },
+            "2x6 R22": {
+              "stud": "2x6",
+              "studRsi": 0.002447,
+              "cavityRsi": 3.87,
+              "ppRsi": 0.339552
+            },
+            "2x6 R24": {
+              "stud": "2x6",
+              "studRsi": 0.002447,
+              "cavityRsi": 4.23,
+              "ppRsi": 0.34209
+            }
+          },
+          "Mineral Wool Batt": {
+            "2x4 R14": {
+              "stud": "2x3-5/8",
+              "studRsi": 0.001482,
+              "cavityRsi": 2.46,
+              "ppRsi": 0.206533
+            },
+            "2x6 R22": {
+              "stud": "2x6",
+              "studRsi": 0.002447,
+              "cavityRsi": 3.87,
+              "ppRsi": 0.339552
+            },
+            "2x6 R24": {
+              "stud": "2x6",
+              "studRsi": 0.002447,
+              "cavityRsi": 4.23,
+              "ppRsi": 0.34209
+            }
+          },
+          "Loose Fill Cellulose": {
+            "2x3-5/8": {
+              "stud": "2x3-5/8",
+              "studRsi": 0.001482,
+              "cavityRsi": 2.301875,
+              "ppRsi": 0.205356
+            },
+            "2x6": {
+              "stud": "2x6",
+              "studRsi": 0.002447,
+              "cavityRsi": 3.8,
+              "ppRsi": 0.339008
+            }
+          },
+          "Dense Pack Cellulose": {
+            "2x3-5/8": {
+              "stud": "2x3-5/8",
+              "studRsi": 0.001482,
+              "cavityRsi": 2.2098,
+              "ppRsi": 0.204601
+            },
+            "2x6": {
+              "stud": "2x6",
+              "studRsi": 0.002447,
+              "cavityRsi": 3.648,
+              "ppRsi": 0.337761
+            }
+          },
+          "Loose Fill Fiberglass": {
+            "2x3-5/8": {
+              "stud": "2x3-5/8",
+              "studRsi": 0.001482,
+              "cavityRsi": 2.638,
+              "ppRsi": 0.207702
+            },
+            "2x6": {
+              "stud": "2x6",
+              "studRsi": 0.002447,
+              "cavityRsi": 4.23,
+              "ppRsi": 0.34209
+            }
+          }
+        }
+      },
+      "24": {
+        "cavity_pct": 99.479167,
+        "materials": {
+          "Fiberglass Batt": {
+            "2x4 R12": {
+              "stud": "2x3-5/8",
+              "studRsi": 0.001482,
+              "cavityRsi": 2.11,
+              "ppRsi": 0.250948
+            },
+            "2x4 R14": {
+              "stud": "2x3-5/8",
+              "studRsi": 0.001482,
+              "cavityRsi": 2.46,
+              "ppRsi": 0.255244
+            },
+            "2x6 R20": {
+              "stud": "2x6",
+              "studRsi": 0.002447,
+              "cavityRsi": 3.52,
+              "ppRsi": 0.414784
+            },
+            "2x6 R22": {
+              "stud": "2x6",
+              "studRsi": 0.002447,
+              "cavityRsi": 3.87,
+              "ppRsi": 0.419228
+            },
+            "2x6 R24": {
+              "stud": "2x6",
+              "studRsi": 0.002447,
+              "cavityRsi": 4.23,
+              "ppRsi": 0.423109
+            }
+          },
+          "Mineral Wool Batt": {
+            "2x4 R14": {
+              "stud": "2x3-5/8",
+              "studRsi": 0.001482,
+              "cavityRsi": 2.46,
+              "ppRsi": 0.255244
+            },
+            "2x6 R22": {
+              "stud": "2x6",
+              "studRsi": 0.002447,
+              "cavityRsi": 3.87,
+              "ppRsi": 0.419228
+            },
+            "2x6 R24": {
+              "stud": "2x6",
+              "studRsi": 0.002447,
+              "cavityRsi": 4.23,
+              "ppRsi": 0.423109
+            }
+          },
+          "Loose Fill Cellulose": {
+            "2x3-5/8": {
+              "stud": "2x3-5/8",
+              "studRsi": 0.001482,
+              "cavityRsi": 2.301875,
+              "ppRsi": 0.253447
+            },
+            "2x6": {
+              "stud": "2x6",
+              "studRsi": 0.002447,
+              "cavityRsi": 3.8,
+              "ppRsi": 0.418398
+            }
+          },
+          "Dense Pack Cellulose": {
+            "2x3-5/8": {
+              "stud": "2x3-5/8",
+              "studRsi": 0.001482,
+              "cavityRsi": 2.2098,
+              "ppRsi": 0.252296
+            },
+            "2x6": {
+              "stud": "2x6",
+              "studRsi": 0.002447,
+              "cavityRsi": 3.648,
+              "ppRsi": 0.416497
+            }
+          },
+          "Loose Fill Fiberglass": {
+            "2x3-5/8": {
+              "stud": "2x3-5/8",
+              "studRsi": 0.001482,
+              "cavityRsi": 2.638,
+              "ppRsi": 0.257034
+            },
+            "2x6": {
+              "stud": "2x6",
+              "studRsi": 0.002447,
+              "cavityRsi": 4.23,
+              "ppRsi": 0.423109
+            }
+          }
+        }
+      }
+    }
+  }
+}

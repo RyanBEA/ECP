@@ -9,6 +9,7 @@
 :root {
   --primary: #4F3D63;
   --primary-dark: #3d2f4d;
+  --primary-light: #e8e0f0;
   --success: #16a34a;
   --success-light: #dcfce7;
   --danger: #dc2626;
@@ -32,6 +33,7 @@
 .dark {
   --primary: #8b7a9e;
   --primary-dark: #4F3D63;
+  --primary-light: #3d2f4d;
   --success: #4ade80;
   --success-light: #166534;
   --danger: #f87171;
@@ -351,6 +353,23 @@ h1, h2, h3, h4, h5, h6 {
   border-color: var(--gray-400);
 }
 
+/* Export button */
+.export-button {
+  background: var(--primary);
+  color: white;
+  border: 1px solid var(--primary);
+  margin-bottom: 0.5rem;
+}
+
+.export-button:hover:not(:disabled) {
+  opacity: 0.9;
+}
+
+.export-button:disabled {
+  opacity: 0.6;
+  cursor: wait;
+}
+
 /* Wall Builder */
 .wall-builder {
   border-left: 4px solid var(--primary);
@@ -383,31 +402,6 @@ h1, h2, h3, h4, h5, h6 {
   border-color: var(--primary);
   background: var(--primary);
   color: white;
-}
-
-.wall-builder-disclaimer {
-  font-size: 0.8rem;
-  color: var(--text-secondary);
-  font-style: italic;
-  margin: 0 0 0.75rem 0;
-  padding: 0.5rem 0.75rem;
-  background: var(--gray-100);
-  border-radius: var(--radius);
-  border-left: 3px solid var(--gray-400);
-}
-
-.wall-selectors-group {
-  margin-bottom: 1rem;
-}
-
-.wall-selectors-group-label {
-  display: block;
-  font-size: 0.7rem;
-  font-weight: 700;
-  color: var(--gray-500);
-  text-transform: uppercase;
-  letter-spacing: 0.05em;
-  margin-bottom: 0.25rem;
 }
 
 .wall-selectors {
@@ -450,6 +444,99 @@ h1, h2, h3, h4, h5, h6 {
   outline: none;
   border-color: var(--primary);
   box-shadow: 0 0 0 3px rgba(79, 61, 99, 0.15);
+}
+
+/* Field Group Cards */
+.field-group {
+  border: 2px solid var(--primary-light);
+  border-radius: 10px;
+  padding: 0.75rem 0.85rem;
+  margin-bottom: 0.75rem;
+  background: rgba(79, 61, 99, 0.02);
+}
+
+.field-group-head {
+  display: flex;
+  align-items: center;
+  gap: 0.4rem;
+  margin-bottom: 0.5rem;
+}
+
+.field-group-num {
+  width: 20px;
+  height: 20px;
+  border-radius: 50%;
+  background: var(--primary);
+  color: white;
+  font-size: 0.65rem;
+  font-weight: 700;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  flex-shrink: 0;
+}
+
+.field-group-title {
+  font-size: 0.75rem;
+  font-weight: 700;
+  color: var(--gray-700);
+}
+
+/* Footnote variant (Assumptions) */
+.field-group.footnote {
+  border: 1px dashed var(--gray-300);
+  background: transparent;
+  padding: 0.5rem 0.75rem;
+}
+
+.field-group.footnote .field-group-num {
+  background: var(--gray-400);
+  width: 16px;
+  height: 16px;
+  font-size: 0.55rem;
+}
+
+.field-group.footnote .field-group-title {
+  font-size: 0.65rem;
+  color: var(--gray-500);
+}
+
+/* Sub-labels within Main Wall group */
+.sub-label {
+  font-size: 0.6rem;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 0.04em;
+  color: var(--gray-400);
+  margin-bottom: 0.3rem;
+  margin-top: 0.5rem;
+}
+
+.sub-label:first-child {
+  margin-top: 0;
+}
+
+/* Assumptions read-only items */
+.assumptions-list {
+  display: flex;
+  gap: 1.25rem;
+  flex-wrap: wrap;
+}
+
+.assumption-item {
+  font-size: 0.7rem;
+  color: var(--gray-500);
+}
+
+.assumption-label {
+  font-weight: 600;
+  color: var(--gray-600);
+}
+
+.option-group {
+  display: flex;
+  gap: 0.5rem;
+  flex-wrap: wrap;
 }
 
 .wall-result {
@@ -508,6 +595,20 @@ h1, h2, h3, h4, h5, h6 {
   font-style: italic;
 }
 
+.wall-disclaimer {
+  font-size: 0.75rem;
+  line-height: 1.5;
+  color: var(--gray-500);
+  border-left: 3px solid var(--gray-300);
+  padding: 0.5rem 0.75rem;
+  margin-top: 0.5rem;
+}
+
+.wall-disclaimer a {
+  color: var(--primary);
+  text-decoration: underline;
+}
+
 /* Footer */
 .app-footer {
   background: var(--card-bg);
@@ -558,5 +659,122 @@ h1, h2, h3, h4, h5, h6 {
   .option-button {
     flex: 1;
     min-width: 70px;
+  }
+}
+
+/* Print button */
+.print-button {
+  padding: 0.4rem 1rem;
+  border: 1px solid var(--primary);
+  border-radius: var(--radius);
+  background: var(--primary);
+  color: white;
+  font-size: 0.8rem;
+  font-weight: 600;
+  cursor: pointer;
+  transition: opacity 0.15s ease;
+}
+
+.print-button:hover:not(:disabled) {
+  opacity: 0.9;
+}
+
+.print-button:disabled {
+  opacity: 0.4;
+  cursor: not-allowed;
+}
+
+/* Print summary — hidden on screen */
+.print-summary {
+  display: none;
+}
+
+/* Print styles */
+@media print {
+  /* Hide interactive UI */
+  .app-header,
+  .app-intro,
+  .categories-container,
+  .app-footer {
+    display: none !important;
+  }
+
+  /* Show print summary */
+  .print-summary {
+    display: block !important;
+    color: #111;
+    background: white;
+    font-family: 'Open Sans', sans-serif;
+    font-size: 11pt;
+    padding: 0;
+  }
+
+  /* Force light mode */
+  body, .app, .app.dark {
+    background: white !important;
+    color: #111 !important;
+  }
+
+  @page {
+    margin: 1cm;
+  }
+
+  .print-header {
+    display: flex;
+    justify-content: space-between;
+    font-weight: 700;
+    font-size: 13pt;
+    border-bottom: 2px solid #111;
+    padding-bottom: 0.4rem;
+    margin-bottom: 1rem;
+  }
+
+  .print-table {
+    width: 100%;
+    border-collapse: collapse;
+    margin-bottom: 1rem;
+  }
+
+  .print-table th {
+    text-align: left;
+    font-weight: 700;
+    border-bottom: 1px solid #999;
+    padding: 0.3rem 0.5rem;
+  }
+
+  .print-table td {
+    padding: 0.25rem 0.5rem;
+    vertical-align: top;
+  }
+
+  .print-pts {
+    text-align: right;
+    white-space: nowrap;
+  }
+
+  .print-wall-detail td {
+    padding-left: 1.5rem;
+    font-size: 9pt;
+    color: #555;
+  }
+
+  .print-total td {
+    border-top: 2px solid #111;
+    font-weight: 700;
+    padding-top: 0.4rem;
+  }
+
+  .print-status td {
+    text-align: right;
+    font-weight: 700;
+    font-size: 12pt;
+    padding-top: 0.25rem;
+  }
+
+  .print-footer {
+    margin-top: 2rem;
+    font-size: 8pt;
+    color: #999;
+    text-align: center;
   }
 }

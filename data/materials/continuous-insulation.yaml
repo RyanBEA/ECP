@@ -1,0 +1,62 @@
+# Continuous (exterior rigid) insulation options
+# Source: RSI-calc.xlsx ref sheet, NRCan Table A-9.36.2.4.(1)-D
+# RSI values calculated from rsi_per_mm * thickness_mm where table values unavailable
+
+eps:
+  label: "EPS"
+  rsi_per_mm: 0.026
+  note: "Type 1 EPS (conservative)"
+  thicknesses:
+    - { label: '1"',     mm: 25.4,  rsi: 0.65 }      # table value
+    - { label: '1-1/2"', mm: 38.1,  rsi: 0.9906 }    # 38.1 * 0.026
+    - { label: '2"',     mm: 50.8,  rsi: 1.3208 }     # 50.8 * 0.026
+    - { label: '2-1/2"', mm: 63.5,  rsi: 1.651 }      # 63.5 * 0.026
+    - { label: '3"',     mm: 76.2,  rsi: 1.9812 }     # 76.2 * 0.026
+
+xps:
+  label: "XPS"
+  rsi_per_mm: 0.0336
+  thicknesses:
+    - { label: '1"',     mm: 25.4,  rsi: 0.88 }       # table value
+    - { label: '1-1/2"', mm: 38.1,  rsi: 1.28 }       # average of 1" and 2"
+    - { label: '2"',     mm: 50.8,  rsi: 1.68 }        # table value
+    - { label: '2-1/2"', mm: 63.5,  rsi: 2.1336 }     # 63.5 * 0.0336
+    - { label: '3"',     mm: 76.2,  rsi: 2.56032 }    # 76.2 * 0.0336
+
+polyiso:
+  label: "Polyiso"
+  note: |
+    Permeably faced (conservative). Renamed from PIC per reviewer feedback.
+    NBC Table D shows thickness-dependent RSI/mm:
+      25 mm = 0.03818/mm (RSI 0.97), 50 mm = 0.036/mm (RSI 1.80)
+    We use the table values where available and 0.036/mm for interpolation.
+  source: "NBC 2020 Table A-9.36.2.4.(1)-D, CAN/ULC-S704.1"
+  rsi_per_mm: 0.036          # conservative (50mm value, used for interpolation)
+  thicknesses:
+    - { label: '1"',     mm: 25.4,  rsi: 0.97 }       # NBC table value (25mm)
+    - { label: '1-1/2"', mm: 38.1,  rsi: 1.385 }      # average of 1" and 2"
+    - { label: '2"',     mm: 50.8,  rsi: 1.8 }         # NBC table value (50mm)
+    - { label: '2-1/2"', mm: 63.5,  rsi: 2.286 }      # 63.5 * 0.036
+    - { label: '3"',     mm: 76.2,  rsi: 2.7432 }     # 76.2 * 0.036
+
+mineral_wool_rockwool:
+  label: "Mineral Wool (Rock Wool)"
+  rsi_per_mm: 0.0277
+  source: "NBC 2020 Table A-9.36.2.4.(1)-D, 56 kg/m3"
+  thicknesses:
+    - { label: '1"',     mm: 25.4,  rsi: 0.704 }      # NBC table value
+    - { label: '1-1/2"', mm: 38.1,  rsi: 1.05537 }   # 38.1 * 0.0277
+    - { label: '2"',     mm: 50.8,  rsi: 1.40716 }    # 50.8 * 0.0277
+    - { label: '2-1/2"', mm: 63.5,  rsi: 1.75895 }   # 63.5 * 0.0277
+    - { label: '3"',     mm: 76.2,  rsi: 2.11074 }    # 76.2 * 0.0277
+
+mineral_wool_glassfibre:
+  label: "Mineral Wool (Glass Fibre)"
+  rsi_per_mm: 0.0298
+  source: "NBC 2020 Table A-9.36.2.4.(1)-D, 48 kg/m3"
+  thicknesses:
+    - { label: '1"',     mm: 25.4,  rsi: 0.757 }      # NBC table value
+    - { label: '1-1/2"', mm: 38.1,  rsi: 1.13538 }   # 38.1 * 0.0298
+    - { label: '2"',     mm: 50.8,  rsi: 1.51384 }    # 50.8 * 0.0298
+    - { label: '2-1/2"', mm: 63.5,  rsi: 1.8923 }    # 63.5 * 0.0298
+    - { label: '3"',     mm: 76.2,  rsi: 2.27076 }    # 76.2 * 0.0298

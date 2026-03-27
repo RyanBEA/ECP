@@ -1,0 +1,25 @@
+{
+  "eps_rsi_per_mm": 0.026,
+  "concrete_core_mm": 152.4,
+  "concrete_rsi_per_mm": 0.0004,
+  "forms": [
+    {
+      "label": "2-1/2\"",
+      "thickness_mm": 63.5,
+      "total_form_rsi": 3.302,
+      "concrete_rsi": 0.06096
+    },
+    {
+      "label": "3-1/8\"",
+      "thickness_mm": 79.375,
+      "total_form_rsi": 4.1275,
+      "concrete_rsi": 0.06096
+    },
+    {
+      "label": "4-1/4\"",
+      "thickness_mm": 107.95,
+      "total_form_rsi": 5.6134,
+      "concrete_rsi": 0.06096
+    }
+  ]
+}

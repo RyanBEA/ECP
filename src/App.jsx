@@ -3,6 +3,7 @@ import { categories, tiers, calculateWallRsi, getWallPoints } from './data/ecpDa
 import CategoryCard from './components/CategoryCard'
 import WallBuilder from './components/WallBuilder'
 import PointsCounter from './components/PointsCounter'
+import PrintSummary from './components/PrintSummary'
 
 export default function App() {
   // Track dark mode - default to system preference
@@ -166,17 +167,24 @@ export default function App() {
           }
         </p>
         <div className="footer-meta">
-          <span className="footer-version">v0.9.1 — Updated 2026-03-10</span>
-          <a
-            className="source-link"
-            href="https://beafiles.blob.core.windows.net/public/RSI-calc.xlsx"
-            target="_blank"
-            rel="noopener noreferrer"
+          <button
+            className="print-button"
+            onClick={() => window.print()}
+            disabled={totalPoints === 0}
           >
-            Excel source
-          </a>
+            Save / Print
+          </button>
+          <span className="footer-version">v1.0 — Updated 2026-03-26</span>
         </div>
       </footer>
+
+      <PrintSummary
+        selections={selections}
+        wallSelection={wallSelection}
+        wallPoints={wallPoints}
+        totalPoints={totalPoints}
+        selectedTier={selectedTier}
+      />
     </div>
   )
 }

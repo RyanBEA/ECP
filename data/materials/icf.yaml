@@ -1,0 +1,18 @@
+# ICF (Insulating Concrete Forms) properties
+# Source: RSI-calc.xlsx ICF sheet
+#
+# ICF RSI is a simple series sum: 2 * form_rsi + concrete_rsi + boundary layers
+# Form RSI = form_thickness_mm * eps_rsi_per_mm (EPS foam)
+# Concrete RSI = core_thickness_mm * concrete_rsi_per_mm
+
+eps_rsi_per_mm: 0.026           # same EPS as continuous insulation
+concrete_core_mm: 152.4          # 6" standard core
+concrete_rsi_per_mm: 0.0004      # mass concrete
+
+forms:
+  - label: '2-1/2"'
+    thickness_mm: 63.5            # per side
+  - label: '3-1/8"'
+    thickness_mm: 79.375          # per side
+  - label: '4-1/4"'
+    thickness_mm: 107.95          # per side
