@@ -2,7 +2,7 @@
 
 Energy Conservation Points calculator for NBC 2020 Tier 2/3 building code compliance in Nova Scotia. Helps builders and building officials determine if a residential design meets prescriptive energy performance thresholds.
 
-**Version:** 0.9.1
+**Version:** 1.0
 **Stack:** React 18 + Vite 5 + Vitest, plain CSS, ExcelJS (dynamic import)
 
 ## Getting Started
@@ -13,7 +13,7 @@ Prerequisites: [Node.js](https://nodejs.org/) 18 or later.
 npm install              # Install dependencies
 npm run generate         # Rebuild JSON data from YAML sources (ensures data is current)
 npm run dev              # Start dev server at localhost:5173
-npm test                 # Verify everything works (392 tests)
+npm test                 # Verify everything works (391 tests)
 ```
 
 ## Architecture
@@ -136,7 +136,7 @@ Each building component earns points based on performance thresholds. Points are
 | Tier 2 | 10 points |
 | Tier 3 | 20 points |
 
-Categories: Above-Ground Walls, Windows/Doors, Airtightness, Hot Water (Electric), Hot Water (Non-Electric), HRV, Space Heating/Cooling, House Volume Penalty.
+Categories: Above-Ground Walls, Below Grade Walls, Windows/Doors, Airtightness, Hot Water (Electric), Hot Water (Non-Electric), Ventilation (HRV/ERV), Heated Volume.
 
 ## Development
 

@@ -78,7 +78,7 @@ This is the paragraph below the header that explains what the calculator does. E
 
 The footer contains:
 - A dynamic status message (points met / points remaining) — this is generated from state, not a static string.
-- A version string: `v0.9.1 — Updated 2026-03-10` on line 169. Update this when you ship a change.
+- A version string: `v1.0 — Updated 2026-03-26` on line 169. Update this when you ship a change.
 - An "Excel source" link.
 
 ### After editing
@@ -171,14 +171,15 @@ A passing run looks like this:
 ```
  ✓ scripts/compute.test.js (22 tests)
  ✓ scripts/loadMaterials.test.js (9 tests)
- ✓ scripts/validate.test.js (282 tests)
+ ✓ scripts/validate.test.js (274 tests)
  ✓ src/data/ecpData.test.js (35 tests)
  ✓ src/utils/resolveWallData.test.js (24 tests)
  ✓ src/utils/buildWallSheet.test.js (16 tests)
  ✓ src/components/FieldGroup.test.jsx (4 tests)
+ ✓ src/components/PrintSummary.test.jsx (7 tests)
 
- Test Files  7 passed (7)
-       Tests  392 passed (392)
+ Test Files  8 passed (8)
+       Tests  391 passed (391)
 ```
 
 ### What each test file covers
@@ -187,10 +188,11 @@ A passing run looks like this:
 |-----------|---------------|
 | `compute.test.js` | Core thermal math: parallel-path RSI, wood/steel/ICF/double-stud wall calculations |
 | `loadMaterials.test.js` | YAML loading: ensures all material files parse correctly and have required fields |
-| `validate.test.js` | Round-trip validation: re-computes every entry in the generated JSON from YAML sources (282 tests covering all 87 wood, 42 steel, 72 double stud, 25 continuous insulation, 3 ICF, 15 boundary, and 11 threshold entries) |
+| `validate.test.js` | Round-trip validation: re-computes every entry in the generated JSON from YAML sources (274 tests covering all wood, steel, double stud, continuous insulation, ICF, boundary, and threshold entries) |
 | `ecpData.test.js` | Data layer API: verifies exports, lookup functions, threshold lookups, and category definitions |
 | `resolveWallData.test.js` | Wall data resolution: ensures the Excel export utility can extract correct intermediate RSI values |
 | `buildWallSheet.test.js` | Excel sheet builder: validates that the wall assembly export produces correct formulas and structure |
+| `PrintSummary.test.jsx` | Print summary: empty state, category rows, wall builder details (single/double stud), pass/fail status |
 | `FieldGroup.test.jsx` | UI component: tests the numbered card wrapper renders correctly |
 
 ### Common failure pattern
