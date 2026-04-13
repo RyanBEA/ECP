@@ -94,11 +94,23 @@ export default function App() {
   return (
     <div className={`app ${darkMode ? 'dark' : ''}`}>
       <header className="app-header">
-        <img
-          src={darkMode ? '/logodarkmode.png' : '/logolightmode.png'}
-          alt="BEA Logo"
-          className="header-logo"
-        />
+        <div className="header-logos">
+          <a href="https://baselineenergy.ca/" target="_blank" rel="noopener noreferrer">
+            <img
+              src={darkMode ? '/logodarkmode.png' : '/logolightmode.png'}
+              alt="BEA Logo"
+              className="header-logo"
+            />
+          </a>
+          <span className="logo-separator">×</span>
+          <a href="https://buildingtozero.ca/" target="_blank" rel="noopener noreferrer">
+            <img
+              src={darkMode ? '/btzx-logo.svg' : '/btzx-logo-dark.svg'}
+              alt="Building to Zero Exchange Logo"
+              className="header-logo header-logo-btzx"
+            />
+          </a>
+        </div>
         <div className="tier-selector">
           <span>NBC 2020</span>
           <select

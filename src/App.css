@@ -89,9 +89,27 @@ h1, h2, h3, h4, h5, h6 {
   gap: 1rem;
 }
 
+.header-logos {
+  display: flex;
+  align-items: center;
+  gap: 0.75rem;
+  flex-shrink: 0;
+}
+
 .header-logo {
   height: 40px;
   width: auto;
+}
+
+.header-logo-btzx {
+  height: 36px;
+}
+
+.logo-separator {
+  font-size: 1.1rem;
+  color: var(--muted);
+  opacity: 0.5;
+  font-weight: 300;
 }
 
 /* Intro */

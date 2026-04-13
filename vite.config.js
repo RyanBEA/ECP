@@ -4,6 +4,9 @@ import path from 'path'
 
 export default defineConfig({
   plugins: [react()],
+  server: {
+    allowedHosts: ['bae'],
+  },
   base: './',
   resolve: {
     alias: {
