@@ -79,6 +79,18 @@ Eight scoring categories, each with point thresholds from NBC 2020 Tables 9.36.8
 | [docs/styling.md](docs/styling.md) | CSS variables, theming, responsive breakpoints |
 | [docs/infrastructure.md](docs/infrastructure.md) | Vite config, PWA, deployment |
 
+## Versioning
+
+**Before every push to remote, always:**
+
+1. Bump the patch version in `package.json` (e.g. `1.0.1` → `1.0.2`)
+2. Update the footer string in `src/App.jsx` to match — both the version number and today's date:
+   ```jsx
+   <span className="footer-version">v1.0.2 — Updated YYYY-MM-DD</span>
+   ```
+
+Use semantic versioning: patch (`x.x.N`) for bug fixes and minor updates, minor (`x.N.0`) for significant new features.
+
 ## Conventions
 
 - When modifying YAML materials, always regenerate JSON and commit both
