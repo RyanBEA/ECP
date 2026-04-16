@@ -145,6 +145,26 @@ describe('getWallPoints', () => {
     expect(getWallPoints(null)).toBe(0)
     expect(getWallPoints(undefined)).toBe(0)
   })
+
+  it('rounds 3.6875 up to 3.69 -> 6.2 pts', () => {
+    expect(getWallPoints(3.6875)).toBe(6.2)
+  })
+
+  it('rounds 3.685 up to 3.69 -> 6.2 pts (half-up at threshold)', () => {
+    expect(getWallPoints(3.685)).toBe(6.2)
+  })
+
+  it('rounds 3.684 down to 3.68 -> 1.6 pts (just below threshold)', () => {
+    expect(getWallPoints(3.684)).toBe(1.6)
+  })
+
+  it('rounds 3.08499 down to 3.08 -> 1.6 pts (stays at bracket floor)', () => {
+    expect(getWallPoints(3.08499)).toBe(1.6)
+  })
+
+  it('rounds 5.445 up to 5.45 -> 13.6 pts (top bracket)', () => {
+    expect(getWallPoints(5.445)).toBe(13.6)
+  })
 })
 
 describe('MIN_WALL_RSI', () => {

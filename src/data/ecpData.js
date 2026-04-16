@@ -343,11 +343,16 @@ export function calculateWallRsi({
   return null
 }
 
-// Get points for a given RSI value (finds highest threshold met)
+// Get points for a given RSI value (finds highest threshold met).
+// RSI is rounded to 2 decimals before comparison so the value shown in the UI
+// (also 2-decimal) drives the awarded points. Thresholds in thresholds.json
+// are 2-decimal, so raw-float comparison would mark e.g. 3.6875 as "below 3.69"
+// even though the user sees it as 3.69.
 export function getWallPoints(rsi) {
   if (!rsi) return 0
+  const roundedRsi = Math.round(rsi * 100) / 100
   const sorted = [...wallPointsThresholds].sort((a, b) => b.minRsi - a.minRsi)
-  const threshold = sorted.find(t => rsi >= t.minRsi)
+  const threshold = sorted.find(t => roundedRsi >= t.minRsi)
   return threshold ? threshold.points : 0
 }
 
