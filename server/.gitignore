@@ -4,3 +4,9 @@ __pycache__/
 .pytest_cache/
 dist/
 *.egg-info/
+
+# HOT2000 working/output files — base.h2k and test fixtures are committed explicitly
+working*.h2k
+result*.h2k
+*.h2k.bak
+*.ers
