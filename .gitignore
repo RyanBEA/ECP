@@ -41,3 +41,6 @@ src/WallSectionDemo.jsx
 
 # Duplicate logos (canonical copies in public/)
 img/
+
+# Brainstorm visual-companion artifacts (root-level)
+.superpowers/
