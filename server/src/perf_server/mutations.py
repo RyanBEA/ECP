@@ -140,3 +140,140 @@ def envelope_mutations(inputs: EnvelopeInputs) -> list[MutationSpec]:
     muts.append(MutationSpec(XPATH_DHW_EF, "value", str(inputs.dhw_ef)))
 
     return muts
+
+
+# ---------------------------------------------------------------------------
+# Geometry + fenestration xpaths (from GEOMETRY_XPATHS.md)
+# Verified against base.h2k 2026-06-08.
+# ---------------------------------------------------------------------------
+
+BASE_FLOOR_AREA_M2 = 58.4
+BASE_PERIMETER_M = 30.58
+DOOR_AREA_M2 = 3.528
+MAIN_FLOOR_HEIGHT_M = 2.6
+SECOND_FLOOR_HEIGHT_M = 2.45
+WALL_HEIGHT_SUM_M = MAIN_FLOOR_HEIGHT_M + SECOND_FLOOR_HEIGHT_M  # 5.05
+
+# Sum of the 8 above-grade window areas in base.h2k, in m²
+# 2 × (0.993 + 3.448 + 2.629 + 0.993) = 16.126 ≈ 16.13
+BASE_ABOVE_GRADE_WINDOW_AREA_M2 = 16.13
+
+# Perimeter xpaths: (xpath, attr, base_value)
+# All base perimeter values confirmed as 30.58 in base.h2k.
+# Note: GEOMETRY_XPATHS.md lists FloorHeader[@id='3'] as 30.576 but actual XML is 30.58.
+_PERIMETER_XPATHS: list[tuple[str, str, float]] = [
+    ("/HouseFile/House/Components/Wall[@id='2']/Measurements",                                          "perimeter",               30.58),
+    ("/HouseFile/House/Components/Wall[@id='4']/Measurements",                                          "perimeter",               30.58),
+    ("/HouseFile/House/Components/Wall[@id='4']/Components/FloorHeader[@id='3']/Measurements",          "perimeter",               30.58),
+    ("/HouseFile/House/Components/Basement[@id='1']",                                                   "exposedSurfacePerimeter", 30.58),
+    ("/HouseFile/House/Components/Basement[@id='1']/Floor/Measurements",                                "perimeter",               30.58),
+    ("/HouseFile/House/Components/Basement[@id='1']/Components/FloorHeader[@id='5']/Measurements",      "perimeter",               30.58),
+]
+
+# Area xpaths: (xpath, attr, base_value)
+_AREA_XPATHS: list[tuple[str, str, float]] = [
+    ("/HouseFile/House/Components/Ceiling[@id='6']/Measurements",   "area",       58.4),
+    ("/HouseFile/House/Components/Basement[@id='1']/Floor/Measurements", "area",  58.4),
+    ("/HouseFile/House/Specifications/HeatedFloorArea",             "aboveGrade", 128.0),
+    ("/HouseFile/House/Specifications/HeatedFloorArea",             "belowGrade",  64.0),
+]
+
+# Ceiling length scales with perimeter (s_perim), not area.
+_CEILING_LENGTH_XPATH = "/HouseFile/House/Components/Ceiling[@id='6']/Measurements"
+_BASE_CEILING_LENGTH_M = 15.29
+
+# Above-grade windows: (xpath_to_Measurements, base_height_mm, base_width_mm)
+# IDs verified against base.h2k — HOT2000 renumbers on re-save, so re-verify if
+# base.h2k is ever regenerated.
+_ABOVE_GRADE_WINDOWS: list[tuple[str, float, float]] = [
+    # Main floor (Wall id=2)
+    ("/HouseFile/House/Components/Wall[@id='2']/Components/Window[@id='11']/Measurements", 1061.86, 935.45),   # East main
+    ("/HouseFile/House/Components/Wall[@id='2']/Components/Window[@id='13']/Measurements", 1978.20, 1742.70),  # North main
+    ("/HouseFile/House/Components/Wall[@id='2']/Components/Window[@id='9']/Measurements",  1727.63, 1521.96),  # South main
+    ("/HouseFile/House/Components/Wall[@id='2']/Components/Window[@id='15']/Measurements", 1061.86, 935.45),   # West main
+    # Second floor (Wall id=4)
+    ("/HouseFile/House/Components/Wall[@id='4']/Components/Window[@id='24']/Measurements", 1061.86, 935.45),   # East second
+    ("/HouseFile/House/Components/Wall[@id='4']/Components/Window[@id='25']/Measurements", 1978.20, 1742.70),  # North second
+    ("/HouseFile/House/Components/Wall[@id='4']/Components/Window[@id='30']/Measurements", 1727.63, 1521.96),  # South second
+    ("/HouseFile/House/Components/Wall[@id='4']/Components/Window[@id='31']/Measurements", 1061.86, 935.45),   # West second
+]
+
+
+@dataclass(frozen=True)
+class GeometryInputs:
+    """User-supplied geometry inputs for footprint + FDWR-driven scaling.
+
+    length_m, width_m — building footprint dimensions in metres.
+    fdwr — fenestration + door area / above-grade wall area (fraction, e.g. 0.15).
+    """
+    length_m: float
+    width_m: float
+    fdwr: float
+
+
+def geometry_mutations(g: GeometryInputs) -> list[MutationSpec]:
+    """Produce MutationSpec list for footprint + FDWR-driven window scaling.
+
+    HOT2000 doesn't enforce area = (perimeter/4)² for the building footprint,
+    so we use two independent scale factors:
+      s_area  = (L × W) / BASE_FLOOR_AREA_M2          — for area attributes
+      s_perim = 2(L + W) / BASE_PERIMETER_M            — for perimeter and length attributes
+
+    Areas are multiplied by s_area, perimeters and lengths by s_perim.
+
+    For FDWR-driven window scaling:
+      above_grade_wall_area = target_perimeter × (main_height + second_height)
+      target_fda            = fdwr × above_grade_wall_area
+      target_window_area    = target_fda − DOOR_AREA_M2
+
+    Each of the 8 above-grade windows has its height and width scaled by
+    sqrt(target_window_area / BASE_ABOVE_GRADE_WINDOW_AREA_M2), which scales
+    each window's area by the same factor while preserving aspect ratio.
+
+    Window dimensions are in millimetres in the XML (HOT2000 convention).
+
+    Returns 6 perimeter + 4 area + 1 length + 16 window = 27 MutationSpec objects.
+
+    Raises ValueError if fdwr is too low to accommodate the door area.
+    """
+    target_floor_area = g.length_m * g.width_m
+    target_perimeter  = 2.0 * (g.length_m + g.width_m)
+
+    s_area  = target_floor_area / BASE_FLOOR_AREA_M2
+    s_perim = target_perimeter  / BASE_PERIMETER_M
+
+    muts: list[MutationSpec] = []
+
+    # Perimeter mutations (multiply each base value by s_perim)
+    for xp, attr, base in _PERIMETER_XPATHS:
+        muts.append(MutationSpec(xp, attr, str(base * s_perim)))
+
+    # Area mutations (multiply each base value by s_area)
+    for xp, attr, base in _AREA_XPATHS:
+        muts.append(MutationSpec(xp, attr, str(base * s_area)))
+
+    # Ceiling length scales with perimeter, not area
+    muts.append(MutationSpec(
+        _CEILING_LENGTH_XPATH, "length", str(_BASE_CEILING_LENGTH_M * s_perim)
+    ))
+
+    # FDWR → window area scaling
+    above_grade_wall_area = target_perimeter * WALL_HEIGHT_SUM_M
+    target_fda = g.fdwr * above_grade_wall_area
+    target_window_area = target_fda - DOOR_AREA_M2
+
+    if target_window_area <= 0:
+        raise ValueError(
+            f"fdwr={g.fdwr} too low: target FDA ({target_fda:.3f} m²) does not exceed "
+            f"door area ({DOOR_AREA_M2} m²) for L={g.length_m}, W={g.width_m}"
+        )
+
+    # Apply sqrt to both height and width so each window's area scales by window_area_scale
+    window_area_scale = target_window_area / BASE_ABOVE_GRADE_WINDOW_AREA_M2
+    dim_scale = window_area_scale ** 0.5
+
+    for xp_measurements, base_h_mm, base_w_mm in _ABOVE_GRADE_WINDOWS:
+        muts.append(MutationSpec(xp_measurements, "height", str(base_h_mm * dim_scale)))
+        muts.append(MutationSpec(xp_measurements, "width",  str(base_w_mm * dim_scale)))
+
+    return muts
