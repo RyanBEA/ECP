@@ -848,3 +848,4 @@ h1, h2, h3, h4, h5, h6 {
 .perf-supporting { font-size: 0.78rem; color: var(--text-secondary); margin-top: 0.6rem; }
 .spinner { display: inline-block; width: 1rem; height: 1rem; border: 2px solid var(--border-color); border-top-color: var(--primary); border-radius: 50%; animation: spin 0.8s linear infinite; vertical-align: middle; }
 @keyframes spin { to { transform: rotate(360deg); } }
+.geometry-hint { font-size: 0.75rem; color: var(--text-secondary); margin-left: 0.5rem; }

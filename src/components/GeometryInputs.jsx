@@ -26,6 +26,7 @@ export default function GeometryInputs({ geometry, onChange, fdwrError }) {
       <label className="geometry-fdwr">
         FDWR (fraction)
         <input type="number" step="0.01" min="0.05" max="0.40" title="0.05–0.40" value={fdwr} onChange={num('fdwr')} />
+        <span className="geometry-hint">range 5–40% of wall area</span>
       </label>
       {fdwrError && <div className="field-error">{fdwrError}</div>}
     </div>
