@@ -64,8 +64,14 @@ XPATH_AIRTIGHTNESS_ACH50 = (
 # efficiency2 (SRE @ -25°C) is left at its base.h2k value (45).
 XPATH_HRV = "/HouseFile/House/Ventilation/WholeHouseVentilatorList/Hrv"
 
-# DHW: value attribute on EnergyFactor under HotWater/Primary.
+# DHW xpaths — used by _dhw_mutations helper.
 XPATH_DHW_EF = "/HouseFile/House/Components/HotWater/Primary/EnergyFactor"
+XPATH_DHW_TANK_TYPE = "/HouseFile/House/Components/HotWater/Primary/TankType"
+XPATH_DHW_PRIMARY = "/HouseFile/House/Components/HotWater/Primary"
+
+DHW_HPWH_TANK_TYPE_CODE = "7"
+DHW_CONVENTIONAL_TANK_TYPE_CODE = "2"
+DHW_HPWH_TANK_EF = 0.9  # HTAP convention: HPWH tank EF held constant at 0.9; COP carries the efficiency
 
 
 # ---------------------------------------------------------------------------
@@ -97,12 +103,51 @@ class EnvelopeInputs:
 # Mutation builder
 # ---------------------------------------------------------------------------
 
+def _dhw_mutations(dhw_ef: float) -> list[MutationSpec]:
+    """Emit DHW MutationSpec list.
+
+    For EF ≤ 1.0 (conventional electric tank): one mutation on EnergyFactor.value.
+    For EF > 1.0 (heat pump water heater): three mutations — TankType code=7,
+    EnergyFactor.value=0.9 (tank-only EF), and heatPumpCoefficient on Primary.
+
+    This split mirrors HTAP's substitute-h2k.rb DHW handling and avoids
+    HOT2000's "calculate failed" silent rejection of EF > 1.0 on conventional
+    tank type code=2.
+    """
+    if dhw_ef <= 1.0:
+        return [
+            MutationSpec(
+                XPATH_DHW_EF,
+                "value", str(dhw_ef),
+            ),
+        ]
+    # HPWH
+    cop = dhw_ef / DHW_HPWH_TANK_EF
+    return [
+        MutationSpec(
+            XPATH_DHW_TANK_TYPE,
+            "code", DHW_HPWH_TANK_TYPE_CODE,
+        ),
+        MutationSpec(
+            XPATH_DHW_EF,
+            "value", str(DHW_HPWH_TANK_EF),
+        ),
+        MutationSpec(
+            XPATH_DHW_PRIMARY,
+            "heatPumpCoefficient", str(cop),
+        ),
+    ]
+
+
 def envelope_mutations(inputs: EnvelopeInputs) -> list[MutationSpec]:
     """Return one MutationSpec per envelope attribute from ECP state.
 
-    Returned list length: 2 (above-grade walls) + 1 (below-grade wall)
-                        + 24 (12 windows × 2 attrs) + 1 (ACH50)
-                        + 1 (HRV) + 1 (DHW) = 2 + 1 + 24 + 1 + 1 + 1 = 30 mutations.
+    Returned list length (conventional tank, EF ≤ 1.0):
+        2 (above-grade walls) + 1 (below-grade wall)
+        + 24 (12 windows × 2 attrs) + 1 (ACH50)
+        + 1 (HRV) + 1 (DHW) = 30 mutations.
+
+    For HPWH (EF > 1.0), DHW contributes 3 mutations instead of 1: 32 total.
     """
     muts: list[MutationSpec] = []
 
@@ -136,8 +181,8 @@ def envelope_mutations(inputs: EnvelopeInputs) -> list[MutationSpec]:
         XPATH_HRV, "efficiency1", str(int(round(inputs.hrv_sre * 100)))
     ))
 
-    # DHW energy factor.
-    muts.append(MutationSpec(XPATH_DHW_EF, "value", str(inputs.dhw_ef)))
+    # DHW: conditional on EF — conventional tank or HPWH.
+    muts.extend(_dhw_mutations(inputs.dhw_ef))
 
     return muts
 

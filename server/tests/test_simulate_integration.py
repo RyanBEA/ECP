@@ -19,7 +19,7 @@ async def test_box_simulation_returns_results():
         window_shgc=0.4,
         airtightness_ach50=2.5,
         hrv_sre=0.75,
-        dhw_ef=3.0,
+        dhw_ef=0.92,
     )
     geometry = GeometryInputs(length_m=10.0, width_m=8.0, fdwr=0.17)
 
@@ -29,3 +29,30 @@ async def test_box_simulation_returns_results():
     assert result["breakdown_gj"]["space_heating"] > 0
     assert result["job_duration_seconds"] > 0
     assert result["job_duration_seconds"] < 60  # within HOT2000's normal envelope
+    # Should differ from the fixture/base value of 69.58 GJ because envelope changed
+    assert abs(result["annual_energy_gj"] - 69.58) > 1.0, (
+        f"Expected mutations to change energy result from base 69.58 GJ, "
+        f"got {result['annual_energy_gj']:.2f} GJ — possibly a stale-result leak"
+    )
+
+
+@pytest.mark.requires_hot2000
+@pytest.mark.asyncio
+async def test_hpwh_simulation_returns_results():
+    envelope = EnvelopeInputs(
+        above_grade_wall_rsi=4.5,
+        below_grade_wall_rsi=2.5,
+        window_rsi=0.5,
+        window_shgc=0.4,
+        airtightness_ach50=2.5,
+        hrv_sre=0.75,
+        dhw_ef=2.3,  # HPWH territory
+    )
+    geometry = GeometryInputs(length_m=10.0, width_m=8.0, fdwr=0.17)
+    result = await simulate.run(envelope, geometry)
+    assert result["annual_energy_gj"] > 0
+    # HPWH with improved envelope should use less energy than base.h2k (69.58 GJ)
+    assert result["annual_energy_gj"] < 69.58, (
+        f"Expected HPWH result to be under base 69.58 GJ, "
+        f"got {result['annual_energy_gj']:.2f} GJ — mutations may not be applying"
+    )

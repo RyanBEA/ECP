@@ -17,7 +17,7 @@ def _valid_envelope() -> EnvelopeInputs:
         window_shgc=0.4,
         airtightness_ach50=2.5,
         hrv_sre=0.75,
-        dhw_ef=3.0,
+        dhw_ef=0.92,
     )
 
 
@@ -62,7 +62,7 @@ def test_envelope_negative_rsi_rejected():
         window_shgc=0.4,
         airtightness_ach50=2.5,
         hrv_sre=0.75,
-        dhw_ef=3.0,
+        dhw_ef=0.92,
     )
     with pytest.raises(BoundsError, match="rsi"):
         validate_envelope(bad)
@@ -76,7 +76,7 @@ def test_envelope_negative_below_grade_rsi_rejected():
         window_shgc=0.4,
         airtightness_ach50=2.5,
         hrv_sre=0.75,
-        dhw_ef=3.0,
+        dhw_ef=0.92,
     )
     with pytest.raises(BoundsError, match="rsi"):
         validate_envelope(bad)
@@ -90,7 +90,7 @@ def test_envelope_shgc_above_one_rejected():
         window_shgc=1.5,
         airtightness_ach50=2.5,
         hrv_sre=0.75,
-        dhw_ef=3.0,
+        dhw_ef=0.92,
     )
     with pytest.raises(BoundsError, match="shgc"):
         validate_envelope(bad)
@@ -104,7 +104,7 @@ def test_envelope_hrv_above_one_rejected():
         window_shgc=0.4,
         airtightness_ach50=2.5,
         hrv_sre=1.5,
-        dhw_ef=3.0,
+        dhw_ef=0.92,
     )
     with pytest.raises(BoundsError, match="hrv_sre"):
         validate_envelope(bad)
@@ -118,10 +118,24 @@ def test_envelope_negative_ach50_rejected():
         window_shgc=0.4,
         airtightness_ach50=-1.0,
         hrv_sre=0.75,
-        dhw_ef=3.0,
+        dhw_ef=0.92,
     )
     with pytest.raises(BoundsError, match="airtightness|ach"):
         validate_envelope(bad)
+
+
+def test_envelope_dhw_ef_hpwh_passes():
+    """EF > 1.0 is valid (HPWH); the old upper-bound rejection is removed."""
+    hpwh = EnvelopeInputs(
+        above_grade_wall_rsi=4.5,
+        below_grade_wall_rsi=3.1,
+        window_rsi=0.5,
+        window_shgc=0.4,
+        airtightness_ach50=2.5,
+        hrv_sre=0.75,
+        dhw_ef=3.0,
+    )
+    validate_envelope(hpwh)  # should not raise
 
 
 def test_valid_envelope_passes():

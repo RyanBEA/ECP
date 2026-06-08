@@ -15,6 +15,8 @@ import tempfile
 import time
 from pathlib import Path
 
+from lxml import etree
+
 from perf_server import config, queue, results, sim_harness
 from perf_server.mutations import (
     EnvelopeInputs,
@@ -42,6 +44,18 @@ async def run(envelope: EnvelopeInputs, geometry: GeometryInputs) -> dict:
             result_file = td_path / "result.h2k"
 
             sim_harness.apply_mutations(cfg.base_h2k_path, mutated, mutations)
+
+            # Strip <AllResults> from the mutated input so we can detect HOT2000 silent
+            # failures: if HOT2000 succeeds it adds a fresh <AllResults>; if it silently
+            # fails ("calculate failed" with exit code 0), results.parse() will raise
+            # ValueError because the canonical <Results houseCode="UserHouse"> block
+            # won't exist in the output.
+            tree = etree.parse(str(mutated))
+            root = tree.getroot()
+            all_results = root.find("AllResults")
+            if all_results is not None:
+                root.remove(all_results)
+            tree.write(str(mutated), xml_declaration=True, encoding="UTF-8", pretty_print=False)
 
             start = time.monotonic()
             run_result = sim_harness.run_hot2000(
