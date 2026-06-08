@@ -6,13 +6,30 @@ from pathlib import Path
 from lxml import etree
 
 
+def _get_float(el, attr: str, context: str) -> float:
+    """Read a required XML attribute and return it as float.
+
+    Raises ValueError (not TypeError) when the attribute is absent, so callers
+    that catch ValueError get a descriptive message.
+    """
+    raw = el.get(attr)
+    if raw is None:
+        raise ValueError(f"Missing attribute {attr!r} on {context}")
+    return float(raw)
+
+
 def parse(h2k_path: Path) -> dict:
     """Extract annual energy results from a post-HOT2000 file.
 
     Returns a dict with:
       - annual_energy_gj:  total annual energy consumption (GJ)
       - breakdown_gj:      dict with space_heating, space_cooling, dhw,
-                           lights_appliances (all GJ)
+                           lights_appliances, other (all GJ).
+                           `other` aggregates HOT2000's `baseload` and `ventilation`
+                           electrical categories. The breakdown sub-categories do not
+                           sum to `annual_energy_gj` because HOT2000's reporting
+                           categories overlap (e.g., baseload partially includes
+                           appliance/lighting/dhw).
       - peak_heating_kw:   design heat loss rate (kW), from <Other designHeatLossRate>
 
     HOT2000 produces multiple <Results> blocks per file inside <AllResults>:
@@ -74,21 +91,27 @@ def parse(h2k_path: Path) -> dict:
     if other is None:
         raise ValueError(f'No <Other> in UserHouse <Results> block of {h2k_path}')
 
-    design_heat_loss_w = float(other.get("designHeatLossRate"))
+    design_heat_loss_w = _get_float(other, "designHeatLossRate", "Other in <UserHouse>")
 
     return {
-        "annual_energy_gj": float(consumption.get("total")),
+        "annual_energy_gj": _get_float(consumption, "total", "Consumption block"),
         "breakdown_gj": {
             # Use <Electrical spaceHeating=…> — matches the fuel-rollup <SpaceHeating>
             # total for all-electric houses; for mixed-fuel houses use
             # consumption.find("SpaceHeating").get("total") instead.
-            "space_heating": float(electrical.get("spaceHeating")),
-            "space_cooling": float(electrical.get("spaceCooling")),
-            "dhw": float(hot_water_el.get("dhw")),
+            "space_heating": _get_float(electrical, "spaceHeating", "Electrical block"),
+            "space_cooling": _get_float(electrical, "spaceCooling", "Electrical block"),
+            "dhw": _get_float(hot_water_el, "dhw", "HotWater under Electrical"),
             # HOT2000 breaks lights/appliances into separate attributes; sum them.
             "lights_appliances": (
-                float(electrical.get("appliance"))
-                + float(electrical.get("lighting"))
+                _get_float(electrical, "appliance", "Electrical block")
+                + _get_float(electrical, "lighting", "Electrical block")
+            ),
+            # `other` aggregates HOT2000's baseload and ventilation electrical
+            # categories (see docstring note on overlap with annual_energy_gj).
+            "other": (
+                _get_float(electrical, "baseload", "Electrical block")
+                + _get_float(electrical, "ventilation", "Electrical block")
             ),
         },
         # designHeatLossRate is in Watts — convert to kW for API consumers.

@@ -13,10 +13,14 @@ from perf_server import results
 EXPECTED_ANNUAL_GJ = 69.578605652
 # Electrical/@spaceHeating from <Electrical ... spaceHeating="26.604010357" ...>
 EXPECTED_HEATING_GJ = 26.604010357
+# Electrical/@spaceCooling from <Electrical ... spaceCooling="0.0" ...> (no cooling load)
+EXPECTED_COOLING_GJ = 0.0
 # Electrical/HotWater/@dhw from <HotWater dhw="16.723345410" ...>
 EXPECTED_DHW_GJ = 16.723345410
 # Electrical/@appliance + Electrical/@lighting = 8.277837113 + 3.416397142
 EXPECTED_LIGHTS_APPLIANCES_GJ = 8.277837113 + 3.416397142
+# Electrical/@baseload + Electrical/@ventilation = 25.622644531 + 0.628572593
+EXPECTED_OTHER_GJ = 25.622644531 + 0.628572593
 # Other/@designHeatLossRate = 6753.289062500 W → 6.753289062500 kW
 EXPECTED_PEAK_HEATING_KW = 6753.289062500 / 1000.0
 
@@ -35,12 +39,15 @@ def test_parse_breakdown_has_known_keys(sample_result_path):
     assert "space_cooling" in breakdown
     assert "dhw" in breakdown
     assert "lights_appliances" in breakdown
+    assert "other" in breakdown
 
 
 def test_parse_values_match_fixture(sample_result_path):
     parsed = results.parse(sample_result_path)
     assert parsed["annual_energy_gj"] == pytest.approx(EXPECTED_ANNUAL_GJ, rel=0.001)
     assert parsed["breakdown_gj"]["space_heating"] == pytest.approx(EXPECTED_HEATING_GJ, rel=0.001)
+    assert parsed["breakdown_gj"]["space_cooling"] == pytest.approx(EXPECTED_COOLING_GJ, abs=0.001)
     assert parsed["breakdown_gj"]["dhw"] == pytest.approx(EXPECTED_DHW_GJ, rel=0.001)
     assert parsed["breakdown_gj"]["lights_appliances"] == pytest.approx(EXPECTED_LIGHTS_APPLIANCES_GJ, rel=0.001)
+    assert parsed["breakdown_gj"]["other"] == pytest.approx(EXPECTED_OTHER_GJ, rel=0.001)
     assert parsed["peak_heating_kw"] == pytest.approx(EXPECTED_PEAK_HEATING_KW, rel=0.001)
