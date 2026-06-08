@@ -17,7 +17,7 @@ from pathlib import Path
 
 from lxml import etree
 
-from perf_server import config, queue, results, sim_harness
+from perf_server import compliance, config, queue, results, sim_harness
 from perf_server.mutations import (
     EnvelopeInputs,
     GeometryInputs,
@@ -78,5 +78,6 @@ async def run(envelope: EnvelopeInputs, geometry: GeometryInputs) -> dict:
                 )
 
             parsed = results.parse(result_file)
+            parsed["compliance"] = compliance.parse(result_file)
             parsed["job_duration_seconds"] = duration
             return parsed

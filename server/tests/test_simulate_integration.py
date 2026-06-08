@@ -56,3 +56,13 @@ async def test_hpwh_simulation_returns_results():
         f"Expected HPWH result to be under base 69.58 GJ, "
         f"got {result['annual_energy_gj']:.2f} GJ — mutations may not be applying"
     )
+
+
+def test_compliance_merged_into_parse_output(sample_result_path):
+    """simulate.run merges compliance under a 'compliance' key; verify the shape
+    by combining the two parsers the way run() does (no HOT2000 needed)."""
+    from perf_server import compliance, results
+    parsed = results.parse(sample_result_path)
+    parsed["compliance"] = compliance.parse(sample_result_path)
+    assert parsed["compliance"]["tier"] == 2
+    assert "annual_energy_gj" in parsed
