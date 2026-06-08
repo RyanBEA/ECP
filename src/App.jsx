@@ -4,6 +4,7 @@ import CategoryCard from './components/CategoryCard'
 import WallBuilder from './components/WallBuilder'
 import PointsCounter from './components/PointsCounter'
 import PrintSummary from './components/PrintSummary'
+import PerformanceTab from './components/PerformanceTab'
 
 export default function App() {
   // Track dark mode - default to system preference
@@ -18,6 +19,7 @@ export default function App() {
 
   // Track selected tier (default to Tier 2)
   const [selectedTierId, setSelectedTierId] = useState(2)
+  const [activeTab, setActiveTab] = useState('prescriptive')
   const selectedTier = tiers.find(t => t.id === selectedTierId)
 
   // Track selected option index for each category
@@ -145,31 +147,50 @@ export default function App() {
         </p>
       </section>
 
-      <main className="categories-container">
-        {categories.map(category => {
-          // Render WallBuilder for wall category
-          if (category.type === 'wallBuilder') {
+      <div className="tab-bar">
+        <button
+          className={activeTab === 'prescriptive' ? 'tab active' : 'tab'}
+          onClick={() => setActiveTab('prescriptive')}
+        >Prescriptive</button>
+        <button
+          className={activeTab === 'performance' ? 'tab active' : 'tab'}
+          onClick={() => setActiveTab('performance')}
+        >Performance</button>
+      </div>
+
+      {activeTab === 'prescriptive' ? (
+        <main className="categories-container">
+          {categories.map(category => {
+            // Render WallBuilder for wall category
+            if (category.type === 'wallBuilder') {
+              return (
+                <WallBuilder
+                  key={category.id}
+                  selection={wallSelection}
+                  onSelect={setWallSelection}
+                />
+              )
+            }
+
+            // Render standard CategoryCard for other categories
             return (
-              <WallBuilder
+              <CategoryCard
                 key={category.id}
-                selection={wallSelection}
-                onSelect={setWallSelection}
+                category={category}
+                selectedOption={selections[category.id] ?? null}
+                onSelect={handleSelect}
+                disabled={isDisabled(category)}
               />
             )
-          }
-
-          // Render standard CategoryCard for other categories
-          return (
-            <CategoryCard
-              key={category.id}
-              category={category}
-              selectedOption={selections[category.id] ?? null}
-              onSelect={handleSelect}
-              disabled={isDisabled(category)}
-            />
-          )
-        })}
-      </main>
+          })}
+        </main>
+      ) : (
+        <PerformanceTab
+          selections={selections}
+          wallSelection={wallSelection}
+          wallRsi={wallPoints > 0 ? calculateWallRsi(wallSelection) : 0}
+        />
+      )}
 
       <footer className="app-footer">
         <p>
