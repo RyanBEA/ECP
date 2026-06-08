@@ -554,9 +554,77 @@
                             <French>S/O</French>
                         </FacingDirection>
                     </FloorHeader>
+                    <Window number="1" er="12.8804" shgc="0.5321" frameHeight="71" frameAreaFraction="0.2652" edgeOfGlassFraction="0.2028" centreOfGlassFraction="0.532" adjacentEnclosedSpace="false" id="24">
+                        <Label>East0003</Label>
+                        <Construction energyStar="false">
+                            <Type idref="Code 3" rValue="0.4309">234014</Type>
+                        </Construction>
+                        <Measurements height="1061.8641" width="935.4517" headerHeight="2.65" overhangWidth="0.41">
+                            <Tilt code="1" value="90">
+                                <English>Vertical</English>
+                                <French>Verticale</French>
+                            </Tilt>
+                        </Measurements>
+                        <Shading curtain="1" shutterRValue="0" />
+                        <FacingDirection code="3">
+                            <English>East</English>
+                            <French>Est</French>
+                        </FacingDirection>
+                    </Window>
+                    <Window number="1" er="12.8804" shgc="0.6111" frameHeight="71" frameAreaFraction="0.1474" edgeOfGlassFraction="0.1219" centreOfGlassFraction="0.7306" adjacentEnclosedSpace="false" id="25">
+                        <Label>North0003</Label>
+                        <Construction energyStar="false">
+                            <Type idref="Code 3" rValue="0.4698">234014</Type>
+                        </Construction>
+                        <Measurements height="1978.2013" width="1742.7012" headerHeight="2.65" overhangWidth="0.41">
+                            <Tilt code="1" value="90">
+                                <English>Vertical</English>
+                                <French>Verticale</French>
+                            </Tilt>
+                        </Measurements>
+                        <Shading curtain="1" shutterRValue="0" />
+                        <FacingDirection code="5">
+                            <English>North</English>
+                            <French>Nord</French>
+                        </FacingDirection>
+                    </Window>
+                    <Window number="1" er="12.8804" shgc="0.5974" frameHeight="71" frameAreaFraction="0.1678" edgeOfGlassFraction="0.1371" centreOfGlassFraction="0.6951" adjacentEnclosedSpace="false" id="26">
+                        <Label>South0003</Label>
+                        <Construction energyStar="false">
+                            <Type idref="Code 3" rValue="0.4623">234014</Type>
+                        </Construction>
+                        <Measurements height="1727.6299" width="1521.9598" headerHeight="2.65" overhangWidth="0.41">
+                            <Tilt code="1" value="90">
+                                <English>Vertical</English>
+                                <French>Verticale</French>
+                            </Tilt>
+                        </Measurements>
+                        <Shading curtain="1" shutterRValue="0" />
+                        <FacingDirection code="1">
+                            <English>South</English>
+                            <French>Sud</French>
+                        </FacingDirection>
+                    </Window>
+                    <Window number="1" er="12.8804" shgc="0.5321" frameHeight="71" frameAreaFraction="0.2652" edgeOfGlassFraction="0.2028" centreOfGlassFraction="0.532" adjacentEnclosedSpace="false" id="27">
+                        <Label>West0003</Label>
+                        <Construction energyStar="false">
+                            <Type idref="Code 3" rValue="0.4309">234014</Type>
+                        </Construction>
+                        <Measurements height="1061.8641" width="935.4517" headerHeight="2.65" overhangWidth="0.41">
+                            <Tilt code="1" value="90">
+                                <English>Vertical</English>
+                                <French>Verticale</French>
+                            </Tilt>
+                        </Measurements>
+                        <Shading curtain="1" shutterRValue="0" />
+                        <FacingDirection code="7">
+                            <English>West</English>
+                            <French>Ouest</French>
+                        </FacingDirection>
+                    </Window>
                 </Components>
             </Wall>
-            <Basement isExposedSurface="true" exposedSurfacePerimeter="29.561" id="1">
+            <Basement isExposedSurface="true" exposedSurfacePerimeter="30.576" id="1">
                 <Label>Foundation - 1</Label>
                 <Configuration type="BCIN" subtype="1" overlap="0">BCIN_1</Configuration>
                 <OpeningUpstairs code="1" value="1.56">
@@ -571,7 +639,7 @@
                     <Construction isBelowFrostline="true" hasIntegralFooting="false" heatedFloor="false">
                         <FloorsAbove idref="Code 4" rValue="0.7057" nominalInsulation="0">4231000660</FloorsAbove>
                     </Construction>
-                    <Measurements isRectangular="false" area="54.61" perimeter="29.561" />
+                    <Measurements isRectangular="true" area="58.4" perimeter="30.576" />
                 </Floor>
                 <Wall hasPonyWall="true">
                     <Construction corners="4">
@@ -665,7 +733,7 @@
                         <Construction>
                             <Type rValue="2.97" nominalInsulation="3.7125">0000000000</Type>
                         </Construction>
-                        <Measurements height="0.23" perimeter="29.56" />
+                        <Measurements height="0.23" perimeter="30.576" />
                         <FacingDirection code="1">
                             <English>N/A</English>
                             <French>S/O</French>
