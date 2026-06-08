@@ -35,6 +35,9 @@ async def run(envelope: EnvelopeInputs, geometry: GeometryInputs) -> dict:
 
     cfg = config.load()
 
+    # Note: perf_extras.heating is accepted by the API but not yet wired in.
+    # Heating preset mutations are deferred to v1.2; base.h2k's electric
+    # baseboard at 100% is used regardless of request.
     mutations = envelope_mutations(envelope) + geometry_mutations(geometry)
 
     async with queue.sim_lock:
