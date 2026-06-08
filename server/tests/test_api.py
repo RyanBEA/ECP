@@ -67,3 +67,22 @@ def test_health_endpoint():
     body = response.json()
     assert body["status"] == "ok"
     assert "queue_depth" in body
+
+
+def test_simulate_endpoint_passes_through_compliance():
+    fake_result = {
+        "annual_energy_gj": 67.2,
+        "breakdown_gj": {"space_heating": 32.1, "space_cooling": 0.0, "dhw": 11.5, "lights_appliances": 18.6, "other": 4.2},
+        "peak_heating_kw": 7.8,
+        "job_duration_seconds": 8.4,
+        "compliance": {
+            "tier": 2, "overall_improvement_pct": 14.03, "envelope_improvement_pct": 10.71,
+            "peak_cooling_improvement_pct": 7.14, "peak_cooling_validation": True,
+            "tedi": 38.88, "meui": 61.06, "ghgi": 44,
+            "nbc_proposed_kwh_m2": 42.2, "nbc_target_kwh_m2": 49.09,
+        },
+    }
+    with patch("perf_server.api.simulate.run", new=AsyncMock(return_value=fake_result)):
+        response = client.post("/api/simulate", json=VALID_REQUEST)
+    assert response.status_code == 200, response.text
+    assert response.json()["compliance"]["tier"] == 2
