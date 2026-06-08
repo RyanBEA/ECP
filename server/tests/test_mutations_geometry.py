@@ -3,10 +3,10 @@ import pytest
 from perf_server.mutations import GeometryInputs, geometry_mutations
 
 
-def test_default_box_produces_mutations():
+def test_geometry_produces_exactly_27_mutations():
+    """Lock the count: 6 perim + 4 area + 1 length + 16 window = 27."""
     inputs = GeometryInputs(length_m=10.0, width_m=8.0, fdwr=0.15)
-    muts = geometry_mutations(inputs)
-    assert len(muts) > 0
+    assert len(geometry_mutations(inputs)) == 27
 
 
 def test_ceiling_area_scales_with_footprint():
@@ -74,3 +74,14 @@ def test_fdwr_too_low_raises():
     # door area 3.528 / 161.6 = 0.0218 → fdwr=0.01 would give FDA = 1.6 < 3.528
     with pytest.raises(ValueError, match="fdwr|door"):
         geometry_mutations(GeometryInputs(length_m=8.0, width_m=8.0, fdwr=0.01))
+
+
+def test_window_height_locks_to_known_value_at_known_input():
+    """At L=10, W=8, fdwr=0.15, North main window (id=13) height should be ~2400.27 mm."""
+    muts = geometry_mutations(GeometryInputs(length_m=10.0, width_m=8.0, fdwr=0.15))
+    north_main_heights = [
+        float(m.value) for m in muts
+        if "Window[@id='13']" in m.xpath and m.attr == "height"
+    ]
+    assert len(north_main_heights) == 1
+    assert north_main_heights[0] == pytest.approx(2400.27, rel=0.01)

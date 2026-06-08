@@ -170,6 +170,17 @@ _PERIMETER_XPATHS: list[tuple[str, str, float]] = [
     ("/HouseFile/House/Components/Basement[@id='1']/Components/FloorHeader[@id='5']/Measurements",      "perimeter",               30.58),
 ]
 
+# Note: RoofCavity attributes (GableEnds @area, SlopedRoof @area, RoofCavity
+# @volume) are intentionally omitted from this list. Their scaling laws
+# aren't a uniform s_area multiplication for a rectangular box: GableEnds
+# scales with one linear dimension (s_perim), SlopedRoof with both
+# (s_perim²), and volume with floor area (s_area). Applying the wrong
+# scale would produce inconsistent geometry. HOT2000 either recomputes
+# these from the ceiling area we DO mutate, or uses base.h2k values — the
+# error is small at modest scale-factor deviations from base footprint.
+# If perf accuracy at large footprint deviations becomes a concern, add
+# a separate `_ROOF_CAVITY_*` table with the correct per-attribute scale.
+
 # Area xpaths: (xpath, attr, base_value)
 _AREA_XPATHS: list[tuple[str, str, float]] = [
     ("/HouseFile/House/Components/Ceiling[@id='6']/Measurements",   "area",       58.4),

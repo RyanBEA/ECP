@@ -44,12 +44,19 @@ Scale factor: `s = sqrt(target_floor_area_m2 / BASE_FLOOR_AREA_M2)`
 | Component | XPath | Attribute | Base value | Line |
 |---|---|---|---|---|
 | Ceiling | `/HouseFile/House/Components/Ceiling[@id='6']/Measurements` | `area` | 58.4 | 424 |
-| Roof cavity gable ends | `/HouseFile/House/Components/Ceiling[@id='6']/Construction/CeilingType/.../RoofCavity/GableEnds` | `area` | 9.7272 | 130 |
-| Roof cavity sloped roof | `/HouseFile/House/Components/Ceiling[@id='6']/Construction/CeilingType/.../RoofCavity/SlopedRoof` | `area` | 61.5584 | 140 |
 | Basement floor | `/HouseFile/House/Components/Basement[@id='1']/Floor/Measurements` | `area` | 58.4 | 641 |
 | HeatedFloorArea above-grade | `/HouseFile/House/Specifications/HeatedFloorArea` | `aboveGrade` | 128 | 151 |
 | HeatedFloorArea below-grade | `/HouseFile/House/Specifications/HeatedFloorArea` | `belowGrade` | 64 | 151 |
-| Roof cavity volume | `/HouseFile/House/Components/Ceiling[@id='6']/Construction/CeilingType/.../RoofCavity` | `volume` | 37.1775 | 129 |
+
+#### Known limitations — RoofCavity attributes (NOT mutated — see mutations.py rationale)
+
+| Component | XPath | Attribute | Base value | Line | Correct scale |
+|---|---|---|---|---|---|
+| Roof cavity gable ends | `.../RoofCavity/GableEnds` | `area` | 9.7272 | 130 | `s_perim` (one linear dim: ½ × W × gable_height) |
+| Roof cavity sloped roof | `.../RoofCavity/SlopedRoof` | `area` | 61.5584 | 140 | `s_perim²` ≈ `s_area` (L × W / cos θ), but anisotropic in general |
+| Roof cavity volume | `.../RoofCavity` | `volume` | 37.1775 | 129 | `s_area` (ceiling_area × avg attic height) |
+
+These three attributes are deliberately omitted from `_AREA_XPATHS` in mutations.py because their scaling laws are not a uniform `s_area` multiplication. Applying the wrong scale would produce inconsistent geometry. HOT2000 either recomputes them from the ceiling area we DO mutate, or uses the base.h2k values — the error is small at modest scale-factor deviations. See the comment block above `_AREA_XPATHS` in mutations.py for full rationale.
 
 ### Length attributes — multiply by `s`
 
@@ -71,11 +78,14 @@ Anything in the `<HeatLoss>`, `<HeatGain>`, `<Annual>`, etc. blocks downstream o
 
 ### Above-grade windows — 8 windows scale proportionally to user FDWR input
 
-`target_fda = fdwr × BASE_ABOVE_GRADE_WALL_AREA_M2 × s²`
+`above_grade_wall_area = target_perimeter × WALL_HEIGHT_SUM_M`   (WALL_HEIGHT_SUM_M = MAIN + SECOND = 2.6 + 2.45 = 5.05)
+`target_fda = fdwr × above_grade_wall_area`
 `target_window_area_total = target_fda - DOOR_AREA_M2`
-`window_scale = sqrt(target_window_area_total / BASE_ABOVE_GRADE_WINDOW_AREA_M2)`
+`window_dim_scale = sqrt(target_window_area_total / BASE_ABOVE_GRADE_WINDOW_AREA_M2)`
 
-Each window's height AND width is multiplied by `window_scale` (preserves aspect ratio, scales area by `window_scale²`).
+Note that `target_perimeter = 2(L + W)` and is also the value the perimeter mutations write back to base.h2k.
+
+Each window's height AND width is multiplied by `window_dim_scale` (preserves aspect ratio, scales area by `window_dim_scale²`).
 
 Window dimensions are in **millimeters** in the XML.
 
