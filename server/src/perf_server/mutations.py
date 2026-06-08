@@ -288,3 +288,67 @@ def geometry_mutations(g: GeometryInputs) -> list[MutationSpec]:
         muts.append(MutationSpec(xp_measurements, "width",  str(base_w_mm * dim_scale)))
 
     return muts
+
+
+# --- Bounds checks ---------------------------------------------------------
+#
+# Three-layer validation strategy (per spec):
+#   1. Frontend (React) catches physically impossible inputs before request.
+#   2. FastAPI pydantic catches malformed JSON / type errors at API boundary.
+#   3. These bounds checks catch plausible-but-extreme combinations that
+#      slipped through frontend (or bypassed it).
+
+
+class BoundsError(ValueError):
+    """Raised when inputs are physically implausible or out of MVP range."""
+
+
+MIN_FOOTPRINT_M2 = 30.0
+MAX_FOOTPRINT_M2 = 400.0
+MIN_FDWR = 0.05   # 5% — below this you can't fit doors
+MAX_FDWR = 0.40   # 40% — well above NBC 9.36 typical (17-22%)
+
+
+def validate_geometry(g: GeometryInputs) -> None:
+    """Reject implausible geometry inputs before geometry_mutations() runs."""
+    footprint = g.length_m * g.width_m
+    if footprint < MIN_FOOTPRINT_M2:
+        raise BoundsError(
+            f"footprint {footprint:.1f} m² below MIN_FOOTPRINT_M2 ({MIN_FOOTPRINT_M2})"
+        )
+    if footprint > MAX_FOOTPRINT_M2:
+        raise BoundsError(
+            f"footprint {footprint:.1f} m² above MAX_FOOTPRINT_M2 ({MAX_FOOTPRINT_M2})"
+        )
+
+    if not (MIN_FDWR <= g.fdwr <= MAX_FDWR):
+        raise BoundsError(
+            f"fdwr {g.fdwr} outside MVP range [{MIN_FDWR}, {MAX_FDWR}]"
+        )
+
+    # Hard check: target FDA must accommodate door area + non-zero windows
+    # (Belt-and-suspenders given MIN_FDWR=0.05 — this is a hard physics floor.)
+    target_perimeter = 2 * (g.length_m + g.width_m)
+    above_grade_wall_area = target_perimeter * WALL_HEIGHT_SUM_M
+    target_fda = g.fdwr * above_grade_wall_area
+    if target_fda <= DOOR_AREA_M2:
+        raise BoundsError(
+            f"fdwr {g.fdwr} too low: target FDA ({target_fda:.2f} m²) does not "
+            f"exceed door area ({DOOR_AREA_M2} m²) for L={g.length_m}, W={g.width_m}"
+        )
+
+
+def validate_envelope(e: EnvelopeInputs) -> None:
+    """Reject implausible envelope inputs before envelope_mutations() runs."""
+    if e.above_grade_wall_rsi <= 0 or e.below_grade_wall_rsi <= 0:
+        raise BoundsError("rsi values must be positive")
+    if e.window_rsi <= 0:
+        raise BoundsError("window_rsi must be positive")
+    if not (0.0 <= e.window_shgc <= 1.0):
+        raise BoundsError(f"shgc must be 0-1, got {e.window_shgc}")
+    if e.airtightness_ach50 <= 0:
+        raise BoundsError("airtightness_ach50 must be positive")
+    if not (0.0 <= e.hrv_sre <= 1.0):
+        raise BoundsError(f"hrv_sre must be 0-1, got {e.hrv_sre}")
+    if e.dhw_ef <= 0:
+        raise BoundsError("dhw_ef must be positive")
