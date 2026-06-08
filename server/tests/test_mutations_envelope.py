@@ -4,7 +4,7 @@ from perf_server.mutations import EnvelopeInputs, envelope_mutations
 def _sample_inputs() -> EnvelopeInputs:
     return EnvelopeInputs(
         above_grade_wall_rsi=4.5,
-        below_grade_wall_rsi=2.5,
+        below_grade_wall_rsi=3.1,
         window_rsi=0.5,           # renamed from window_u_value — base.h2k stores RSI
         window_shgc=0.4,
         airtightness_ach50=2.5,
@@ -31,7 +31,7 @@ def test_below_grade_wall_rsi_mutated():
     muts = envelope_mutations(_sample_inputs())
     bg_muts = [m for m in muts if "Basement" in m.xpath and m.attr == "rsi"]
     assert len(bg_muts) >= 1
-    assert any(m.value == "2.5" for m in bg_muts)
+    assert any(m.value == "3.1" for m in bg_muts)
 
 
 def test_all_12_windows_get_rsi_and_shgc():
@@ -55,7 +55,7 @@ def test_ach50_mutated():
 def test_hrv_sre_converted_to_percent():
     muts = envelope_mutations(_sample_inputs())
     hrv_muts = [m for m in muts if "Hrv" in m.xpath and "efficiency1" in m.attr]
-    assert any(m.value == "75" or m.value == "75.0" for m in hrv_muts)
+    assert any(m.value == "75" for m in hrv_muts)
 
 
 def test_dhw_ef_mutated():
@@ -70,3 +70,7 @@ def test_mutation_specs_are_well_formed():
         assert m.xpath.startswith("/HouseFile/")
         assert m.attr != ""
         assert m.value != ""
+
+
+def test_envelope_produces_exactly_30_mutations():
+    assert len(envelope_mutations(_sample_inputs())) == 30

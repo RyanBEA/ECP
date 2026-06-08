@@ -100,8 +100,9 @@ class EnvelopeInputs:
 def envelope_mutations(inputs: EnvelopeInputs) -> list[MutationSpec]:
     """Return one MutationSpec per envelope attribute from ECP state.
 
-    Returned list length: 2 (walls) + 24 (12 windows × 2 attrs) + 1 (ACH50)
-                        + 1 (HRV) + 1 (DHW) = 29 mutations.
+    Returned list length: 2 (above-grade walls) + 1 (below-grade wall)
+                        + 24 (12 windows × 2 attrs) + 1 (ACH50)
+                        + 1 (HRV) + 1 (DHW) = 2 + 1 + 24 + 1 + 1 + 1 = 30 mutations.
     """
     muts: list[MutationSpec] = []
 
@@ -132,7 +133,7 @@ def envelope_mutations(inputs: EnvelopeInputs) -> list[MutationSpec]:
 
     # HRV: SRE fraction → integer percent.  Only efficiency1 (@ 0°C) is mutated.
     muts.append(MutationSpec(
-        XPATH_HRV, "efficiency1", str(inputs.hrv_sre * 100)
+        XPATH_HRV, "efficiency1", str(int(round(inputs.hrv_sre * 100)))
     ))
 
     # DHW energy factor.
