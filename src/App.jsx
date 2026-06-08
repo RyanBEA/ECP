@@ -1,5 +1,6 @@
 import React, { useState, useMemo, useEffect } from 'react'
 import { categories, tiers, calculateWallRsi, getWallPoints } from './data/ecpData'
+import { resolveAboveGradeWallRsi } from './utils/resolveAboveGradeWallRsi'
 import CategoryCard from './components/CategoryCard'
 import WallBuilder from './components/WallBuilder'
 import PointsCounter from './components/PointsCounter'
@@ -188,7 +189,7 @@ export default function App() {
         <PerformanceTab
           selections={selections}
           wallSelection={wallSelection}
-          wallRsi={wallPoints > 0 ? calculateWallRsi(wallSelection) : 0}
+          wallRsi={resolveAboveGradeWallRsi(wallSelection)}
         />
       )}
 

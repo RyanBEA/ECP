@@ -11,7 +11,7 @@ export default function EnvelopeMirror({ ecpState, sources }) {
     ['Windows', `RSI ${ecpState.windows.rsi.toFixed(2)} · SHGC ${ecpState.windows.shgc}`, sources.windows],
     ['Airtightness', `${ecpState.airtightness_ach50} ACH₅₀`, sources.airtightness],
     ['Ventilation', `SRE ${Math.round(ecpState.hrv.sre * 100)}%`, sources.ventilation],
-    ['DHW', `EF ${ecpState.dhw.ef}`, sources.dhw],
+    ['DHW', `EF/UEF ${ecpState.dhw.ef}`, sources.dhw],
   ]
   return (
     <div className="envelope-mirror">

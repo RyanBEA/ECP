@@ -31,3 +31,11 @@ def test_parse_values_match_fixture(sample_result_path):
     assert c["nbc_target_kwh_m2"] == pytest.approx(49.09, rel=0.001)
     # (2987.9 - 2774.5) / 2987.9 * 100
     assert c["peak_cooling_improvement_pct"] == pytest.approx(7.14, abs=0.05)
+
+
+def test_parse_raises_on_missing_program_results(tmp_path):
+    import pytest
+    p = tmp_path / "bare.h2k"
+    p.write_text('<?xml version="1.0"?><HouseFile></HouseFile>', encoding="utf-8")
+    with pytest.raises(ValueError):
+        compliance.parse(p)
