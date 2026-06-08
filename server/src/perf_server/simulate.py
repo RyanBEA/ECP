@@ -1,0 +1,65 @@
+"""Orchestrator for a single perf simulation job.
+
+Pipeline:
+  1. Validate inputs (bounds checks)
+  2. Build MutationSpec list from envelope + geometry
+  3. Acquire the sim_lock (concurrency=1)
+  4. Apply mutations to a temp copy of base.h2k
+  5. Invoke HOT2000.exe via sim_harness.run_hot2000
+  6. Parse the resulting <Results> block
+  7. Return results dict with timing
+"""
+from __future__ import annotations
+
+import tempfile
+import time
+from pathlib import Path
+
+from perf_server import config, queue, results, sim_harness
+from perf_server.mutations import (
+    EnvelopeInputs,
+    GeometryInputs,
+    envelope_mutations,
+    geometry_mutations,
+    validate_envelope,
+    validate_geometry,
+)
+
+
+async def run(envelope: EnvelopeInputs, geometry: GeometryInputs) -> dict:
+    """Run one simulation. Raises BoundsError, FileNotFoundError, ValueError, etc."""
+    validate_envelope(envelope)
+    validate_geometry(geometry)
+
+    cfg = config.load()
+
+    mutations = envelope_mutations(envelope) + geometry_mutations(geometry)
+
+    async with queue.sim_lock:
+        with tempfile.TemporaryDirectory() as td:
+            td_path = Path(td)
+            mutated = td_path / "input.h2k"
+            result_file = td_path / "result.h2k"
+
+            sim_harness.apply_mutations(cfg.base_h2k_path, mutated, mutations)
+
+            start = time.monotonic()
+            run_result = sim_harness.run_hot2000(
+                h2k_input=mutated,
+                result_out=result_file,
+                cli_install=cfg.h2k_cli_path,
+                timeout_seconds=cfg.timeout_seconds,
+            )
+            duration = time.monotonic() - start
+
+            if run_result.timed_out:
+                raise TimeoutError(f"HOT2000 exceeded {cfg.timeout_seconds}s timeout")
+            if run_result.exit_code != 0:
+                raise RuntimeError(
+                    f"HOT2000 exited {run_result.exit_code}: "
+                    f"stderr={run_result.stderr.decode(errors='replace')[:500]}"
+                )
+
+            parsed = results.parse(result_file)
+            parsed["job_duration_seconds"] = duration
+            return parsed
