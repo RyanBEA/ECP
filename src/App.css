@@ -849,3 +849,14 @@ h1, h2, h3, h4, h5, h6 {
 .spinner { display: inline-block; width: 1rem; height: 1rem; border: 2px solid var(--border-color); border-top-color: var(--primary); border-radius: 50%; animation: spin 0.8s linear infinite; vertical-align: middle; }
 @keyframes spin { to { transform: rotate(360deg); } }
 .geometry-hint { font-size: 0.75rem; color: var(--text-secondary); margin-left: 0.5rem; }
+
+/* --- Costing tab --- */
+.costing-tab { display: flex; flex-direction: column; gap: 1.5rem; }
+.costing-inputs { max-width: 32rem; }
+.costing-empty { padding: 1.5rem; color: var(--text-secondary); font-style: italic; }
+.costing-table { width: 100%; border-collapse: collapse; }
+.costing-table th,
+.costing-table td { text-align: left; padding: 0.5rem 0.75rem; border-bottom: 1px solid var(--border-color); }
+.costing-table th:last-child,
+.costing-table td:last-child { text-align: right; font-variant-numeric: tabular-nums; }
+.costing-table tfoot td { font-weight: 700; border-top: 2px solid var(--border-color); border-bottom: none; }
