@@ -1,0 +1,60 @@
+# data/costs.yaml — incremental cost of each ECP upgrade above the base.h2k baseline.
+# Baseline spec is base.h2k (see src/ecpStateMapper.js BASELINE_DEFAULTS). rate/flat 0 = no increment.
+# Envelope categories use rate_per_m2 (× geometry-derived area); mechanical use flat_cad (per house).
+# Dollar values are PLACEHOLDERS seeded from bga-tier-analysis/htap_option_costs.csv — revise as needed.
+meta:
+  currency: CAD
+  baseline_source: base.h2k
+
+aboveGroundWalls:
+  basis_area: netAboveWall
+  rates:
+    - { min_rsi: 3.08, rate_per_m2: 0,  basis: "≈ base.h2k 2x6 batt", notes: "code-min; no increment" }
+    - { min_rsi: 3.69, rate_per_m2: 12, basis: "~+1in XPS continuous", notes: "+R5 exterior insulation" }
+    - { min_rsi: 3.85, rate_per_m2: 16, basis: "~+1.5in XPS", notes: "+R7 exterior" }
+    - { min_rsi: 3.96, rate_per_m2: 18, basis: "~+1.5in XPS + denser batt", notes: "" }
+    - { min_rsi: 4.29, rate_per_m2: 24, basis: "~+2in XPS + R24 batt", notes: "+R10 exterior + denser batt" }
+    - { min_rsi: 4.4,  rate_per_m2: 27, basis: "~+2in XPS", notes: "" }
+    - { min_rsi: 4.57, rate_per_m2: 30, basis: "~+2.5in XPS", notes: "" }
+    - { min_rsi: 4.73, rate_per_m2: 33, basis: "~+3in XPS", notes: "" }
+    - { min_rsi: 4.84, rate_per_m2: 36, basis: "~+3in XPS + denser batt", notes: "" }
+    - { min_rsi: 5.01, rate_per_m2: 40, basis: "~+3.5in XPS", notes: "" }
+    - { min_rsi: 5.45, rate_per_m2: 48, basis: "~+4in XPS or double-stud", notes: "" }
+
+belowGradeWalls:
+  basis_area: belowGradeWall
+  rates:
+    - { rsi: 3.09, rate_per_m2: 0,  basis: "≈ base.h2k 2x4 R14", notes: "near code-min; no increment" }
+    - { rsi: 3.46, rate_per_m2: 10, basis: "2x6 + R22 batt", notes: "" }
+    - { rsi: 3.9,  rate_per_m2: 17, basis: "2x6 + R22 + 1in XPS", notes: "" }
+
+windowsDoors:
+  basis_area: windowArea
+  rates:
+    - { u: 1.44, rate_per_m2: 195, basis: "triple-glazed mid-gain vinyl", notes: "~30% over dual-pane" }
+    - { u: 1.22, rate_per_m2: 340, basis: "triple-glazed low-gain insulating-spacer", notes: "high-performance" }
+
+airTightness:
+  flat:
+    - { ach50: 2.5, flat_cad: 0,     basis: "base.h2k air sealing", notes: "no increment" }
+    - { ach50: 2.0, flat_cad: 2500,  basis: "flat per house", notes: "better tapes/sealants, blower-verified" }
+    - { ach50: 1.5, flat_cad: 4500,  basis: "flat per house", notes: "tighter detailing" }
+    - { ach50: 1.0, flat_cad: 6000,  basis: "flat per house", notes: "continuous air barrier + QC" }
+    - { ach50: 0.6, flat_cad: 10000, basis: "flat per house", notes: "Passive-House-level airtightness" }
+
+hrv:
+  flat:
+    - { sre: 60, flat_cad: 800,  basis: "flat per unit", notes: "small premium over code-min core" }
+    - { sre: 65, flat_cad: 1200, basis: "flat per unit", notes: "better-core HRV" }
+    - { sre: 75, flat_cad: 2000, basis: "flat per unit", notes: "high-performance / ERV-grade core" }
+
+dhwElectric:
+  flat:
+    - { ef: 2.35, flat_cad: 3000, basis: "HPWH install", notes: "heat pump water heater incl. install" }
+
+dhwGas:
+  flat:
+    - { uef: 0.79, flat_cad: 0,    basis: "commercial storage", notes: "near base; no increment" }
+    - { uef: 0.83, flat_cad: 800,  basis: "residential storage premium", notes: "" }
+    - { uef: 0.85, flat_cad: 1000, basis: "commercial storage premium", notes: "" }
+    - { uef: 0.92, flat_cad: 1500, basis: "tankless condensing premium", notes: "" }

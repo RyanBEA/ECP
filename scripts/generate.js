@@ -18,6 +18,7 @@
 import { writeFileSync, existsSync, readFileSync, mkdirSync } from 'fs'
 import { dirname, join } from 'path'
 import { fileURLToPath } from 'url'
+import { load } from 'js-yaml'
 import ExcelJS from 'exceljs'
 import { loadMaterials } from './loadMaterials.js'
 import { parallelPath, steelCavityPct, woodWallRsi, steelWallRsi } from './compute.js'
@@ -228,6 +229,16 @@ function generateThresholds() {
     ],
     minWallRsi: 2.97,
   }
+}
+
+// --- Costs JSON ---
+// Pass-through of data/costs.yaml. The drift invariant (every ecpData option
+// value has a cost row) is enforced by src/data/costs.test.js, not here,
+// because generate.js runs in plain node where the @scripts alias used by
+// ecpData.js does not resolve.
+function generateCosts() {
+  const path = join(__dirname, '..', 'data', 'costs.yaml')
+  return load(readFileSync(path, 'utf8'))
 }
 
 // --- Double Stud Presets JSON ---
@@ -453,6 +464,7 @@ async function main() {
   writeJson('icf-data.json', generateIcf())
   writeJson('boundary-options.json', generateBoundaryOptions())
   writeJson('thresholds.json', generateThresholds())
+  writeJson('costs.json', generateCosts())
   writeJson('double-stud-data.json', generateDoubleStudData())
 
   await generateExcel(wallData)
