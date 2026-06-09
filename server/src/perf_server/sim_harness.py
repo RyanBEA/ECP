@@ -73,7 +73,7 @@ class ProcResult:
     stderr: bytes
 
 
-def _run_process(cmd, cwd, timeout_seconds: int, cancel_event: "threading.Event") -> ProcResult:
+def _run_process(cmd: "list[str] | str", cwd: "Path | str | None", timeout_seconds: int, cancel_event: "threading.Event") -> ProcResult:
     """Run `cmd` to completion, honoring cancellation and a wall-clock timeout.
 
     Polls every 100 ms. On cancel: terminate(), then kill() after a 2 s grace.
@@ -87,6 +87,7 @@ def _run_process(cmd, cwd, timeout_seconds: int, cancel_event: "threading.Event"
     while True:
         try:
             proc.wait(timeout=0.1)
+            # small output assumed (see docstring); communicate() below drains pipes after exit
             break  # exited on its own
         except subprocess.TimeoutExpired:
             pass
@@ -96,11 +97,17 @@ def _run_process(cmd, cwd, timeout_seconds: int, cancel_event: "threading.Event"
                 proc.wait(timeout=2)
             except subprocess.TimeoutExpired:
                 proc.kill()
-                proc.wait()
+                try:
+                    proc.wait(timeout=5)
+                except subprocess.TimeoutExpired:
+                    pass  # orphaned child holding the handle — nothing more we can do
             return ProcResult(exit_code=proc.returncode, timed_out=False, cancelled=True, stdout=b"", stderr=b"")
         if time.monotonic() - start > timeout_seconds:
             proc.kill()
-            proc.wait()
+            try:
+                proc.wait(timeout=5)
+            except subprocess.TimeoutExpired:
+                pass  # orphaned child holding the handle — nothing more we can do
             return ProcResult(exit_code=proc.returncode, timed_out=True, cancelled=False, stdout=b"", stderr=b"")
     out, err = proc.communicate()
     return ProcResult(exit_code=proc.returncode, timed_out=False, cancelled=False, stdout=out, stderr=err)
