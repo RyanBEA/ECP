@@ -8,7 +8,7 @@ from __future__ import annotations
 
 import asyncio
 import threading
-from typing import Awaitable, Callable, TypeVar
+from typing import Callable, TypeVar
 
 T = TypeVar("T")
 
@@ -32,6 +32,7 @@ class SupersedingRunner:
         when it is set. Raises Superseded if a newer run supersedes this one.
         """
         my_cancel = threading.Event()
+        # No await between here and lock acquisition: this block is atomic w.r.t. other run() coroutines.
         # Cancel whoever is currently running (or queued ahead of us).
         prev = self._current_cancel
         self._current_cancel = my_cancel

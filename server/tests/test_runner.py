@@ -21,6 +21,17 @@ def _blocking_job(work_seconds, marker, started, finished):
     return fn
 
 
+def _uncancellable_job(work_seconds, marker, started, finished):
+    """A job that ignores cancellation and runs to completion — used to hold the lock
+    long enough for a queued run to be superseded before it can acquire the lock."""
+    def fn(cancel_event):
+        started.append(marker)
+        time.sleep(work_seconds)
+        finished.append(marker)
+        return f"{marker}-result"
+    return fn
+
+
 @pytest.mark.asyncio
 async def test_single_run_returns_result():
     r = SupersedingRunner()
@@ -67,3 +78,30 @@ async def test_only_one_job_runs_at_a_time():
     out1 = await r.run(fn("X"))
     out2 = await r.run(fn("Y"))
     assert (out1, out2) == ("X", "Y")
+
+
+@pytest.mark.asyncio
+async def test_queued_run_superseded_at_lock_entry_never_starts():
+    """A holds the lock (ignoring cancel); B queues behind it; C supersedes B while B
+    is still queued. B must raise Superseded at lock entry without ever starting its job."""
+    r = SupersedingRunner()
+    started, finished = [], []
+    a = asyncio.create_task(r.run(_uncancellable_job(0.3, "A", started, finished)))
+    while "A" not in started:
+        await asyncio.sleep(0.005)               # A now holds the lock
+
+    b = asyncio.create_task(r.run(_blocking_job(5.0, "B", started, finished)))
+    await asyncio.sleep(0.02)                     # B reaches the lock and queues
+    c = asyncio.create_task(r.run(_blocking_job(0.05, "C", started, finished)))
+    await asyncio.sleep(0.02)                     # C's pre-lock block sets B's cancel + swaps current
+
+    with pytest.raises(Superseded):
+        await a                                   # A's post-job check sees B's cancel
+    with pytest.raises(Superseded):
+        await b                                   # B superseded at lock entry
+    out_c = await c
+
+    assert out_c == "C-result"
+    assert "A" in started                         # A genuinely held the lock
+    assert "B" not in started, "B was superseded while queued and must not start its job"
+    assert "C" in finished
