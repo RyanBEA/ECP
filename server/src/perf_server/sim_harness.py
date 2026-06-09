@@ -14,7 +14,6 @@ import os
 import shutil
 import subprocess
 import sys
-import tempfile
 import threading
 import time
 from dataclasses import dataclass
@@ -144,20 +143,23 @@ def run_hot2000(
 
     work_root = cli_install / "sim-harness-work"
     work_root.mkdir(exist_ok=True)
-    # Unique token from pid + a monotonic counter avoids same-second collisions.
+    # Unique name within a process; collisions are structurally prevented by the
+    # runner serializing execution (the prior run's finally-cleanup completes
+    # before the next token is generated).
     token = f"run-{os.getpid()}-{int(time.monotonic() * 1000)}"
     input_name = f"{token}.h2k"
     staged_input = work_root / input_name          # sim-harness-work/<token>.h2k
     cwd = work_root / token                         # sim-harness-work/<token>/
-    cwd.mkdir(exist_ok=True)
-    shutil.copy(h2k_input, staged_input)
-
-    cmd = [str(exe), "-inp", f"..\\{input_name}"]
-    start = time.monotonic()
-    proc_result = _run_process(cmd, cwd=cwd, timeout_seconds=timeout_seconds, cancel_event=cancel_event)
-    duration = time.monotonic() - start
 
     try:
+        cwd.mkdir(exist_ok=True)
+        shutil.copy(h2k_input, staged_input)
+
+        cmd = [str(exe), "-inp", f"..\\{input_name}"]
+        start = time.monotonic()
+        proc_result = _run_process(cmd, cwd=cwd, timeout_seconds=timeout_seconds, cancel_event=cancel_event)
+        duration = time.monotonic() - start
+
         if proc_result.cancelled:
             return RunResult(exit_code=proc_result.exit_code, timed_out=False,
                              duration_seconds=duration, stdout=proc_result.stdout,
@@ -166,12 +168,15 @@ def run_hot2000(
             return RunResult(exit_code=None, timed_out=True, duration_seconds=duration,
                              stdout=proc_result.stdout, stderr=proc_result.stderr,
                              result_path=None, cancelled=False)
+        # HOT2000 writes results in-place into the -inp file (staged_input).
         result_path = _copy_result_back(staged_input, result_out)
         return RunResult(exit_code=proc_result.exit_code, timed_out=False,
                          duration_seconds=duration, stdout=proc_result.stdout,
                          stderr=proc_result.stderr, result_path=result_path, cancelled=False)
     finally:
         # Best-effort cleanup of this run's isolated working area.
+        # On Windows an orphaned (timed-out kill) HOT2000 can still hold the file
+        # handle; cleanup is best-effort and may leave the dir in that case.
         try:
             if staged_input.exists():
                 staged_input.unlink()
