@@ -10,6 +10,7 @@ from perf_server.mutations import (
     EnvelopeInputs,
     GeometryInputs,
 )
+from perf_server.runner import Superseded
 
 
 # --- Request schemas -------------------------------------------------------
@@ -97,6 +98,8 @@ async def simulate_endpoint(req: SimulateRequest) -> dict:
 
     try:
         return await simulate.run(envelope, geometry)
+    except Superseded:
+        raise HTTPException(status_code=409, detail="superseded by a newer request")
     except BoundsError as e:
         raise HTTPException(status_code=422, detail=str(e))
     except FileNotFoundError as e:
