@@ -60,7 +60,8 @@ class RunResult:
     duration_seconds: float
     stdout: bytes
     stderr: bytes
-    result_path: Path | None  # path to the populated result .h2k, or None on failure
+    result_path: Path | None  # path to the populated result .h2k, or None on failure/cancel
+    cancelled: bool = False
 
 
 @dataclass
@@ -124,67 +125,57 @@ def run_hot2000(
     result_out: Path,
     cli_install: Path = Path(r"C:\H2K-CLI-11.12"),
     timeout_seconds: int = 300,
+    cancel_event: "threading.Event | None" = None,
 ) -> RunResult:
-    """Invoke HOT2000.exe headless on the given .h2k file.
+    """Invoke HOT2000.exe headless on the given .h2k file (cancellable).
 
-    Pattern (from C:\\HTAP\\substitute-h2k.rb:4849):
-      - cwd = a subdirectory of the CLI install
-      - h2k file is copied to the install directory
-      - argv = [HOT2000.exe, -inp, ..\\filename.h2k]
-      - HOT2000 writes results back into the same file.
-
-    Returns a RunResult. On success, `result_out` contains the post-run file.
+    Each run gets its own working subdirectory under sim-harness-work so a killed
+    run leaves no fixed-name scratch files for the next run. The input is copied to
+    sim-harness-work/<token>.h2k and HOT2000 is invoked from sim-harness-work/<token>/
+    as `-inp ..\\<token>.h2k` (one level up — same relative depth as HTAP's pattern).
     """
+    if cancel_event is None:
+        cancel_event = threading.Event()
     if not cli_install.exists():
         raise FileNotFoundError(f"HOT2000 CLI install not found at {cli_install}")
     exe = cli_install / "HOT2000.exe"
     if not exe.exists():
         raise FileNotFoundError(f"HOT2000.exe not found at {exe}")
 
-    # Use a deterministic subdirectory of the install for cwd, and a fresh
-    # filename to avoid colliding with concurrent runs.
-    timestamp = time.strftime("%Y%m%d-%H%M%S")
-    pid = os.getpid()
-    working_name = f"sim-harness-run-{timestamp}-{pid}.h2k"
-    working_path = cli_install / working_name
-    shutil.copy(h2k_input, working_path)
-
-    # cwd: a subdirectory of the install. Create if needed.
-    cwd = cli_install / "sim-harness-work"
+    work_root = cli_install / "sim-harness-work"
+    work_root.mkdir(exist_ok=True)
+    # Unique token from pid + a monotonic counter avoids same-second collisions.
+    token = f"run-{os.getpid()}-{int(time.monotonic() * 1000)}"
+    input_name = f"{token}.h2k"
+    staged_input = work_root / input_name          # sim-harness-work/<token>.h2k
+    cwd = work_root / token                         # sim-harness-work/<token>/
     cwd.mkdir(exist_ok=True)
+    shutil.copy(h2k_input, staged_input)
 
-    cmd = [str(exe), "-inp", f"..\\{working_name}"]
+    cmd = [str(exe), "-inp", f"..\\{input_name}"]
     start = time.monotonic()
+    proc_result = _run_process(cmd, cwd=cwd, timeout_seconds=timeout_seconds, cancel_event=cancel_event)
+    duration = time.monotonic() - start
+
     try:
-        completed = subprocess.run(
-            cmd, cwd=str(cwd),
-            timeout=timeout_seconds,
-            capture_output=True,
-        )
-        duration = time.monotonic() - start
-        result_path = _copy_result_back(working_path, result_out)
-        return RunResult(
-            exit_code=completed.returncode,
-            timed_out=False,
-            duration_seconds=duration,
-            stdout=completed.stdout,
-            stderr=completed.stderr,
-            result_path=result_path,
-        )
-    except subprocess.TimeoutExpired as exc:
-        duration = time.monotonic() - start
-        return RunResult(
-            exit_code=None,
-            timed_out=True,
-            duration_seconds=duration,
-            stdout=exc.stdout or b"",
-            stderr=exc.stderr or b"",
-            result_path=None,
-        )
+        if proc_result.cancelled:
+            return RunResult(exit_code=proc_result.exit_code, timed_out=False,
+                             duration_seconds=duration, stdout=proc_result.stdout,
+                             stderr=proc_result.stderr, result_path=None, cancelled=True)
+        if proc_result.timed_out:
+            return RunResult(exit_code=None, timed_out=True, duration_seconds=duration,
+                             stdout=proc_result.stdout, stderr=proc_result.stderr,
+                             result_path=None, cancelled=False)
+        result_path = _copy_result_back(staged_input, result_out)
+        return RunResult(exit_code=proc_result.exit_code, timed_out=False,
+                         duration_seconds=duration, stdout=proc_result.stdout,
+                         stderr=proc_result.stderr, result_path=result_path, cancelled=False)
     finally:
-        # Best-effort cleanup of working file. Caller already has result_out.
+        # Best-effort cleanup of this run's isolated working area.
         try:
-            if working_path.exists() and result_out.exists():
-                working_path.unlink()
+            if staged_input.exists():
+                staged_input.unlink()
+            if cwd.exists():
+                shutil.rmtree(cwd, ignore_errors=True)
         except OSError:
             pass
