@@ -6,6 +6,7 @@ import WallBuilder from './components/WallBuilder'
 import PointsCounter from './components/PointsCounter'
 import PrintSummary from './components/PrintSummary'
 import PerformanceTab from './components/PerformanceTab'
+import CostingTab from './components/CostingTab'
 
 export default function App() {
   // Track dark mode - default to system preference
@@ -28,6 +29,11 @@ export default function App() {
 
   // Track wall builder selections separately
   const [wallSelection, setWallSelection] = useState({})
+
+  // Geometry shared by the Performance and Costing tabs.
+  const [geometry, setGeometry] = useState({ length_m: 10, width_m: 8, fdwr: 0.17 })
+  const handleGeometryChange = (field, value) =>
+    setGeometry(prev => ({ ...prev, [field]: value }))
 
   // Handle option selection for standard categories
   const handleSelect = (categoryId, optionIndex) => {
@@ -157,6 +163,10 @@ export default function App() {
           className={activeTab === 'performance' ? 'tab active' : 'tab'}
           onClick={() => setActiveTab('performance')}
         >Performance</button>
+        <button
+          className={activeTab === 'costing' ? 'tab active' : 'tab'}
+          onClick={() => setActiveTab('costing')}
+        >Costing</button>
       </div>
 
       {activeTab === 'prescriptive' ? (
@@ -185,11 +195,21 @@ export default function App() {
             )
           })}
         </main>
-      ) : (
+      ) : activeTab === 'performance' ? (
         <PerformanceTab
           selections={selections}
           wallSelection={wallSelection}
           wallRsi={resolveAboveGradeWallRsi(wallSelection)}
+          geometry={geometry}
+          onGeometryChange={handleGeometryChange}
+        />
+      ) : (
+        <CostingTab
+          selections={selections}
+          wallSelection={wallSelection}
+          wallRsi={resolveAboveGradeWallRsi(wallSelection)}
+          geometry={geometry}
+          onGeometryChange={handleGeometryChange}
         />
       )}
 
@@ -208,7 +228,7 @@ export default function App() {
           >
             Save / Print
           </button>
-          <span className="footer-version">v1.2.0 — Updated 2026-06-08</span>
+          <span className="footer-version">v1.3.0 — Updated 2026-06-09</span>
         </div>
       </footer>
 

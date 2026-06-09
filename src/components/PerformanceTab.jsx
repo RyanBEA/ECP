@@ -8,8 +8,7 @@ import PerfResults from './PerfResults'
 const FDWR_MIN = 0.05
 const FDWR_MAX = 0.40
 
-export default function PerformanceTab({ selections, wallSelection, wallRsi }) {
-  const [geometry, setGeometry] = useState({ length_m: 10, width_m: 8, fdwr: 0.17 })
+export default function PerformanceTab({ selections, wallSelection, wallRsi, geometry, onGeometryChange }) {
   const [result, setResult] = useState({ status: 'idle', data: null, error: null })
   const [fdwrError, setFdwrError] = useState(null)
 
@@ -19,7 +18,7 @@ export default function PerformanceTab({ selections, wallSelection, wallRsi }) {
   )
 
   const onChange = (field, value) => {
-    setGeometry(prev => ({ ...prev, [field]: value }))
+    onGeometryChange(field, value)
     if (field === 'fdwr') setFdwrError(null)
   }
 

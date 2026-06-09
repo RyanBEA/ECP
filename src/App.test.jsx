@@ -30,4 +30,10 @@ describe('App tabs', () => {
     expect(screen.getByText(/YOUR DESIGN/i)).toBeTruthy()
     expect(screen.getByRole('button', { name: /run simulation/i })).toBeTruthy()
   })
+
+  it('switches to the Costing tab', () => {
+    render(<App />)
+    fireEvent.click(screen.getByRole('button', { name: /^Costing$/i }))
+    expect(screen.getByText(/No upgrades selected/i)).toBeTruthy()
+  })
 })
