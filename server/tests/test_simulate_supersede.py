@@ -13,13 +13,10 @@ ENV = EnvelopeInputs(above_grade_wall_rsi=4.5, below_grade_wall_rsi=2.5, window_
 GEO = GeometryInputs(length_m=10.0, width_m=8.0, fdwr=0.17)
 
 
-@pytest.fixture(autouse=True)
-def fresh_runner(monkeypatch):
-    monkeypatch.setattr(simulate, "_runner", runner.SupersedingRunner())
-
-
-def _fake_run_hot2000_factory(work_seconds):
+def _fake_run_hot2000_factory(work_seconds, entered=None):
     def fake(h2k_input, result_out, cli_install, timeout_seconds, cancel_event):
+        if entered is not None:
+            entered.set()  # signal the job is now running inside the thread
         deadline = time.monotonic() + work_seconds
         while time.monotonic() < deadline:
             if cancel_event.is_set():
@@ -36,9 +33,12 @@ def _fake_run_hot2000_factory(work_seconds):
 
 @pytest.mark.asyncio
 async def test_superseded_run_raises(monkeypatch):
-    monkeypatch.setattr(sim_harness, "run_hot2000", _fake_run_hot2000_factory(5.0))
+    a_entered = threading.Event()
+    monkeypatch.setattr(sim_harness, "run_hot2000", _fake_run_hot2000_factory(5.0, a_entered))
     a = asyncio.create_task(simulate.run(ENV, GEO))
-    await asyncio.sleep(0.1)  # let A enter the runner
+    while not a_entered.is_set():        # wait until A's job is actually running
+        await asyncio.sleep(0.01)
+    # _job resolves sim_harness.run_hot2000 at call time, so swapping it now affects B only.
     monkeypatch.setattr(sim_harness, "run_hot2000", _fake_run_hot2000_factory(0.05))
     b = asyncio.create_task(simulate.run(ENV, GEO))
     with pytest.raises(runner.Superseded):

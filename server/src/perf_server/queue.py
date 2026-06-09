@@ -10,4 +10,5 @@ from perf_server import simulate
 
 
 def depth() -> int:
+    # Coupled to simulate._runner by name; if that private attribute is renamed, update here.
     return 1 if simulate._runner.busy() else 0
