@@ -4,6 +4,7 @@ import { postSimulate } from '../api/simulate'
 import EnvelopeMirror from './EnvelopeMirror'
 import GeometryInputs from './GeometryInputs'
 import PerfResults from './PerfResults'
+import HouseElevation from './HouseElevation'
 
 const FDWR_MIN = 0.05
 const FDWR_MAX = 0.40
@@ -61,6 +62,7 @@ export default function PerformanceTab({ selections, wallSelection, wallRsi, geo
         <div className="run-hint">~8–15 s · inputs stay editable while it runs</div>
       </div>
       <div className="performance-output">
+        <HouseElevation lengthM={geometry.length_m} widthM={geometry.width_m} fdwr={geometry.fdwr} />
         <PerfResults result={result} />
       </div>
     </div>

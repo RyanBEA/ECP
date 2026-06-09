@@ -812,6 +812,9 @@ h1, h2, h3, h4, h5, h6 {
 .performance-output { flex: 1; position: sticky; top: 1rem; }
 @media (max-width: 720px) { .performance-tab { flex-direction: column; } }
 
+.house-elevation { margin-bottom: 1rem; background: transparent; }
+.house-elevation svg { width: 100%; height: auto; display: block; }
+
 .envelope-mirror .mirror-table { width: 100%; border-collapse: collapse; margin: 0.5rem 0 1rem; }
 .envelope-mirror td { padding: 0.3rem 0.4rem; border-bottom: 1px solid var(--border-color); }
 .mirror-tag { font-size: 0.7rem; padding: 0 0.35rem; border-radius: 3px; }
