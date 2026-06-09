@@ -15,6 +15,7 @@ import shutil
 import subprocess
 import sys
 import tempfile
+import threading
 import time
 from dataclasses import dataclass
 from pathlib import Path
@@ -60,6 +61,49 @@ class RunResult:
     stdout: bytes
     stderr: bytes
     result_path: Path | None  # path to the populated result .h2k, or None on failure
+
+
+@dataclass
+class ProcResult:
+    """Outcome of one cancellable subprocess invocation."""
+    exit_code: int | None
+    timed_out: bool
+    cancelled: bool
+    stdout: bytes
+    stderr: bytes
+
+
+def _run_process(cmd, cwd, timeout_seconds: int, cancel_event: "threading.Event") -> ProcResult:
+    """Run `cmd` to completion, honoring cancellation and a wall-clock timeout.
+
+    Polls every 100 ms. On cancel: terminate(), then kill() after a 2 s grace.
+    HOT2000's console output is tiny, so buffering on the pipes is not a concern.
+    """
+    proc = subprocess.Popen(
+        cmd, cwd=str(cwd) if cwd is not None else None,
+        stdout=subprocess.PIPE, stderr=subprocess.PIPE,
+    )
+    start = time.monotonic()
+    while True:
+        try:
+            proc.wait(timeout=0.1)
+            break  # exited on its own
+        except subprocess.TimeoutExpired:
+            pass
+        if cancel_event.is_set():
+            proc.terminate()
+            try:
+                proc.wait(timeout=2)
+            except subprocess.TimeoutExpired:
+                proc.kill()
+                proc.wait()
+            return ProcResult(exit_code=proc.returncode, timed_out=False, cancelled=True, stdout=b"", stderr=b"")
+        if time.monotonic() - start > timeout_seconds:
+            proc.kill()
+            proc.wait()
+            return ProcResult(exit_code=proc.returncode, timed_out=True, cancelled=False, stdout=b"", stderr=b"")
+    out, err = proc.communicate()
+    return ProcResult(exit_code=proc.returncode, timed_out=False, cancelled=False, stdout=out, stderr=err)
 
 
 def _copy_result_back(working_h2k: Path, result_out: Path) -> Path:
