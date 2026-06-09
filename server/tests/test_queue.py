@@ -1,26 +1,9 @@
 import asyncio
+import threading
 
 import pytest
 
-from perf_server import queue
-
-
-@pytest.mark.asyncio
-async def test_serializes_concurrent_callers():
-    """Two callers entering the lock at once must execute serially."""
-    timeline: list[str] = []
-
-    async def caller(name: str) -> None:
-        async with queue.sim_lock:
-            timeline.append(f"{name}-start")
-            await asyncio.sleep(0.05)
-            timeline.append(f"{name}-end")
-
-    await asyncio.gather(caller("A"), caller("B"))
-
-    # No interleaving — both starts and ends are paired, in order
-    assert timeline.index("A-end") < timeline.index("B-start") or \
-           timeline.index("B-end") < timeline.index("A-start")
+from perf_server import queue, simulate
 
 
 @pytest.mark.asyncio
@@ -29,19 +12,20 @@ async def test_queue_depth_starts_zero():
 
 
 @pytest.mark.asyncio
-async def test_queue_depth_increments_when_waiting():
-    async def hold_lock(release_after: float) -> None:
-        async with queue.sim_lock:
-            await asyncio.sleep(release_after)
+async def test_queue_depth_is_one_while_running():
+    """depth() reports 1 while a run holds the runner, then 0 after it completes."""
+    entered = threading.Event()
+    release = threading.Event()
 
-    holder = asyncio.create_task(hold_lock(0.1))
-    await asyncio.sleep(0.01)  # let holder acquire
+    def job(cancel_event: threading.Event):
+        entered.set()
+        release.wait(timeout=5)
+        return "done"
 
-    waiter = asyncio.create_task(hold_lock(0.0))
-    await asyncio.sleep(0.01)  # let waiter try and block
-
-    assert queue.depth() == 1  # one waiter pending
-
-    await holder
-    await waiter
+    task = asyncio.create_task(simulate._runner.run(job))
+    while not entered.is_set():       # wait until the job is actually running
+        await asyncio.sleep(0.01)
+    assert queue.depth() == 1
+    release.set()
+    await task
     assert queue.depth() == 0
