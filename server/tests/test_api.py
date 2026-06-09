@@ -86,3 +86,11 @@ def test_simulate_endpoint_passes_through_compliance():
         response = client.post("/api/simulate", json=VALID_REQUEST)
     assert response.status_code == 200, response.text
     assert response.json()["compliance"]["tier"] == 2
+
+
+def test_superseded_run_returns_409():
+    from perf_server.runner import Superseded
+    with patch("perf_server.api.simulate.run", new=AsyncMock(side_effect=Superseded())):
+        response = client.post("/api/simulate", json=VALID_REQUEST)
+    assert response.status_code == 409
+    assert "supersed" in response.json()["detail"].lower()

@@ -3,7 +3,8 @@
 Pipeline:
   1. Validate inputs (bounds checks)
   2. Build MutationSpec list from envelope + geometry
-  3. Acquire the sim_lock (concurrency=1)
+  3. Submit the job to the superseding runner (a new request cancels the
+     in-flight one; the superseded run raises Superseded)
   4. Apply mutations to a temp copy of base.h2k
   5. Invoke HOT2000.exe via sim_harness.run_hot2000
   6. Parse the resulting <Results> block
@@ -17,7 +18,8 @@ from pathlib import Path
 
 from lxml import etree
 
-from perf_server import compliance, config, queue, results, sim_harness
+from perf_server import compliance, config, results, sim_harness
+from perf_server import runner as _runner_mod
 from perf_server.mutations import (
     EnvelopeInputs,
     GeometryInputs,
@@ -26,6 +28,8 @@ from perf_server.mutations import (
     validate_envelope,
     validate_geometry,
 )
+
+_runner = _runner_mod.SupersedingRunner()
 
 
 async def run(envelope: EnvelopeInputs, geometry: GeometryInputs) -> dict:
@@ -40,7 +44,7 @@ async def run(envelope: EnvelopeInputs, geometry: GeometryInputs) -> dict:
     # baseboard at 100% is used regardless of request.
     mutations = envelope_mutations(envelope) + geometry_mutations(geometry)
 
-    async with queue.sim_lock:
+    def _job(cancel_event):
         with tempfile.TemporaryDirectory() as td:
             td_path = Path(td)
             mutated = td_path / "input.h2k"
@@ -66,9 +70,14 @@ async def run(envelope: EnvelopeInputs, geometry: GeometryInputs) -> dict:
                 result_out=result_file,
                 cli_install=cfg.h2k_cli_path,
                 timeout_seconds=cfg.timeout_seconds,
+                cancel_event=cancel_event,
             )
             duration = time.monotonic() - start
 
+            if run_result.cancelled:
+                # Superseded: the runner already set our cancel event and will
+                # raise Superseded after we return. Return value is ignored.
+                return None
             if run_result.timed_out:
                 raise TimeoutError(f"HOT2000 exceeded {cfg.timeout_seconds}s timeout")
             if run_result.exit_code != 0:
@@ -81,3 +90,5 @@ async def run(envelope: EnvelopeInputs, geometry: GeometryInputs) -> dict:
             parsed["compliance"] = compliance.parse(result_file)
             parsed["job_duration_seconds"] = duration
             return parsed
+
+    return await _runner.run(_job)

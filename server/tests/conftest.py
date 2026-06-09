@@ -1,21 +1,19 @@
-import asyncio
 from pathlib import Path
 
 import pytest
 
-from perf_server import queue
+from perf_server import runner, simulate
 
 
 @pytest.fixture(autouse=True)
-def reset_sim_lock() -> None:
-    """Replace sim_lock with a fresh Lock bound to the current event loop.
+def reset_runner() -> None:
+    """Give each test a fresh SupersedingRunner.
 
-    asyncio.Lock binds to the running loop on first acquire; a module-level
-    lock acquired in one test's loop raises RuntimeError in the next test's
-    loop. Re-creating it here keeps each test isolated without changing loop
-    scopes project-wide.
+    SupersedingRunner holds an asyncio.Lock, which binds to the running loop on
+    first use; a module-level runner reused across tests' event loops raises
+    RuntimeError. Re-creating it per test keeps each test isolated.
     """
-    queue.sim_lock = asyncio.Lock()
+    simulate._runner = runner.SupersedingRunner()
 
 
 @pytest.fixture

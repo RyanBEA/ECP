@@ -47,3 +47,13 @@ Flag for a future robustness pass (per-run working-dir isolation and/or retry).
 `uv` was not on PATH in the automation shell; the project venv at
 `server/.venv/Scripts/python.exe` (with `PYTHONPATH=server/src`) was used directly to
 run probes and `pytest`.
+
+## Supersede cancellation (ECP2-6g0)
+
+Concurrency is now latest-wins: a new /api/simulate cancels the in-flight run
+(SupersedingRunner + a cancellable Popen loop in sim_harness._run_process). A
+superseded request returns HTTP 409 ("superseded by a newer request"); the client
+ignores it. Each run executes in an isolated sim-harness-work/<token>/ cwd that is
+removed afterward, so a killed run leaves no scratch files. Only one HOT2000 process
+runs at a time. Per-session keying is deferred (single-user assumption); a shared
+worker still contends across concurrent users if/when public deployment is resolved.
