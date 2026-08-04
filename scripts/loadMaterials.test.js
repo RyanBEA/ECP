@@ -65,6 +65,6 @@ describe('loadMaterials', () => {
   it('has ICF properties', () => {
     expect(m.icf.eps_rsi_per_mm).toBe(0.026)
     expect(m.icf.concrete_core_mm).toBe(152.4)
-    expect(m.icf.forms).toHaveLength(3)
+    expect(m.icf.forms).toHaveLength(4)
   })
 })

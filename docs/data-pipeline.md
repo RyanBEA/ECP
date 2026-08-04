@@ -111,7 +111,7 @@ All JSON files are written to `src/data/generated/`. They are committed to versi
 |------|---------|-----------------|
 | `wall-data.json` | 87 wood + 42 steel combos | Pre-computed parallel-path RSI for every combination of wall type, stud spacing, insulation material, and cavity size. This is the main lookup table. |
 | `continuous-ins.json` | 5 materials x 5 thicknesses | RSI values for rigid exterior insulation boards (EPS, XPS, Polyiso, Mineral Wool Rock Wool, Mineral Wool Glass Fibre). |
-| `icf-data.json` | 3 form sizes | ICF form RSI and concrete core RSI for 2-1/2", 3-1/8", and 4-1/4" forms. |
+| `icf-data.json` | 4 form sizes | ICF form RSI and concrete core RSI for 2-1/2", 2-3/4", 3-1/8", and 4-1/4" forms. |
 | `boundary-options.json` | 7 sheathing + 8 cladding options | Selectable cladding and sheathing choices with RSI values, plus fixed values for air films, drywall, and steel air space. |
 | `thresholds.json` | 11 wall thresholds + minimum RSI | ECP point thresholds: the RSI values required to earn each point level, plus the 2.97 RSI code minimum. |
 | `double-stud-data.json` | 72 presets | Pre-computed RSI for double stud wall configurations (two stud rows on a wider plate with blown insulation). |

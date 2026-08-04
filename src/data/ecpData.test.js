@@ -191,6 +191,7 @@ describe('backward compatibility', () => {
 
   it('icfRsi has all form thicknesses', () => {
     expect(icfRsi['2-1/2"']).toBeGreaterThan(3)
+    expect(icfRsi['2-3/4"']).toBeGreaterThan(3.5)
     expect(icfRsi['3-1/8"']).toBeGreaterThan(4)
     expect(icfRsi['4-1/4"']).toBeGreaterThan(5)
   })

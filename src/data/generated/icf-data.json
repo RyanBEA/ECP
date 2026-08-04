@@ -10,6 +10,12 @@
       "concrete_rsi": 0.06096
     },
     {
+      "label": "2-3/4\"",
+      "thickness_mm": 69.85,
+      "total_form_rsi": 3.6322,
+      "concrete_rsi": 0.06096
+    },
+    {
       "label": "3-1/8\"",
       "thickness_mm": 79.375,
       "total_form_rsi": 4.1275,

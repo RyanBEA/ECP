@@ -8,7 +8,7 @@
  *   - Steel single-stud: 42 combos
  *   - Double stud: 72 combos
  *   - Continuous insulation: 25 combos
- *   - ICF forms: 3 combos
+ *   - ICF forms: 4 combos
  *   - Boundary options: 15 combos (7 sheathing + 8 cladding)
  *   - Thresholds: 11 entries + structural checks
  */

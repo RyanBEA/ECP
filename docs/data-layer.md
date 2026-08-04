@@ -80,7 +80,7 @@ Runtime RSI calculation functions, bundled into the React app via `@scripts` Vit
 | `cavityTypesByMaterial` | Object | Cavity sizes per material (includes deep cavities) |
 | `continuousInsTypes` | Array | EPS, XPS, Polyiso, Mineral Wool (Rock Wool), Mineral Wool (Glass Fibre) |
 | `continuousInsThicknesses` | Array | None, 1", 1-1/2", 2", 2-1/2", 3" |
-| `icfFormOptions` | Array | 2-1/2", 3-1/8", 4-1/4" |
+| `icfFormOptions` | Array | 2-1/2", 2-3/4", 3-1/8", 4-1/4" |
 | `framedWallRsi` | Object | Pre-computed RSI lookup (backward compat) |
 | `continuousInsRsi` | Object | Continuous insulation RSI lookup |
 | `icfRsi` | Object | ICF total RSI lookup |

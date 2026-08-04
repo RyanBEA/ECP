@@ -186,7 +186,7 @@ export default function App() {
           >
             Save / Print
           </button>
-          <span className="footer-version">v1.0.1 — Updated 2026-04-16</span>
+          <span className="footer-version">v1.0.2 — Updated 2026-08-04</span>
         </div>
       </footer>
 
