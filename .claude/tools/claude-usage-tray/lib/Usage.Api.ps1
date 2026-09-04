@@ -11,6 +11,7 @@ $script:AuthBackoffSec    = 300
 $script:MaxBackoffSec     = 3600
 $script:SkewSeconds       = 60
 $script:ExpiredMsg        = 'Auth expired - open Claude Code to refresh'
+$script:CredSourceError   = $null
 
 $script:LogDir  = Join-Path $env:LOCALAPPDATA 'claude-usage-tray'
 $script:LogFile = Join-Path $script:LogDir 'tray.log'
@@ -43,23 +44,78 @@ function Get-CredentialPath {
     return (Join-Path $dir '.credentials.json')
 }
 
-function Get-StoredCredential {
-    # READ ONLY. Claude Code owns token rotation; this tool never writes here
-    # and never reads refreshToken.
+function ConvertTo-Credential {
+    # PURE: raw credentials JSON text -> @{ Token; ExpiresAtUtc } or $null.
+    # Shared by the local-file and SSH sources. Never reads refreshToken.
+    param([string]$JsonText)
+    if ([string]::IsNullOrWhiteSpace($JsonText)) { return $null }
+    $json  = $JsonText | ConvertFrom-Json -ErrorAction Stop
+    $oauth = Get-Prop $json 'claudeAiOauth'
+    $tok   = [string](Get-Prop $oauth 'accessToken')
+    if ([string]::IsNullOrWhiteSpace($tok)) { return $null }
+    return @{ Token = $tok; ExpiresAtUtc = (ConvertTo-ExpiryUtc (Get-Prop $oauth 'expiresAt')) }
+}
+
+function Select-FreshestCredential {
+    # PURE: from candidate credentials, pick the one whose token expires last.
+    # Unknown expiry ranks lowest. $null candidates are skipped.
+    param($Candidates)
+    $best = $null
+    foreach ($c in @($Candidates)) {
+        if ($null -eq $c) { continue }
+        if ($null -eq $best) { $best = $c; continue }
+        $ce = $c.ExpiresAtUtc; $be = $best.ExpiresAtUtc
+        if ($null -eq $ce) { continue }
+        if ($null -eq $be -or $ce -gt $be) { $best = $c }
+    }
+    return $best
+}
+
+function Get-LocalCredentialText {
     $path = Get-CredentialPath
     if (-not (Test-Path $path)) { return $null }
+    return (Get-Content $path -Raw -ErrorAction Stop)
+}
+
+function Get-SshCredentialText {
+    # Read the credentials file from a machine where Claude Code actually runs
+    # and therefore keeps its token fresh. READ ONLY. BatchMode: never prompt -
+    # a prompt would hang the hidden tray process.
+    param([string]$SshHost)
+    $out = & ssh -o BatchMode=yes -o ConnectTimeout=5 -o StrictHostKeyChecking=accept-new `
+                 $SshHost 'cat ~/.claude/.credentials.json' 2>$null
+    if ($LASTEXITCODE -ne 0 -or -not $out) { return $null }
+    return ($out -join "`n")
+}
+
+function Get-StoredCredential {
+    # Reads BOTH the local file and, if CLAUDE_USAGE_TRAY_SSH=user@host is set,
+    # the server's file - then uses whichever token expires later. Local covers
+    # days you work here; the server covers SSH days. Claude Code owns token
+    # rotation; this tool never writes credentials anywhere and never reads
+    # refreshToken. Sets $script:CredSourceError when a source failed.
+    $script:CredSourceError = $null
+    $candidates = @()
     try {
-        $json  = Get-Content $path -Raw -ErrorAction Stop | ConvertFrom-Json -ErrorAction Stop
-        $oauth = Get-Prop $json 'claudeAiOauth'
-        $tok   = [string](Get-Prop $oauth 'accessToken')
-        if ([string]::IsNullOrWhiteSpace($tok)) { return $null }
-        return @{ Token = $tok; ExpiresAtUtc = (ConvertTo-ExpiryUtc (Get-Prop $oauth 'expiresAt')) }
+        $t = Get-LocalCredentialText
+        if ($t) { $candidates += ConvertTo-Credential $t }
     } catch {
-        # Log the exception TYPE only. A raw error record can embed fragments
-        # of the file being parsed - i.e. the access token.
-        Write-TrayLog ('Failed to read credentials ({0})' -f $_.Exception.GetType().Name)
-        return $null
+        # Log the exception TYPE only - a raw error record can embed fragments
+        # of the text being parsed, i.e. the access token.
+        Write-TrayLog ('Failed to read local credentials ({0})' -f $_.Exception.GetType().Name)
     }
+    $sshHost = $env:CLAUDE_USAGE_TRAY_SSH
+    if ($sshHost) {
+        try {
+            $t = Get-SshCredentialText $sshHost
+            if ($t) { $candidates += ConvertTo-Credential $t }
+            else    { $script:CredSourceError = "Server unreachable ($sshHost)" }
+        } catch {
+            Write-TrayLog ('Failed to read SSH credentials ({0})' -f $_.Exception.GetType().Name)
+            $script:CredSourceError = "Server unreachable ($sshHost)"
+        }
+    }
+    return (Select-FreshestCredential $candidates)
 }
 
 function Invoke-UsageFetch {
@@ -71,7 +127,7 @@ function Invoke-UsageFetch {
 
     $cred = Get-StoredCredential
     if ($null -eq $cred) {
-        $script:State.ErrorText = 'Claude Code not signed in'
+        $script:State.ErrorText = if ($script:CredSourceError) { $script:CredSourceError } else { 'Claude Code not signed in' }
         return
     }
 

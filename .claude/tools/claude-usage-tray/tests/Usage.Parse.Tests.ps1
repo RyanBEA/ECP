@@ -197,4 +197,31 @@ Assert-Null -Value (Get-WorstBucket @())   -Name 'no buckets yields null, not a 
 Assert-Null -Value (Get-WorstBucket $null) -Name 'null buckets yields null'
 Assert-Equal -Expected 'No usage data' -Actual (Get-TooltipText @{ Buckets=@(); Spend=$null; FetchedUtc=$null; LastAttemptUtc=$null; ErrorText=$null; BackoffUntil=[DateTime]::MinValue }) -Name 'pre-fetch tooltip is the neutral empty text'
 
+. "$PSScriptRoot/../lib/Usage.Api.ps1"
+
+Write-Host "`nConvertTo-Credential" -ForegroundColor Cyan
+# Fake token; shape mirrors the real file (extra keys present, refreshToken ignored).
+$credJson = '{ "claudeAiOauth": { "accessToken": "sk-ant-oat01-FAKE", "refreshToken": "sk-ant-ort01-FAKE",
+                "expiresAt": 1788571154875, "scopes": ["user:inference"], "subscriptionType": "max" } }'
+$cred = ConvertTo-Credential $credJson
+Assert-Equal -Expected 'sk-ant-oat01-FAKE' -Actual $cred.Token -Name 'access token is read'
+Assert-Equal -Expected '2026-09-05T01:19:14Z' -Actual $cred.ExpiresAtUtc.ToString('yyyy-MM-ddTHH:mm:ssZ') -Name 'expiresAt (ms) is parsed'
+Assert-Equal -Expected $false -Actual $cred.ContainsKey('RefreshToken') -Name 'refreshToken is never carried'
+Assert-Null -Value (ConvertTo-Credential '{ "claudeAiOauth": { "accessToken": "" } }') -Name 'empty token yields null'
+Assert-Null -Value (ConvertTo-Credential '{}')  -Name 'missing claudeAiOauth yields null, no strict-mode throw'
+Assert-Null -Value (ConvertTo-Credential '')    -Name 'empty text yields null'
+
+Write-Host "`nSelect-FreshestCredential" -ForegroundColor Cyan
+$t0 = [DateTime]::SpecifyKind([DateTime]::Parse('2026-09-04T12:00:00'), 'Utc')
+$older = @{ Token = 'OLD'; ExpiresAtUtc = $t0 }
+$newer = @{ Token = 'NEW'; ExpiresAtUtc = $t0.AddHours(6) }
+$unknown = @{ Token = 'UNK'; ExpiresAtUtc = $null }
+Assert-Equal -Expected 'NEW' -Actual (Select-FreshestCredential @($older, $newer)).Token -Name 'later expiry wins'
+Assert-Equal -Expected 'NEW' -Actual (Select-FreshestCredential @($newer, $older)).Token -Name 'order does not matter'
+Assert-Equal -Expected 'OLD' -Actual (Select-FreshestCredential @($unknown, $older)).Token -Name 'known expiry beats unknown'
+Assert-Equal -Expected 'UNK' -Actual (Select-FreshestCredential @($unknown)).Token -Name 'sole unknown-expiry candidate is still used'
+Assert-Equal -Expected 'OLD' -Actual (Select-FreshestCredential @($null, $older, $null)).Token -Name 'null candidates (failed sources) are skipped'
+Assert-Null -Value (Select-FreshestCredential @()) -Name 'no candidates yields null'
+Assert-Null -Value (Select-FreshestCredential @($null)) -Name 'all sources failed yields null'
+
 exit (Invoke-TestSummary)
