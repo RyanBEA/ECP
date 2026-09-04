@@ -246,3 +246,55 @@ function Get-UsageBuckets {
     $sorted = @($buckets.Values | Sort-Object -Property @{ Expression = { $_.Util }; Descending = $true })
     return $sorted
 }
+
+function ConvertTo-Money {
+    # The API sends money as minor units plus an exponent, with an explicit
+    # currency. 5009 with exponent 2 is 50.09. Never assume USD or 2 decimals.
+    param($MoneyNode)
+    $minor = Get-Prop $MoneyNode 'amount_minor'
+    if ($null -eq $minor) { return $null }
+    $exp = 0
+    $rawExp = Get-Prop $MoneyNode 'exponent'
+    if ($null -ne $rawExp) { $exp = [int]$rawExp }
+    $amount = [double]$minor / [math]::Pow(10, $exp)
+    $cur = [string](Get-Prop $MoneyNode 'currency')
+    return @{
+        Amount   = $amount
+        Currency = $cur
+        Text     = ('{0} {1}' -f $amount.ToString("F$exp", [cultureinfo]::InvariantCulture), $cur)
+    }
+}
+
+function Get-SpendInfo {
+    # Extra-usage credits. Returns $null when spend is absent or disabled, so
+    # callers can simply omit the line.
+    param($Response)
+    $s = Get-Prop $Response 'spend'
+    if ($null -eq $s -or -not [bool](Get-Prop $s 'enabled')) { return $null }
+
+    $used  = ConvertTo-Money (Get-Prop $s 'used')
+    $limit = ConvertTo-Money (Get-Prop $s 'limit')
+    if ($null -eq $used -or $null -eq $limit) { return $null }
+
+    $pct = 0.0
+    $rawPct = Get-Prop $s 'percent'
+    if ($null -ne $rawPct) { $pct = [double]$rawPct / 100.0 }
+    if ($pct -gt 1.0) { $pct = 1.0 }
+    if ($pct -lt 0.0) { $pct = 0.0 }
+
+    $exp = 0
+    $rawExp = Get-Prop (Get-Prop $s 'used') 'exponent'
+    if ($null -ne $rawExp) { $exp = [int]$rawExp }
+    $inv = [cultureinfo]::InvariantCulture
+
+    return @{
+        Used      = $used
+        Limit     = $limit
+        Percent   = $pct
+        Severity  = [string](Get-Prop $s 'severity')
+        Exhausted = ($used.Amount -ge $limit.Amount)
+        Text      = ('{0} / {1} {2}' -f $used.Amount.ToString("F$exp", $inv),
+                                        $limit.Amount.ToString("F$exp", $inv),
+                                        $used.Currency)
+    }
+}

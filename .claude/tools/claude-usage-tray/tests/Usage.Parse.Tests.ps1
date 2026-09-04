@@ -135,4 +135,28 @@ $sparse = '{ "five_hour": { "utilization": 5, "resets_at": null }, "limits": [ {
              "member_dashboard_available": false }' | ConvertFrom-Json
 Assert-Equal -Expected 1 -Actual @(Get-UsageBuckets $sparse).Count -Name 'sparse limits entry and scalar top-level values do not throw'
 
+Write-Host "`nConvertTo-Money" -ForegroundColor Cyan
+$fx = Get-TestFixture 'usage-2026-09-04.json'
+# amount_minor 5009 with exponent 2 is $50.09 - NOT $5009. Getting this wrong
+# overstates spend by 100x.
+Assert-Near  -Expected 50.09     -Actual (ConvertTo-Money $fx.spend.used).Amount   -Name '5009 minor units with exponent 2 is 50.09'
+Assert-Equal -Expected 'CAD'     -Actual (ConvertTo-Money $fx.spend.used).Currency -Name 'currency is read, not assumed USD'
+Assert-Equal -Expected '50.09 CAD' -Actual (ConvertTo-Money $fx.spend.used).Text   -Name 'money renders as amount + currency'
+Assert-Near  -Expected 50.00     -Actual (ConvertTo-Money $fx.spend.limit).Amount  -Name 'limit is 50.00'
+Assert-Null  -Value (ConvertTo-Money $null) -Name 'null money node returns null'
+
+$zeroExp = '{ "amount_minor": 7, "currency": "JPY", "exponent": 0 }' | ConvertFrom-Json
+Assert-Near -Expected 7.0 -Actual (ConvertTo-Money $zeroExp).Amount -Name 'exponent 0 currency is not divided'
+
+Write-Host "`nGet-SpendInfo" -ForegroundColor Cyan
+$spend = Get-SpendInfo $fx
+Assert-Near  -Expected 1.0        -Actual $spend.Percent   -Name 'spend percent 100 becomes 1.0'
+Assert-Equal -Expected $true      -Actual $spend.Exhausted -Name 'used >= limit means exhausted'
+Assert-Equal -Expected 'critical' -Actual $spend.Severity  -Name 'severity is carried through'
+Assert-Equal -Expected '50.09 / 50.00 CAD' -Actual $spend.Text -Name 'spend text reads used / limit currency'
+
+$disabled = '{ "spend": { "enabled": false } }' | ConvertFrom-Json
+Assert-Null -Value (Get-SpendInfo $disabled) -Name 'disabled spend returns null'
+Assert-Null -Value (Get-SpendInfo ('{}' | ConvertFrom-Json)) -Name 'absent spend returns null'
+
 exit (Invoke-TestSummary)
