@@ -39,13 +39,16 @@ function Get-UtilColor {
 function Get-LiveBuckets {
     # Buckets worth showing: active, or carrying any utilization. Sorted worst first.
     param($Buckets)
-    return @(@($Buckets) | Where-Object { $_.IsActive -or $_.Util -gt 0 } |
+    # $null -ne $_ first: @($null) is a one-element array, and .IsActive on null throws.
+    return @(@($Buckets) | Where-Object { $null -ne $_ -and ($_.IsActive -or $_.Util -gt 0) } |
              Sort-Object -Property @{ Expression = { $_.Util }; Descending = $true })
 }
 
 function Get-WorstBucket {
     param($Buckets)
-    $live = Get-LiveBuckets $Buckets
+    # @(...) at the call site: a returned empty array unrolls to AutomationNull,
+    # whose .Count throws under strict mode. Bit us on the pre-first-fetch repaint.
+    $live = @(Get-LiveBuckets $Buckets)
     if ($live.Count -eq 0) { return $null }
     return $live[0]
 }
@@ -131,7 +134,7 @@ function Update-TrayIcon {
 function Show-DetailPanel {
     param($Snapshot)
     $lines = @()
-    $live = Get-LiveBuckets $Snapshot.Buckets
+    $live = @(Get-LiveBuckets $Snapshot.Buckets)
     foreach ($b in $live) {
         $flag = if ($b.IsActive) { '  <-- ACTIVE' } else { '' }
         # Spec: reset time both relative and absolute.

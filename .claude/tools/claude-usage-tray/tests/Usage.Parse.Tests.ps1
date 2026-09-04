@@ -190,4 +190,11 @@ $errSnap = @{ Buckets = @(); Spend = $null; FetchedUtc = $null; LastAttemptUtc =
 Assert-True -Condition ((Get-TooltipText $errSnap).Length -le 63) -Name 'error tooltip also respects the cap'
 Assert-True -Condition ((Get-TooltipText $errSnap) -match 'signed in') -Name 'error tooltip states the error'
 
+Write-Host "`nGet-WorstBucket - empty state" -ForegroundColor Cyan
+# The pre-first-fetch repaint calls this with no buckets. It crashed the tray
+# on launch: an empty array returned from a function unrolls to null.
+Assert-Null -Value (Get-WorstBucket @())   -Name 'no buckets yields null, not a strict-mode throw'
+Assert-Null -Value (Get-WorstBucket $null) -Name 'null buckets yields null'
+Assert-Equal -Expected 'No usage data' -Actual (Get-TooltipText @{ Buckets=@(); Spend=$null; FetchedUtc=$null; LastAttemptUtc=$null; ErrorText=$null; BackoffUntil=[DateTime]::MinValue }) -Name 'pre-fetch tooltip is the neutral empty text'
+
 exit (Invoke-TestSummary)
