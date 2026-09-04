@@ -185,6 +185,10 @@ Create `tests/fixtures/usage-2026-09-04.json`. This is the real captured respons
 Create `tests/Usage.Parse.Tests.ps1`:
 
 ```powershell
+# Without this, a missing dot-source file or unknown command is a
+# NON-terminating error: the script keeps running, the summary reports the
+# already-passing asserts, and the red phase exits 0. Verified on PS 7.6.5.
+$ErrorActionPreference = 'Stop'
 . "$PSScriptRoot/TestHarness.ps1"
 . "$PSScriptRoot/../lib/Usage.Parse.ps1"
 
@@ -389,27 +393,45 @@ Expected: FAIL — `Get-UtilizationDivisor` not recognized.
 Append to `lib/Usage.Parse.ps1`:
 
 ```powershell
+# Keys that carry a 'utilization' but are not rate-limit buckets. Excluded
+# from BOTH bucket discovery and scale detection - if buckets ever arrive 0-1
+# while extra_usage stays 0-100, including it would divide every bucket by 100.
+$script:NonBucketKeys = @('extra_usage')
+
+function Get-Prop {
+    # Safe property read for server-supplied JSON. Under Set-StrictMode Latest,
+    # `$obj.missing` THROWS PropertyNotFoundException - and the server dropping
+    # fields is this tool's stated threat model. The PSObject.Properties
+    # indexer returns $null for a missing name and is also safe on scalars
+    # (bool/number/string), where `.Properties.Name -contains` throws.
+    param($Obj, [Parameter(Mandatory)][string]$Name)
+    if ($null -eq $Obj) { return $null }
+    $p = $Obj.PSObject.Properties[$Name]
+    if ($null -eq $p) { return $null }
+    return $p.Value
+}
+
 function Get-UtilizationNodes {
     # Every top-level property whose value is an object carrying a non-null
     # 'utilization'. This is how buckets are discovered without naming them:
     # the server adds and retires bucket keys without notice.
     param($Response)
-    if ($null -eq $Response) { return @() }
-    return @($Response.PSObject.Properties | Where-Object {
-        $null -ne $_.Value -and
-        ($_.Value.PSObject.Properties.Name -contains 'utilization') -and
-        $null -ne $_.Value.utilization
+    if ($null -eq $Response) { return ,@() }
+    $nodes = @($Response.PSObject.Properties | Where-Object {
+        $null -ne (Get-Prop $_.Value 'utilization')
     })
+    return ,$nodes
 }
 
 function Get-UtilizationDivisor {
     # 'utilization' may arrive as 0-1 or 0-100. Deciding per value is wrong:
     # a max of exactly 1.0 is ambiguous, and the naive "if >1 divide by 100"
     # rule renders a true 1% reading as 100%. Decide once for the whole
-    # response - if ANY value exceeds 1, the response is 0-100.
+    # response - if ANY bucket value exceeds 1, the response is 0-100.
     param($Response)
     foreach ($p in (Get-UtilizationNodes $Response)) {
-        if ([double]$p.Value.utilization -gt 1.0) { return 100.0 }
+        if ($script:NonBucketKeys -contains $p.Name) { continue }
+        if ([double](Get-Prop $p.Value 'utilization') -gt 1.0) { return 100.0 }
     }
     return 1.0
 }
@@ -431,20 +453,20 @@ function ConvertTo-ResetUtc {
 function ConvertTo-Limit {
     # Normalize one bucket node to a 0..1 fraction plus a UTC reset time.
     param($Node, [double]$Divisor)
-    if ($null -eq $Node) { return $null }
-    if (($Node.PSObject.Properties.Name -notcontains 'utilization') -or $null -eq $Node.utilization) { return $null }
-    $u = [double]$Node.utilization / $Divisor
+    $raw = Get-Prop $Node 'utilization'
+    if ($null -eq $raw) { return $null }
+    $u = [double]$raw / $Divisor
     # Clamp so a glitched response cannot paint a 200% bar.
     if ($u -gt 1.0) { $u = 1.0 }
     if ($u -lt 0.0) { $u = 0.0 }
-    return @{ Util = $u; ResetsAt = (ConvertTo-ResetUtc $Node.resets_at) }
+    return @{ Util = $u; ResetsAt = (ConvertTo-ResetUtc (Get-Prop $Node 'resets_at')) }
 }
 ```
 
 - [ ] **Step 4: Run tests to verify they pass**
 
 Run: `pwsh -File ~/.claude/tools/claude-usage-tray/tests/Usage.Parse.Tests.ps1`
-Expected: PASS — 30 passed, 0 failed.
+Expected: PASS — 29 passed, 0 failed.
 
 - [ ] **Step 5: Commit**
 
@@ -503,11 +525,15 @@ Assert-True  -Condition $byKey.ContainsKey('nimbus_quill') -Name 'zero-valued co
 Assert-Equal -Expected 'seven_day_fable' -Actual $buckets[0].Key -Name 'buckets are sorted by utilization descending'
 
 Write-Host "`nGet-UsageBuckets - degenerate responses" -ForegroundColor Cyan
+# Every call site wraps in @(...). PowerShell unrolls a returned array on
+# output: a one-bucket result would otherwise arrive as a bare hashtable
+# (.Count = its key count, 6) and an empty result as AutomationNull, on which
+# .Count THROWS under strict mode. Verified on PS 7.6.5.
 $noLimits = '{ "five_hour": { "utilization": 5, "resets_at": null } }' | ConvertFrom-Json
-Assert-Equal -Expected 1 -Actual (Get-UsageBuckets $noLimits).Count -Name 'limits[] absent still yields top-level buckets'
+Assert-Equal -Expected 1 -Actual @(Get-UsageBuckets $noLimits).Count -Name 'limits[] absent still yields top-level buckets'
 
 $emptyLimits = '{ "five_hour": { "utilization": 5, "resets_at": null }, "limits": [] }' | ConvertFrom-Json
-Assert-Equal -Expected 1 -Actual (Get-UsageBuckets $emptyLimits).Count -Name 'limits[] empty is handled'
+Assert-Equal -Expected 1 -Actual @(Get-UsageBuckets $emptyLimits).Count -Name 'limits[] empty is handled'
 
 # A scoped entry whose group has no non-scoped sibling cannot have its period
 # prefix derived, so it must be skipped rather than guessed at or crash.
@@ -516,11 +542,16 @@ $orphan = '{ "five_hour": { "utilization": 5, "resets_at": "2026-09-04T15:00:00+
                            "resets_at": "2026-09-04T16:00:00+00:00",
                            "scope": { "model": { "display_name": "Ghost" } },
                            "is_active": true } ] }' | ConvertFrom-Json
-$orphanBuckets = Get-UsageBuckets $orphan
+$orphanBuckets = @(Get-UsageBuckets $orphan)
 Assert-Equal -Expected 1 -Actual $orphanBuckets.Count -Name 'orphan scoped limit with no derivable prefix is skipped'
 
-Assert-Equal -Expected 0 -Actual (Get-UsageBuckets ('{}' | ConvertFrom-Json)).Count -Name 'empty response yields no buckets'
-Assert-Equal -Expected 0 -Actual (Get-UsageBuckets $null).Count -Name 'null response yields no buckets'
+Assert-Equal -Expected 0 -Actual @(Get-UsageBuckets ('{}' | ConvertFrom-Json)).Count -Name 'empty response yields no buckets'
+Assert-Equal -Expected 0 -Actual @(Get-UsageBuckets $null).Count -Name 'null response yields no buckets'
+
+# A limits[] entry missing fields must not crash the whole fetch under strict mode.
+$sparse = '{ "five_hour": { "utilization": 5, "resets_at": null }, "limits": [ { "kind": "session" } ],
+             "member_dashboard_available": false }' | ConvertFrom-Json
+Assert-Equal -Expected 1 -Actual @(Get-UsageBuckets $sparse).Count -Name 'sparse limits entry and scalar top-level values do not throw'
 ```
 
 - [ ] **Step 2: Run tests to verify they fail**
@@ -533,9 +564,6 @@ Expected: FAIL — `ConvertTo-ModelSlug` not recognized.
 Append to `lib/Usage.Parse.ps1`:
 
 ```powershell
-# Keys that carry a 'utilization' but are not rate-limit buckets.
-$script:NonBucketKeys = @('extra_usage')
-
 function ConvertTo-ModelSlug {
     # 'Fable' -> 'fable'; 'Claude Opus 5' -> 'claude_opus_5'
     param([Parameter(Mandatory)][string]$DisplayName)
@@ -572,7 +600,7 @@ function Get-UsageBuckets {
       appear ONLY inside limits[] as entries with scope.model.
     #>
     param($Response)
-    if ($null -eq $Response) { return @() }
+    if ($null -eq $Response) { return ,@() }
 
     $divisor = Get-UtilizationDivisor $Response
     $buckets = [ordered]@{}
@@ -592,10 +620,11 @@ function Get-UsageBuckets {
         }
     }
 
+    # Every JSON field below is read via Get-Prop: the server dropping a field
+    # is the threat model, and a bare `$l.field` throws under strict mode.
     $limits = @()
-    if ($Response.PSObject.Properties.Name -contains 'limits' -and $Response.limits -is [array]) {
-        $limits = @($Response.limits | Where-Object { $null -ne $_ })
-    }
+    $rawLimits = Get-Prop $Response 'limits'
+    if ($null -ne $rawLimits) { $limits = @($rawLimits | Where-Object { $null -ne $_ }) }
 
     # --- resets_at -> existing top-level field name (the prefix source) ---
     $resetToField = @{}
@@ -614,9 +643,9 @@ function Get-UsageBuckets {
     # entry's timestamp finds nothing.
     $groupPrefix = @{}
     foreach ($l in $limits) {
-        if ($null -ne $l.scope) { continue }
-        $g = [string]$l.group
-        $r = ConvertTo-ResetUtc $l.resets_at
+        if ($null -ne (Get-Prop $l 'scope')) { continue }
+        $g = [string](Get-Prop $l 'group')
+        $r = ConvertTo-ResetUtc (Get-Prop $l 'resets_at')
         if (-not $g -or $null -eq $r) { continue }
         $stamp = $r.ToString('o')
         if ($resetToField.ContainsKey($stamp) -and -not $groupPrefix.ContainsKey($g)) {
@@ -626,10 +655,9 @@ function Get-UsageBuckets {
 
     # --- Pass 2: model-scoped limits ---
     foreach ($l in $limits) {
-        $display = $null
-        if ($null -ne $l.scope -and $null -ne $l.scope.model) { $display = $l.scope.model.display_name }
+        $display = Get-Prop (Get-Prop (Get-Prop $l 'scope') 'model') 'display_name'
         if ([string]::IsNullOrWhiteSpace([string]$display)) { continue }
-        $g = [string]$l.group
+        $g = [string](Get-Prop $l 'group')
         if (-not $groupPrefix.ContainsKey($g)) { continue }   # prefix not derivable - skip, never guess
         $key = '{0}_{1}' -f $groupPrefix[$g], (ConvertTo-ModelSlug ([string]$display))
         if ($buckets.Contains($key)) { continue }             # top-level data wins - higher precision
@@ -637,7 +665,8 @@ function Get-UsageBuckets {
         # limits[].percent is always 0-100 by definition of the field name,
         # independent of the 'utilization' scale detected above.
         $u = [double]0
-        if ($null -ne $l.percent) { $u = [double]$l.percent / 100.0 }
+        $pct = Get-Prop $l 'percent'
+        if ($null -ne $pct) { $u = [double]$pct / 100.0 }
         if ($u -gt 1.0) { $u = 1.0 }
         if ($u -lt 0.0) { $u = 0.0 }
 
@@ -645,25 +674,30 @@ function Get-UsageBuckets {
             Key      = $key
             Label    = (Get-PrettyBucketLabel $key)
             Util     = $u
-            ResetsAt = (ConvertTo-ResetUtc $l.resets_at)
-            IsActive = [bool]$l.is_active
-            Severity = [string]$l.severity
+            ResetsAt = (ConvertTo-ResetUtc (Get-Prop $l 'resets_at'))
+            IsActive = [bool](Get-Prop $l 'is_active')
+            Severity = [string](Get-Prop $l 'severity')
         }
     }
 
     # --- Flag top-level buckets active from their non-scoped limits entry ---
     foreach ($l in $limits) {
-        if ($null -ne $l.scope) { continue }
-        $g = [string]$l.group
+        if ($null -ne (Get-Prop $l 'scope')) { continue }
+        $g = [string](Get-Prop $l 'group')
         if (-not $groupPrefix.ContainsKey($g)) { continue }
         $key = $groupPrefix[$g]
         if ($buckets.Contains($key)) {
-            if ([bool]$l.is_active) { $buckets[$key].IsActive = $true }
-            if ($l.severity) { $buckets[$key].Severity = [string]$l.severity }
+            if ([bool](Get-Prop $l 'is_active')) { $buckets[$key].IsActive = $true }
+            $sev = Get-Prop $l 'severity'
+            if ($sev) { $buckets[$key].Severity = [string]$sev }
         }
     }
 
-    return @($buckets.Values | Sort-Object -Property @{ Expression = { $_.Util }; Descending = $true })
+    # Leading comma prevents PowerShell unrolling the array on output, so a
+    # one-bucket result is still an array and an empty one is @(), not
+    # AutomationNull. Callers wrap in @(...) as well - belt and braces.
+    $sorted = @($buckets.Values | Sort-Object -Property @{ Expression = { $_.Util }; Descending = $true })
+    return ,$sorted
 }
 ```
 
@@ -735,12 +769,13 @@ function ConvertTo-Money {
     # The API sends money as minor units plus an exponent, with an explicit
     # currency. 5009 with exponent 2 is 50.09. Never assume USD or 2 decimals.
     param($MoneyNode)
-    if ($null -eq $MoneyNode) { return $null }
-    if ($null -eq $MoneyNode.amount_minor) { return $null }
+    $minor = Get-Prop $MoneyNode 'amount_minor'
+    if ($null -eq $minor) { return $null }
     $exp = 0
-    if ($null -ne $MoneyNode.exponent) { $exp = [int]$MoneyNode.exponent }
-    $amount = [double]$MoneyNode.amount_minor / [math]::Pow(10, $exp)
-    $cur = [string]$MoneyNode.currency
+    $rawExp = Get-Prop $MoneyNode 'exponent'
+    if ($null -ne $rawExp) { $exp = [int]$rawExp }
+    $amount = [double]$minor / [math]::Pow(10, $exp)
+    $cur = [string](Get-Prop $MoneyNode 'currency')
     return @{
         Amount   = $amount
         Currency = $cur
@@ -752,29 +787,29 @@ function Get-SpendInfo {
     # Extra-usage credits. Returns $null when spend is absent or disabled, so
     # callers can simply omit the line.
     param($Response)
-    if ($null -eq $Response) { return $null }
-    if ($Response.PSObject.Properties.Name -notcontains 'spend') { return $null }
-    $s = $Response.spend
-    if ($null -eq $s -or -not [bool]$s.enabled) { return $null }
+    $s = Get-Prop $Response 'spend'
+    if ($null -eq $s -or -not [bool](Get-Prop $s 'enabled')) { return $null }
 
-    $used  = ConvertTo-Money $s.used
-    $limit = ConvertTo-Money $s.limit
+    $used  = ConvertTo-Money (Get-Prop $s 'used')
+    $limit = ConvertTo-Money (Get-Prop $s 'limit')
     if ($null -eq $used -or $null -eq $limit) { return $null }
 
     $pct = 0.0
-    if ($null -ne $s.percent) { $pct = [double]$s.percent / 100.0 }
+    $rawPct = Get-Prop $s 'percent'
+    if ($null -ne $rawPct) { $pct = [double]$rawPct / 100.0 }
     if ($pct -gt 1.0) { $pct = 1.0 }
     if ($pct -lt 0.0) { $pct = 0.0 }
 
     $exp = 0
-    if ($null -ne $s.used.exponent) { $exp = [int]$s.used.exponent }
+    $rawExp = Get-Prop (Get-Prop $s 'used') 'exponent'
+    if ($null -ne $rawExp) { $exp = [int]$rawExp }
     $inv = [cultureinfo]::InvariantCulture
 
     return @{
         Used      = $used
         Limit     = $limit
         Percent   = $pct
-        Severity  = [string]$s.severity
+        Severity  = [string](Get-Prop $s 'severity')
         Exhausted = ($used.Amount -ge $limit.Amount)
         Text      = ('{0} / {1} {2}' -f $used.Amount.ToString("F$exp", $inv),
                                         $limit.Amount.ToString("F$exp", $inv),
@@ -874,13 +909,16 @@ $script:ExpiredMsg        = 'Auth expired - open Claude Code to refresh'
 $script:LogDir  = Join-Path $env:LOCALAPPDATA 'claude-usage-tray'
 $script:LogFile = Join-Path $script:LogDir 'tray.log'
 
-# Mutable fetch state
+# Mutable fetch state. LastAttemptUtc is set on EVERY attempt (success or
+# not) - the click-refresh floor keys off it, so repeated clicks during a
+# 5xx/timeout outage cannot hammer the endpoint. FetchedUtc is success-only.
 $script:State = @{
-    Buckets      = @()
-    Spend        = $null
-    FetchedUtc   = $null
-    ErrorText    = $null
-    BackoffUntil = [DateTime]::MinValue
+    Buckets        = @()
+    Spend          = $null
+    FetchedUtc     = $null
+    LastAttemptUtc = $null
+    ErrorText      = $null
+    BackoffUntil   = [DateTime]::MinValue
 }
 
 function Write-TrayLog {
@@ -942,11 +980,12 @@ function Invoke-UsageFetch {
         return
     }
 
+    $script:State.LastAttemptUtc = (Get-Date).ToUniversalTime()
+
     $req = [System.Net.HttpWebRequest]::Create($script:UsageUrl)
     $req.Method           = 'GET'
     $req.Timeout          = $script:RequestTimeoutSec * 1000
     $req.ReadWriteTimeout = $script:RequestTimeoutSec * 1000
-    $req.Accept           = 'application/json'
     $req.ContentType      = 'application/json'
     $req.UserAgent        = "claude-usage-tray/$script:Version"
     $req.Headers.Add('Authorization', "Bearer $($cred.Token)")
@@ -972,7 +1011,7 @@ function Invoke-UsageFetch {
             } finally { $ms.Dispose() }
 
             $json = $body | ConvertFrom-Json -ErrorAction Stop
-            $script:State.Buckets    = Get-UsageBuckets $json
+            $script:State.Buckets    = @(Get-UsageBuckets $json)
             $script:State.Spend      = Get-SpendInfo    $json
             $script:State.FetchedUtc = (Get-Date).ToUniversalTime()
             $script:State.ErrorText  = $null
@@ -1020,11 +1059,18 @@ function Get-UsageSnapshot { return $script:State }
 
 - [ ] **Step 6: Verify no write path to credentials exists**
 
-Run:
+Two greps over the **whole tool directory**, not one file. The first lists every
+consumer of the credential path; the second lists every filesystem-mutating
+call. The two lists must not intersect.
+
 ```bash
-grep -nE "Set-Content|Out-File|Add-Content|WriteAllText|\.credentials\.json" ~/.claude/tools/claude-usage-tray/lib/Usage.Api.ps1
+cd ~/.claude/tools/claude-usage-tray
+echo "== credential path consumers =="
+grep -rnE "Get-CredentialPath|\.credentials\.json" --include=*.ps1 .
+echo "== filesystem writers =="
+grep -rnE "Set-Content|Add-Content|Out-File|Clear-Content|New-Item|Copy-Item|Move-Item|Remove-Item|Rename-Item|Set-ItemProperty|\[(System\.)?IO\.File\]::(Write|Append|Open|Create|Delete|Move|Copy)|>>?[[:space:]]*\\$" --include=*.ps1 .
 ```
-Expected: the only `Add-Content` is inside `Write-TrayLog` targeting `$script:LogFile`, and `.credentials.json` appears only in `Get-CredentialPath`. **If any write targets the credentials path, stop and fix it.**
+Expected: `Get-CredentialPath` is consumed only by `Get-StoredCredential`; the only writers are `Add-Content` and `New-Item -ItemType Directory` inside `Write-TrayLog`, both targeting the log directory. **Any writer touching a credential path is a stop-the-line defect.** Task 8 Step 6 adds the runtime mtime check on top of this static check.
 
 - [ ] **Step 7: Verify the parse library stayed pure**
 
@@ -1173,12 +1219,13 @@ function Get-ShortLabel {
 }
 
 function New-PctIcon {
-    param([int]$Pct, $Color)
+    # -Label overrides the numeric text, e.g. '?' for the never-fetched state.
+    param([int]$Pct, $Color, [string]$Label = '')
     $bmp = New-Object System.Drawing.Bitmap 16, 16
     $g   = [System.Drawing.Graphics]::FromImage($bmp)
     try {
         $g.Clear($Color)
-        $label = if ($Pct -ge 100) { '99' } else { [string]$Pct }
+        $label = if ($Label) { $Label } elseif ($Pct -ge 100) { '99' } else { [string]$Pct }
         $font  = New-Object System.Drawing.Font 'Segoe UI', 7, ([System.Drawing.FontStyle]::Bold)
         $fmt   = New-Object System.Drawing.StringFormat
         $fmt.Alignment = 'Center'; $fmt.LineAlignment = 'Center'
@@ -1194,19 +1241,15 @@ function New-PctIcon {
     return [System.Drawing.Icon]$icon
 }
 
-function New-StatusIcon {
-    param($Color, [string]$Glyph)
-    return New-PctIcon -Pct 0 -Color $Color   # replaced below by glyph draw
-}
-
 function Update-TrayIcon {
     param($NotifyIcon, $Snapshot)
     $exhausted = [bool]($Snapshot.Spend -and $Snapshot.Spend.Exhausted)
     $worst = Get-WorstBucket $Snapshot.Buckets
 
     if ($null -eq $Snapshot.FetchedUtc) {
-        # Never fetched successfully - distinct grey state, not a false zero.
-        $newIcon = New-PctIcon -Pct 0 -Color ([System.Drawing.Color]::FromArgb(110, 110, 110))
+        # Never fetched successfully - a distinct grey '?' per spec, so it can
+        # never be mistaken for the legitimate all-zero state.
+        $newIcon = New-PctIcon -Pct 0 -Label '?' -Color ([System.Drawing.Color]::FromArgb(110, 110, 110))
     } elseif ($null -eq $worst) {
         $newIcon = New-PctIcon -Pct 0 -Color (Get-UtilColor 0 $exhausted)
     } else {
@@ -1228,8 +1271,10 @@ function Show-DetailPanel {
               Sort-Object -Property @{ Expression = { $_.Util }; Descending = $true })
     foreach ($b in $live) {
         $flag = if ($b.IsActive) { '  <-- ACTIVE' } else { '' }
-        $lines += ('{0,-22} {1,3}%   resets in {2}{3}' -f $b.Label,
-                    [int][math]::Round($b.Util * 100), (Format-Remaining $b.ResetsAt), $flag)
+        # Spec: reset time both relative and absolute.
+        $abs = if ($null -ne $b.ResetsAt) { ' ({0:HH:mm} local)' -f ([DateTime]$b.ResetsAt).ToLocalTime() } else { '' }
+        $lines += ('{0,-22} {1,3}%   resets in {2}{3}{4}' -f $b.Label,
+                    [int][math]::Round($b.Util * 100), (Format-Remaining $b.ResetsAt), $abs, $flag)
     }
     if ($live.Count -eq 0) { $lines += 'No active limits.' }
 
@@ -1255,16 +1300,12 @@ function Show-DetailPanel {
 }
 ```
 
-- [ ] **Step 4: Remove the unused stub**
-
-Delete the `New-StatusIcon` function — it was scaffolding and `Update-TrayIcon` covers every state. Dead code in a 400-line script is a maintenance trap.
-
-- [ ] **Step 5: Run tests to verify they pass**
+- [ ] **Step 4: Run tests to verify they pass**
 
 Run: `pwsh -File ~/.claude/tools/claude-usage-tray/tests/Usage.Parse.Tests.ps1`
 Expected: PASS — 75 passed, 0 failed.
 
-- [ ] **Step 6: Verify DestroyIcon is called on every icon path**
+- [ ] **Step 5: Verify DestroyIcon is called on every icon path**
 
 Run:
 ```bash
@@ -1273,7 +1314,7 @@ grep -c "DestroyIcon" ~/.claude/tools/claude-usage-tray/lib/Usage.Render.ps1
 ```
 Expected: one `GetHicon` and two `DestroyIcon` (the P/Invoke declaration plus one call). Every `GetHicon` must be paired with a `DestroyIcon`.
 
-- [ ] **Step 7: Commit**
+- [ ] **Step 6: Commit**
 
 ```bash
 git add lib/Usage.Render.ps1 tests/Usage.Parse.Tests.ps1
@@ -1322,8 +1363,10 @@ $notifyIcon.Visible = $true
 $menu = New-Object System.Windows.Forms.ContextMenuStrip
 [void]$menu.Items.Add('Refresh now', $null, {
     $snap = Get-UsageSnapshot
-    if ($snap.FetchedUtc -and ((Get-Date).ToUniversalTime() - $snap.FetchedUtc).TotalSeconds -lt $RefreshFloorSec) {
-        return   # 60s floor - never hammer the endpoint on repeated clicks
+    # 60s floor keyed off the last ATTEMPT, not the last success - otherwise
+    # repeated clicks during a 5xx/timeout outage would fetch with no floor.
+    if ($snap.LastAttemptUtc -and ((Get-Date).ToUniversalTime() - $snap.LastAttemptUtc).TotalSeconds -lt $RefreshFloorSec) {
+        return
     }
     Invoke-UsageFetch
     Update-TrayIcon $notifyIcon (Get-UsageSnapshot)
@@ -1334,11 +1377,10 @@ $menu = New-Object System.Windows.Forms.ContextMenuStrip
     if (Test-Path $log) { Start-Process notepad.exe $log }
 })
 [void]$menu.Items.Add((New-Object System.Windows.Forms.ToolStripSeparator))
-[void]$menu.Items.Add('Exit', $null, {
-    $notifyIcon.Visible = $false
-    $notifyIcon.Dispose()
-    [System.Windows.Forms.Application]::Exit()
-})
+# Exit only stops the message loop. Disposal happens once, in the finally
+# block below - disposing here too would make finally touch a disposed object
+# under $ErrorActionPreference = 'Stop' and error on every clean exit.
+[void]$menu.Items.Add('Exit', $null, { [System.Windows.Forms.Application]::Exit() })
 $notifyIcon.ContextMenuStrip = $menu
 
 # Left-click opens details; right-click gets the menu for free.
@@ -1469,7 +1511,9 @@ In `docs/superpowers/specs/2026-09-04-claude-usage-tray-design.md`, replace the
 the four-file layout actually built (`claude-usage-tray.ps1` plus
 `lib/Usage.Parse.ps1`, `lib/Usage.Api.ps1`, `lib/Usage.Render.ps1`), noting
 that the split is what makes the pure functions dot-sourceable without
-launching the UI during tests. Leave every other section unchanged.
+launching the UI during tests. In the same tree, rename `tests/unit.tests.ps1`
+to the two files actually built: `tests/TestHarness.ps1` and
+`tests/Usage.Parse.Tests.ps1`. Leave every other section unchanged.
 
 - [ ] **Step 9: Commit**
 
@@ -1488,8 +1532,12 @@ git commit -m "docs: reconcile spec architecture with delivered file split"
 
 **Deliberate spec deviations, both recorded:** the single-file architecture becomes four files (justified above, spec reconciled in Task 8 Step 8), and Pester is replaced by a hand-rolled harness (justified above — only Pester 3.4.0 is installed).
 
-**Placeholder scan.** No TBD/TODO. No "add error handling" — the failure table is implemented as explicit branches. No "similar to Task N". Task 7 Step 4 deletes the one stub the plan itself introduces.
+**Placeholder scan.** No TBD/TODO. No "add error handling" — the failure table is implemented as explicit branches. No "similar to Task N". No create-then-delete stubs.
 
-**Type consistency.** `@{ Util; ResetsAt }` from `ConvertTo-Limit` (Task 3) is consumed under those names in Task 4. Bucket keys `Key/Label/Util/ResetsAt/IsActive/Severity` (Task 4) are the names read in Task 7. `Get-SpendInfo`'s `Used/Limit/Percent/Severity/Exhausted/Text` (Task 5) match Task 7's reads. `Get-UsageSnapshot` returns the `Buckets/Spend/FetchedUtc/ErrorText/BackoffUntil` shape that Tasks 7 and 8 destructure. `Get-RetryAfterSeconds` is defined in Task 6 Step 3 before its use in Step 5.
+**Type consistency.** `@{ Util; ResetsAt }` from `ConvertTo-Limit` (Task 3) is consumed under those names in Task 4. Bucket keys `Key/Label/Util/ResetsAt/IsActive/Severity` (Task 4) are the names read in Task 7. `Get-SpendInfo`'s `Used/Limit/Percent/Severity/Exhausted/Text` (Task 5) match Task 7's reads. `Get-UsageSnapshot` returns the `Buckets/Spend/FetchedUtc/LastAttemptUtc/ErrorText/BackoffUntil` shape that Tasks 7 and 8 destructure. `Get-RetryAfterSeconds` is defined in Task 6 Step 3 before its use in Step 5. `Get-Prop` is defined in Task 3 and used by Tasks 4–5.
 
-**Cumulative test counts** (3, 16, 30, 49, 61, 67, 75) assume tests are appended in task order; if executed out of order, treat the count as advisory and only require zero failures.
+**Strict-mode and pipeline hazards, verified on PS 7.6.5 before planning:** `$obj.missing` throws under `Set-StrictMode -Version Latest` (hence `Get-Prop` everywhere a JSON field is read); `.PSObject.Properties.Name -contains` throws on a boolean value (hence the indexer); a returned single-element array unrolls to its element and an empty one to AutomationNull whose `.Count` throws (hence `return ,$arr` plus `@(...)` at every call site); an unknown command is non-terminating in a script (hence `$ErrorActionPreference = 'Stop'` at the top of the test file, so the red phase actually exits non-zero).
+
+**Cumulative test counts** (3, 16, 29, 49, 61, 67, 75) assume tests are appended in task order; if executed out of order, treat the count as advisory and only require zero failures.
+
+**Independent review (2026-09-04):** a fresh reviewer raised 12 findings; all were verified (four empirically) and folded in above.
