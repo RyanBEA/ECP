@@ -69,6 +69,70 @@ Assert-Equal -Expected '2026-09-04T15:01:19Z' `
     -Actual (ConvertTo-ResetUtc 1788534079).ToString('yyyy-MM-ddTHH:mm:ssZ') `
     -Name 'epoch seconds reset'
 Assert-Null -Value (ConvertTo-ResetUtc $null)  -Name 'null reset returns null'
+# ConvertFrom-Json yields a [DateTime], not a string. Precision must survive:
+# a [string] cast here silently drops the fraction and broke prefix derivation.
+Assert-Equal -Expected '2026-09-04T15:59:59.6115730Z' `
+    -Actual (ConvertTo-ResetUtc $fx.seven_day.resets_at).ToString('o') `
+    -Name 'fixture DateTime resets_at keeps microsecond precision'
 Assert-Null -Value (ConvertTo-ResetUtc 'nope') -Name 'garbage reset returns null'
+
+Write-Host "`nConvertTo-ModelSlug" -ForegroundColor Cyan
+Assert-Equal -Expected 'fable'        -Actual (ConvertTo-ModelSlug 'Fable')        -Name 'Fable -> fable'
+Assert-Equal -Expected 'claude_opus_5' -Actual (ConvertTo-ModelSlug 'Claude Opus 5') -Name 'spaces become underscores'
+Assert-Equal -Expected 'opus_4_8'     -Actual (ConvertTo-ModelSlug 'Opus 4.8')     -Name 'punctuation becomes a separator'
+
+Write-Host "`nGet-UsageBuckets" -ForegroundColor Cyan
+$fx = Get-TestFixture 'usage-2026-09-04.json'
+$buckets = @(Get-UsageBuckets $fx)
+$byKey = @{}; foreach ($b in $buckets) { $byKey[$b.Key] = $b }
+
+Assert-Near  -Expected 0.88 -Actual $byKey['five_hour'].Util -Name 'five_hour is 0.88'
+Assert-Near  -Expected 0.61 -Actual $byKey['seven_day'].Util -Name 'seven_day is 0.61'
+
+# The whole point. The scoped Fable limit exists ONLY inside limits[].
+Assert-True  -Condition $byKey.ContainsKey('seven_day_fable') `
+    -Name 'scoped Fable limit is discovered and named seven_day_fable'
+Assert-Near  -Expected 1.0   -Actual $byKey['seven_day_fable'].Util     -Name 'Fable bucket is 100%'
+Assert-Equal -Expected $true -Actual $byKey['seven_day_fable'].IsActive -Name 'Fable bucket is flagged active'
+Assert-Equal -Expected 'critical' -Actual $byKey['seven_day_fable'].Severity -Name 'Fable severity is critical'
+
+# Legacy fields are null in this response and must not appear.
+Assert-Equal -Expected $false -Actual $byKey.ContainsKey('seven_day_sonnet') -Name 'null seven_day_sonnet is not emitted'
+Assert-Equal -Expected $false -Actual $byKey.ContainsKey('seven_day_opus')   -Name 'null seven_day_opus is not emitted'
+# extra_usage carries a utilization but is spend, not a rate-limit bucket.
+Assert-Equal -Expected $false -Actual $byKey.ContainsKey('extra_usage')      -Name 'extra_usage is excluded from buckets'
+# A zero-valued codenamed bucket is still discovered (Task 7 dims it).
+Assert-True  -Condition $byKey.ContainsKey('nimbus_quill') -Name 'zero-valued codenamed bucket is still discovered'
+
+Assert-Equal -Expected 'seven_day_fable' -Actual $buckets[0].Key -Name 'buckets are sorted by utilization descending'
+
+Write-Host "`nGet-UsageBuckets - degenerate responses" -ForegroundColor Cyan
+# Every call site wraps in @(...). PowerShell unrolls a returned array on
+# output: a one-bucket result would otherwise arrive as a bare hashtable
+# (.Count = its key count, 6) and an empty result as AutomationNull, on which
+# .Count THROWS under strict mode. Verified on PS 7.6.5.
+$noLimits = '{ "five_hour": { "utilization": 5, "resets_at": null } }' | ConvertFrom-Json
+Assert-Equal -Expected 1 -Actual @(Get-UsageBuckets $noLimits).Count -Name 'limits[] absent still yields top-level buckets'
+
+$emptyLimits = '{ "five_hour": { "utilization": 5, "resets_at": null }, "limits": [] }' | ConvertFrom-Json
+Assert-Equal -Expected 1 -Actual @(Get-UsageBuckets $emptyLimits).Count -Name 'limits[] empty is handled'
+
+# A scoped entry whose group has no non-scoped sibling cannot have its period
+# prefix derived, so it must be skipped rather than guessed at or crash.
+$orphan = '{ "five_hour": { "utilization": 5, "resets_at": "2026-09-04T15:00:00+00:00" },
+             "limits": [ { "kind": "weekly_scoped", "group": "weekly", "percent": 50,
+                           "resets_at": "2026-09-04T16:00:00+00:00",
+                           "scope": { "model": { "display_name": "Ghost" } },
+                           "is_active": true } ] }' | ConvertFrom-Json
+$orphanBuckets = @(Get-UsageBuckets $orphan)
+Assert-Equal -Expected 1 -Actual $orphanBuckets.Count -Name 'orphan scoped limit with no derivable prefix is skipped'
+
+Assert-Equal -Expected 0 -Actual @(Get-UsageBuckets ('{}' | ConvertFrom-Json)).Count -Name 'empty response yields no buckets'
+Assert-Equal -Expected 0 -Actual @(Get-UsageBuckets $null).Count -Name 'null response yields no buckets'
+
+# A limits[] entry missing fields must not crash the whole fetch under strict mode.
+$sparse = '{ "five_hour": { "utilization": 5, "resets_at": null }, "limits": [ { "kind": "session" } ],
+             "member_dashboard_available": false }' | ConvertFrom-Json
+Assert-Equal -Expected 1 -Actual @(Get-UsageBuckets $sparse).Count -Name 'sparse limits entry and scalar top-level values do not throw'
 
 exit (Invoke-TestSummary)
