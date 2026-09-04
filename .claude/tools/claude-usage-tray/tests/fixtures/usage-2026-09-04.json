@@ -1,0 +1,33 @@
+{
+  "five_hour": { "utilization": 88, "resets_at": "2026-09-04T15:59:59.611544+00:00" },
+  "seven_day": { "utilization": 61, "resets_at": "2026-09-04T15:59:59.611573+00:00" },
+  "seven_day_oauth_apps": null,
+  "seven_day_opus": null,
+  "seven_day_sonnet": null,
+  "seven_day_cowork": null,
+  "nimbus_quill": { "utilization": 0, "resets_at": null },
+  "tangelo": null,
+  "iguana_necktie": null,
+  "extra_usage": {
+    "is_enabled": true, "monthly_limit": 5000, "used_credits": 5009,
+    "utilization": 100, "currency": "CAD", "decimal_places": 2,
+    "disabled_reason": null, "user_disabled": false, "spend_limit_reached": false
+  },
+  "limits": [
+    { "kind": "session", "group": "session", "percent": 88, "severity": "warning",
+      "resets_at": "2026-09-04T15:59:59.611544+00:00", "scope": null, "is_active": false },
+    { "kind": "weekly_all", "group": "weekly", "percent": 61, "severity": "normal",
+      "resets_at": "2026-09-04T15:59:59.611573+00:00", "scope": null, "is_active": false },
+    { "kind": "weekly_scoped", "group": "weekly", "percent": 100, "severity": "critical",
+      "resets_at": "2026-09-04T15:59:59.611848+00:00",
+      "scope": { "model": { "id": null, "display_name": "Fable" }, "surface": null },
+      "is_active": true }
+  ],
+  "spend": {
+    "used":  { "amount_minor": 5009, "currency": "CAD", "exponent": 2 },
+    "limit": { "amount_minor": 5000, "currency": "CAD", "exponent": 2 },
+    "percent": 100, "severity": "critical", "enabled": true,
+    "can_purchase_credits": false, "can_toggle": false
+  },
+  "member_dashboard_available": false
+}
