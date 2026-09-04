@@ -159,4 +159,13 @@ $disabled = '{ "spend": { "enabled": false } }' | ConvertFrom-Json
 Assert-Null -Value (Get-SpendInfo $disabled) -Name 'disabled spend returns null'
 Assert-Null -Value (Get-SpendInfo ('{}' | ConvertFrom-Json)) -Name 'absent spend returns null'
 
+Write-Host "`nGet-RetryAfterSeconds" -ForegroundColor Cyan
+Assert-Equal -Expected 120  -Actual (Get-RetryAfterSeconds '120')    -Name 'valid Retry-After is used'
+Assert-Equal -Expected 600  -Actual (Get-RetryAfterSeconds $null)    -Name 'absent header falls back to default'
+Assert-Equal -Expected 600  -Actual (Get-RetryAfterSeconds 'abc')    -Name 'unparseable header falls back to default'
+Assert-Equal -Expected 600  -Actual (Get-RetryAfterSeconds '-5')     -Name 'negative header falls back to default'
+Assert-Equal -Expected 0    -Actual (Get-RetryAfterSeconds '0')      -Name 'zero is honoured'
+# A malformed or hostile header must not lock the tray out for years.
+Assert-Equal -Expected 3600 -Actual (Get-RetryAfterSeconds '999999') -Name 'absurd header is capped at 3600'
+
 exit (Invoke-TestSummary)

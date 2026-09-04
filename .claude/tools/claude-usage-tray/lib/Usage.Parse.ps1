@@ -298,3 +298,14 @@ function Get-SpendInfo {
                                         $used.Currency)
     }
 }
+
+function Get-RetryAfterSeconds {
+    # Clamp Retry-After into [0, MaxSeconds]. A malformed, missing, or hostile
+    # header must never be able to disable the tray for hours or years.
+    param($HeaderValue, [int]$Default = 600, [int]$MaxSeconds = 3600)
+    $n = 0
+    if (-not [int]::TryParse([string]$HeaderValue, [ref]$n)) { return $Default }
+    if ($n -lt 0) { return $Default }
+    if ($n -gt $MaxSeconds) { return $MaxSeconds }
+    return $n
+}
