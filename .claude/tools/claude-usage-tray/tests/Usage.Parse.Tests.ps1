@@ -36,4 +36,39 @@ Assert-Equal -Expected $true  -Actual (Test-TokenExpired $now.AddSeconds(30) $no
 Assert-Equal -Expected $false -Actual (Test-TokenExpired $now.AddSeconds(90) $now)   -Name 'outside 60s skew is fresh'
 Assert-Equal -Expected $false -Actual (Test-TokenExpired $null $now)                 -Name 'unknown expiry is NOT expired (401 backstop handles it)'
 
+Write-Host "`nGet-UtilizationDivisor" -ForegroundColor Cyan
+$fx = Get-TestFixture 'usage-2026-09-04.json'
+Assert-Equal -Expected 100.0 -Actual (Get-UtilizationDivisor $fx) -Name 'fixture has values >1 so scale is 0-100'
+
+# THE REGRESSION TEST. The naive rule "if >1 divide by 100" reads a max of
+# exactly 1.0 as 100%, turning a true 1% reading into 100%.
+$exactlyOne = '{ "five_hour": { "utilization": 1.0, "resets_at": null },
+                 "seven_day": { "utilization": 0.5, "resets_at": null } }' | ConvertFrom-Json
+Assert-Equal -Expected 1.0 -Actual (Get-UtilizationDivisor $exactlyOne) `
+    -Name 'max of exactly 1.0 is treated as 0-1 scale, NOT 0-100'
+Assert-Near -Expected 1.0 -Actual (ConvertTo-Limit $exactlyOne.five_hour (Get-UtilizationDivisor $exactlyOne)).Util `
+    -Name 'utilization 1.0 on a 0-1 response means 100%'
+
+$allZero = '{ "five_hour": { "utilization": 0, "resets_at": null } }' | ConvertFrom-Json
+Assert-Equal -Expected 1.0 -Actual (Get-UtilizationDivisor $allZero) -Name 'all-zero response defaults to 0-1 scale'
+
+Write-Host "`nConvertTo-Limit clamping" -ForegroundColor Cyan
+$over  = '{ "utilization": 150, "resets_at": null }' | ConvertFrom-Json
+$under = '{ "utilization": -5,  "resets_at": null }' | ConvertFrom-Json
+Assert-Near -Expected 1.0 -Actual (ConvertTo-Limit $over  100.0).Util -Name 'utilization 150 clamps to 1.0'
+Assert-Near -Expected 0.0 -Actual (ConvertTo-Limit $under 100.0).Util -Name 'utilization -5 clamps to 0.0'
+Assert-Near -Expected 0.88 -Actual (ConvertTo-Limit $fx.five_hour 100.0).Util -Name 'five_hour 88 becomes 0.88'
+Assert-Null -Value (ConvertTo-Limit $null 100.0)              -Name 'null node returns null'
+Assert-Null -Value (ConvertTo-Limit $fx.seven_day_sonnet 100.0) -Name 'null seven_day_sonnet returns null'
+
+Write-Host "`nConvertTo-ResetUtc" -ForegroundColor Cyan
+Assert-Equal -Expected '2026-09-04T15:59:59Z' `
+    -Actual (ConvertTo-ResetUtc '2026-09-04T15:59:59.611544+00:00').ToString('yyyy-MM-ddTHH:mm:ssZ') `
+    -Name 'ISO8601 with microseconds and offset'
+Assert-Equal -Expected '2026-09-04T15:01:19Z' `
+    -Actual (ConvertTo-ResetUtc 1788534079).ToString('yyyy-MM-ddTHH:mm:ssZ') `
+    -Name 'epoch seconds reset'
+Assert-Null -Value (ConvertTo-ResetUtc $null)  -Name 'null reset returns null'
+Assert-Null -Value (ConvertTo-ResetUtc 'nope') -Name 'garbage reset returns null'
+
 exit (Invoke-TestSummary)
