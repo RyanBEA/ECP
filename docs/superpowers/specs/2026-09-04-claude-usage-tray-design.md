@@ -77,17 +77,28 @@ rate-limit-policy problem, not by spoofing a User-Agent.
 
 ## Architecture
 
-Single PowerShell script plus a launcher shim. Zero runtime dependencies.
+A PowerShell entry script, three dot-sourced libraries, and a launcher shim.
+Zero runtime dependencies.
 
 ```
 ~/.claude/tools/claude-usage-tray/
-  claude-usage-tray.ps1      # everything
-  Start.vbs                  # launch with no console window
+  claude-usage-tray.ps1        # entry: wiring, timer, tray lifecycle
+  lib/Usage.Parse.ps1          # PURE. Response -> buckets + spend. No I/O.
+  lib/Usage.Api.ps1            # credentials read, HTTP fetch, backoff state
+  lib/Usage.Render.ps1         # icon bitmap, tooltip string, detail panel
+  Start.vbs                    # launch with no console window
   tests/
-    unit.tests.ps1           # pure-function tests
+    TestHarness.ps1            # zero-dependency assertion harness
+    Usage.Parse.Tests.ps1      # pure-function tests
     fixtures/
-      usage-2026-09-04.json  # real captured response
+      usage-2026-09-04.json    # real captured response
 ```
+
+The split (from an earlier single-file draft) is what makes the pure
+functions dot-sourceable for tests: a single file that also constructs a
+tray icon at load time would launch the UI on every test run. The harness is
+hand-rolled because the machine ships only Pester 3.4.0, whose syntax does
+not target PowerShell 7.
 
 PowerShell is chosen over Python deliberately: WinForms `NotifyIcon` needs no
 packaging, and .NET validates TLS against the **Windows certificate store**
