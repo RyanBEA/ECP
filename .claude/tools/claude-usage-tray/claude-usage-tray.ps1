@@ -19,7 +19,8 @@ $notifyIcon = New-Object System.Windows.Forms.NotifyIcon
 $notifyIcon.Visible = $true
 
 $menu = New-Object System.Windows.Forms.ContextMenuStrip
-[void]$menu.Items.Add('Refresh now', $null, {
+# Shared by the menu item and the panel's Refresh button.
+$script:DoRefresh = {
     $snap = Get-UsageSnapshot
     # 60s floor keyed off the last ATTEMPT, not the last success - otherwise
     # repeated clicks during a 5xx/timeout outage would fetch with no floor.
@@ -28,8 +29,11 @@ $menu = New-Object System.Windows.Forms.ContextMenuStrip
     }
     Invoke-UsageFetch
     Update-TrayIcon $notifyIcon (Get-UsageSnapshot)
-})
-[void]$menu.Items.Add('Show details', $null, { Show-DetailPanel (Get-UsageSnapshot) })
+}
+$script:ShowPanel = { Show-DetailPanel -GetSnapshot { Get-UsageSnapshot } -OnRefresh $script:DoRefresh }
+
+[void]$menu.Items.Add('Refresh now', $null, $script:DoRefresh)
+[void]$menu.Items.Add('Show details', $null, $script:ShowPanel)
 [void]$menu.Items.Add('View log', $null, {
     $log = Join-Path $env:LOCALAPPDATA 'claude-usage-tray\tray.log'
     if (Test-Path $log) { Start-Process notepad.exe $log }
@@ -43,9 +47,7 @@ $notifyIcon.ContextMenuStrip = $menu
 
 # Left-click opens details; right-click gets the menu for free.
 $notifyIcon.Add_MouseClick({
-    if ($_.Button -eq [System.Windows.Forms.MouseButtons]::Left) {
-        Show-DetailPanel (Get-UsageSnapshot)
-    }
+    if ($_.Button -eq [System.Windows.Forms.MouseButtons]::Left) { & $script:ShowPanel }
 })
 
 Update-TrayIcon $notifyIcon (Get-UsageSnapshot)
