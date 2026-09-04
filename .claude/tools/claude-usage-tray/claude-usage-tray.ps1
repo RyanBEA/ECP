@@ -30,7 +30,13 @@ $script:DoRefresh = {
     Invoke-UsageFetch
     Update-TrayIcon $notifyIcon (Get-UsageSnapshot)
 }
-$script:ShowPanel = { Show-DetailPanel -GetSnapshot { Get-UsageSnapshot } -OnRefresh $script:DoRefresh }
+# Opening the panel refreshes first (subject to DoRefresh's 60s floor, so
+# repeated opens cannot hammer the endpoint). Closing it via toggle does not.
+$script:ShowPanel = {
+    $isOpen = $script:DetailForm -and -not $script:DetailForm.IsDisposed
+    if (-not $isOpen) { & $script:DoRefresh }
+    Show-DetailPanel -GetSnapshot { Get-UsageSnapshot } -OnRefresh $script:DoRefresh
+}
 
 [void]$menu.Items.Add('Refresh now', $null, $script:DoRefresh)
 [void]$menu.Items.Add('Show details', $null, $script:ShowPanel)
