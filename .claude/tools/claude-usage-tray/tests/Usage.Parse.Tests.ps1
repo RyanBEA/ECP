@@ -168,4 +168,26 @@ Assert-Equal -Expected 0    -Actual (Get-RetryAfterSeconds '0')      -Name 'zero
 # A malformed or hostile header must not lock the tray out for years.
 Assert-Equal -Expected 3600 -Actual (Get-RetryAfterSeconds '999999') -Name 'absurd header is capped at 3600'
 
+. "$PSScriptRoot/../lib/Usage.Render.ps1"
+
+Write-Host "`nFormat-Remaining" -ForegroundColor Cyan
+$base = [DateTime]::SpecifyKind([DateTime]::Parse('2026-09-04T12:00:00'), 'Utc')
+Assert-Equal -Expected '57m'    -Actual (Format-Remaining $base.AddMinutes(57) $base)  -Name 'under an hour shows minutes'
+Assert-Equal -Expected '3h 12m' -Actual (Format-Remaining $base.AddMinutes(192) $base) -Name 'over an hour shows hours and minutes'
+Assert-Equal -Expected 'now'    -Actual (Format-Remaining $base.AddMinutes(-5) $base)  -Name 'past reset reads now'
+Assert-Equal -Expected '-'      -Actual (Format-Remaining $null $base)                 -Name 'null reset reads dash'
+
+Write-Host "`nGet-TooltipText" -ForegroundColor Cyan
+$fx   = Get-TestFixture 'usage-2026-09-04.json'
+$snap = @{ Buckets = @(Get-UsageBuckets $fx); Spend = (Get-SpendInfo $fx)
+           FetchedUtc = $base; LastAttemptUtc = $base; ErrorText = $null; BackoffUntil = [DateTime]::MinValue }
+$tip = Get-TooltipText $snap
+Assert-True -Condition ($tip.Length -le 63) -Name 'tooltip respects the hard 63-char NotifyIcon.Text cap'
+Assert-True -Condition ($tip -match '100')  -Name 'tooltip leads with the worst bucket (100%)'
+
+$errSnap = @{ Buckets = @(); Spend = $null; FetchedUtc = $null; LastAttemptUtc = $null
+              ErrorText = 'Claude Code not signed in'; BackoffUntil = [DateTime]::MinValue }
+Assert-True -Condition ((Get-TooltipText $errSnap).Length -le 63) -Name 'error tooltip also respects the cap'
+Assert-True -Condition ((Get-TooltipText $errSnap) -match 'signed in') -Name 'error tooltip states the error'
+
 exit (Invoke-TestSummary)
