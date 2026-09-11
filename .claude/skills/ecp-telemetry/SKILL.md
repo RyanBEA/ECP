@@ -43,7 +43,7 @@ yourself; the scripts below never print them.
 | Symptom | Cause / fix |
 |---|---|
 | Looking for `DATABASE_URL`, `railway connect`, `railway run psql` | Wrong path. Postgres is internal-only; use `pull-events.sh`. |
-| `401 unauthorized` | Vault key `BEA-service/railway/ecp-events-export-key` ≠ `EVENTS_EXPORT_KEY` on the Railway `ECP` service. Ask Ryan to re-sync; do not guess. |
+| `401 unauthorized` | Vault key `BEA-service/railway-ecp/ecp-events-export-key` ≠ `EVENTS_EXPORT_KEY` on the Railway `ECP` service. Ask Ryan to re-sync; do not guess. |
 | `503` | Server has no `EVENTS_EXPORT_KEY` or no DB. Check `/api/health`; Railway staging has no database by design. |
 | `op-with not found` / `no 1Password token` | Must run on bae as Ryan; see the `secrets` skill. |
 | Counts look inflated | Repeated prints in one session — use `--final-only`. |
