@@ -17,6 +17,10 @@ ECP Calculator is a React web app for calculating Energy Conservation Points (EC
 | `src/components/WallSection.jsx` | SVG wall cross-section diagram |
 | `src/components/CategoryCard.jsx` | Standard category selection card |
 | `src/components/PrintSummary.jsx` | Print-only ECP summary table (Save/Print feature) |
+| `src/utils/printEvent.js` | Builds + sends anonymous print telemetry events |
+| `server/index.js` | Express server: static `dist/` + print telemetry API |
+| `server/db.js` | Postgres access for print telemetry (init, insert, export, health) |
+| `server/validate.js` | Pure validation for incoming print telemetry events |
 | `scripts/generate.js` | Data pipeline: YAML → JSON lookups + audit workbook |
 | `scripts/compute.js` | Thermal RSI formulas (shared between pipeline and React app) |
 | `data/materials/*.yaml` | Source of truth for all material properties |
@@ -41,6 +45,7 @@ npm run generate:audit   # Generate + compare against previous JSON
 - **Progressive disclosure** — wall builder shows only relevant fields per wall type
 - **Dual wall input modes** — direct RSI selection or assembly-based calculation
 - **Client-side Excel export** — ExcelJS dynamically imported, no server component
+- **Print telemetry** — `server/` (Express + Postgres) records an anonymous event on every "Save / Print" click. It records the tier, point totals, and category/wall selections (indices and enum-like fields) only. It does **not** record the Project / Address, Permit Number, or Applicant fields, IP addresses, or any other free-text/identifying input. See [docs/infrastructure.md](docs/infrastructure.md#print-telemetry).
 
 ## Data Flow
 

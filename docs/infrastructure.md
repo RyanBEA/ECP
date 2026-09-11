@@ -25,7 +25,7 @@ Path alias `@scripts` allows `src/` code to import from `scripts/compute.js` (sh
 | `dev` | `vite` | Dev server with HMR (port 5173/5174) |
 | `build` | `vite build` | Production build to `dist/` |
 | `preview` | `vite preview` | Preview production build locally |
-| `start` | `serve dist -s -l $PORT` | Production server (`-s` = SPA mode) |
+| `start` | `node server/index.js` | Production server — static files + print telemetry API |
 | `test` | `vitest run` | Run unit tests (single pass) |
 | `test:watch` | `vitest` | Run tests in watch mode |
 | `generate` | `node scripts/generate.js` | Regenerate JSON from YAML materials |
@@ -40,7 +40,8 @@ Path alias `@scripts` allows `src/` code to import from `scripts/compute.js` (sh
 |---------|---------|---------|
 | `react` | ^18.2.0 | UI framework |
 | `react-dom` | ^18.2.0 | DOM rendering |
-| `serve` | ^14.2.5 | Static file server for production |
+| `express` | ^4.21.2 | Production server: static file serving + print telemetry API |
+| `pg` | ^8.13.1 | Postgres client for print telemetry storage |
 
 ### Dev Dependencies
 
@@ -61,12 +62,56 @@ ExcelJS is a dev dependency but dynamically imported at runtime — Vite code-sp
 
 ## Deployment
 
-The app is designed for any Node.js-capable hosting platform (Railway, Vercel, Render, etc.).
+The app runs on Railway as a single Node.js/Express server that serves the static build **and** the print telemetry API described below (any other Node.js-capable host — Vercel, Render, etc. — works the same way).
 
 - **Build command:** `npm run build` (Vite produces `dist/`)
-- **Start command:** `npm run start` → `serve dist -s -l $PORT`
-- **SPA mode (`-s`):** All routes fall through to `index.html` for client-side handling
-- **Environment:** Requires `$PORT` environment variable (set by most hosting platforms automatically)
+- **Start command:** `npm run start` → `node server/index.js`
+- **Server:** `server/index.js` (Express). Serves `dist/` as static files with an SPA fallback (any non-`/api` GET returns `dist/index.html`), and exposes the print telemetry endpoints under `/api`.
+- **Environment variables:**
+  | Variable | Required | Purpose |
+  |---|---|---|
+  | `PORT` | no (default `3000`) | Port the server listens on (set automatically by Railway) |
+  | `DATABASE_URL` | no | Postgres connection string. Without it the server still starts and serves static files, but `POST /api/events` returns 503 and `/api/health` reports `db: false` |
+  | `PGSSLMODE` | no | Set to `disable` to skip TLS (e.g. local Postgres). SSL (`rejectUnauthorized: false`) is used otherwise, except against a `localhost`/`127.0.0.1` `DATABASE_URL` |
+  | `EVENTS_EXPORT_KEY` | no | Bearer token required to read `GET /api/events.csv`. Without it the endpoint returns 503 |
+
+---
+
+## Print Telemetry
+
+An anonymous event is sent to the server each time a user clicks "Save / Print" (see `src/utils/printEvent.js` and `src/App.jsx`). No project/address/permit/applicant text or other free-text input is ever recorded — only the tier, point totals, and the category/wall selections (indices and enum-like fields), plus a per-page-load random `sessionId` held only in memory.
+
+### Storage
+
+Postgres table, created automatically on server startup when `DATABASE_URL` is set:
+
+```sql
+CREATE TABLE IF NOT EXISTS print_events (
+  id BIGSERIAL PRIMARY KEY,
+  created_at TIMESTAMPTZ NOT NULL DEFAULT now(),
+  app_version TEXT NOT NULL,
+  session_id TEXT NOT NULL,
+  tier SMALLINT NOT NULL,
+  target_points NUMERIC(5,1) NOT NULL,
+  total_points NUMERIC(5,1) NOT NULL,
+  met BOOLEAN NOT NULL,
+  selections JSONB NOT NULL,
+  wall JSONB
+);
+CREATE INDEX IF NOT EXISTS print_events_created_at_idx ON print_events (created_at);
+```
+
+Server-side code lives in `server/db.js` (pool init, insert, streaming export, health ping) and `server/validate.js` (pure request validation — rejects malformed/oversized payloads with 400).
+
+### Endpoints
+
+| Endpoint | Method | Purpose |
+|---|---|---|
+| `/api/events` | POST | Accepts one validated print event, inserts it, responds `204`. Returns `503` if no `DATABASE_URL`, `400` on invalid body, `429` if the client IP has sent more than 60 events in the last minute (in-memory rate limit, IPs never persisted). |
+| `/api/events.csv` | GET | Streams all events as CSV. Requires `Authorization: Bearer <EVENTS_EXPORT_KEY>` (compared via `crypto.timingSafeEqual` over SHA-256 digests). Returns `503` if `EVENTS_EXPORT_KEY` is unset or `DATABASE_URL` is unset, `401` on a bad/missing key. |
+| `/api/health` | GET | `{ ok: true, db: true|false }` — `db` reflects whether a `SELECT 1` against Postgres currently succeeds. |
+
+The server never logs request bodies or client IPs.
 
 ---
 

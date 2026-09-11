@@ -237,3 +237,17 @@ Changes to source files (`src/`, `public/`) appear in the browser instantly with
 ### Stop the server
 
 Press **Ctrl+C** in the terminal.
+
+## 8. Export Print Telemetry as CSV
+
+Every time a user clicks "Save / Print", an anonymous event (tier, point totals, category/wall selections — never project/address/permit/applicant text) is recorded server-side. To export the full table as CSV:
+
+```bash
+curl -H "Authorization: Bearer $EVENTS_EXPORT_KEY" https://<app>/api/events.csv -o ecp-events.csv
+```
+
+- `$EVENTS_EXPORT_KEY` must match the `EVENTS_EXPORT_KEY` environment variable configured on the server. Without a matching key the endpoint returns `401`; if the server has no `EVENTS_EXPORT_KEY` configured at all, it returns `503`.
+- If the server has no `DATABASE_URL` configured, both this endpoint and `POST /api/events` return `503`.
+- Columns: `id, created_at, app_version, session_id, tier, target_points, total_points, met, selections_json, wall_json`.
+
+See [Infrastructure — Print Telemetry](infrastructure.md#print-telemetry) for the full schema and endpoint list.

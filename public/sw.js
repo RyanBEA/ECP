@@ -1,4 +1,4 @@
-const CACHE_NAME = 'ecp-calculator-v1';
+const CACHE_NAME = 'ecp-calculator-v2';
 
 const ASSETS = [
   '/',
@@ -29,6 +29,12 @@ self.addEventListener('activate', event => {
 
 // Fetch: network-first, fallback to cache
 self.addEventListener('fetch', event => {
+  // Only handle same-origin GET requests for the app shell/assets.
+  // Never intercept API calls (telemetry POSTs, CSV export, health).
+  const url = new URL(event.request.url);
+  if (event.request.method !== 'GET' || url.origin !== self.location.origin || url.pathname.startsWith('/api/')) {
+    return;
+  }
   event.respondWith(
     fetch(event.request)
       .then(response => {

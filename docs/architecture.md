@@ -65,7 +65,9 @@ ecp-calculator/
 │   │   ├── buildWallSheet.js        # Builds Excel sheet with live formulas
 │   │   ├── buildWallSheet.test.js   # Unit tests for buildWallSheet
 │   │   ├── exportWallAssembly.js    # Orchestrator: resolve → sheet → PNG → download
-│   │   └── svgToPng.js              # SVG DOM element → base64 PNG via canvas
+│   │   ├── svgToPng.js              # SVG DOM element → base64 PNG via canvas
+│   │   ├── printEvent.js            # Builds + sends anonymous print telemetry events
+│   │   └── printEvent.test.js       # Unit tests for buildPrintEvent
 │   └── components/
 │       ├── CategoryCard.jsx     # Standard category selection UI
 │       ├── OptionButton.jsx     # Individual option button
@@ -76,6 +78,11 @@ ecp-calculator/
 │       ├── PointsCounter.jsx    # ECP points progress display
 │       ├── PrintSummary.jsx     # Print-only ECP summary table
 │       └── PrintSummary.test.jsx # Unit tests for PrintSummary
+├── server/
+│   ├── index.js                  # Express server: static dist/ + print telemetry API
+│   ├── db.js                     # Postgres pool init, insertEvent, streamEvents, ping
+│   ├── validate.js               # Pure validation for incoming print events
+│   └── validate.test.js          # Unit tests for validateEvent
 ├── index.html
 ├── vite.config.js
 └── package.json
@@ -198,6 +205,8 @@ App
 9. **Wall assembly Excel export** — The "Export to Excel" button generates a `.xlsx` workbook entirely client-side using ExcelJS (dynamically imported, code-split into its own chunk). The workbook contains live Excel formulas replicating the parallel-path RSI calculation, a source column with NBC table references, and an embedded PNG of the wall section diagram. Three sheet layouts: universal wood template (single/double/service wall), steel K-factor method, and ICF series sum.
 
 10. **Print/PDF export** — A "Save / Print" button in the footer calls `window.print()`. Optional project-detail inputs in the footer (Project / Address, Permit Number, Applicant) are printed at the top of the summary, as blank lines when left empty. A hidden `PrintSummary` component renders a clean one-page summary table (selected categories, points, wall builder details when applicable). `@media print` CSS hides the interactive UI and shows only the summary. Forces light mode in print. Zero additional dependencies.
+
+11. **Print telemetry** — Clicking "Save / Print" also fires an anonymous, fire-and-forget event (`src/utils/printEvent.js`) to `POST /api/events` on the server (`navigator.sendBeacon`, falling back to `fetch(..., { keepalive: true })`; all errors swallowed, never blocks `window.print()`). The event carries only the tier, point totals, and category/wall selections (indices and enum-like fields) plus a random in-memory `sessionId` — never the Project / Address, Permit Number, or Applicant fields. The Express server (`server/index.js`) validates, rate-limits, and stores events in Postgres; see [Infrastructure — Print Telemetry](infrastructure.md#print-telemetry) for the schema and endpoints, and [Common Tasks](common-tasks.md#8-export-print-telemetry-as-csv) for exporting the data.
 
 ## Cross-References
 

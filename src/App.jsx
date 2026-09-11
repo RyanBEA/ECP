@@ -4,7 +4,11 @@ import CategoryCard from './components/CategoryCard'
 import WallBuilder from './components/WallBuilder'
 import PointsCounter from './components/PointsCounter'
 import PrintSummary from './components/PrintSummary'
-import { DISCLAIMER } from './data/disclaimer'
+import { DISCLAIMER, USAGE_NOTICE } from './data/disclaimer'
+import { buildPrintEvent, sendPrintEvent } from './utils/printEvent'
+
+const APP_VERSION = '1.2.0'
+const APP_UPDATED = '2026-09-11'
 
 export default function App() {
   // Track dark mode - default to system preference
@@ -184,6 +188,7 @@ export default function App() {
             <span className="category-metric">optional — printed on the summary</span>
           </div>
           <p className="category-description">{DISCLAIMER}</p>
+          <p className="category-description">{USAGE_NOTICE}</p>
           <div className="project-fields-row">
             <label>
               <span>Project / Address</span>
@@ -220,12 +225,22 @@ export default function App() {
         <div className="footer-meta">
           <button
             className="print-button"
-            onClick={() => window.print()}
+            onClick={() => {
+              sendPrintEvent(buildPrintEvent({
+                selections,
+                wallSelection,
+                wallPoints,
+                totalPoints,
+                selectedTier,
+                appVersion: APP_VERSION,
+              }))
+              window.print()
+            }}
             disabled={totalPoints === 0}
           >
             Save / Print
           </button>
-          <span className="footer-version">v1.1.0 — Updated 2026-09-11</span>
+          <span className="footer-version">v{APP_VERSION} — Updated {APP_UPDATED}</span>
         </div>
       </footer>
 
