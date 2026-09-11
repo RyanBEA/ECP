@@ -4,6 +4,7 @@ import CategoryCard from './components/CategoryCard'
 import WallBuilder from './components/WallBuilder'
 import PointsCounter from './components/PointsCounter'
 import PrintSummary from './components/PrintSummary'
+import { DISCLAIMER } from './data/disclaimer'
 
 export default function App() {
   // Track dark mode - default to system preference
@@ -182,6 +183,7 @@ export default function App() {
             <h2 className="category-name">Project Details</h2>
             <span className="category-metric">optional — printed on the summary</span>
           </div>
+          <p className="category-description">{DISCLAIMER}</p>
           <div className="project-fields-row">
             <label>
               <span>Project / Address</span>

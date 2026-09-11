@@ -136,4 +136,11 @@ describe('PrintSummary', () => {
     )
     expect(container.querySelectorAll('.print-blank').length).toBe(3)
   })
+
+  it('prints the AHJ disclaimer', () => {
+    const { container } = render(
+      <PrintSummary selections={{}} wallSelection={{}} wallPoints={0} totalPoints={0} selectedTier={baseTier} />
+    )
+    expect(container.querySelector('.print-disclaimer').textContent).toMatch(/authority having jurisdiction/)
+  })
 })
