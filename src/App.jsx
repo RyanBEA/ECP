@@ -26,6 +26,11 @@ export default function App() {
   // Track wall builder selections separately
   const [wallSelection, setWallSelection] = useState({})
 
+  // Optional project details — blank on screen, printed on the summary
+  const [projectInfo, setProjectInfo] = useState({ project: '', permit: '', applicant: '' })
+  const handleProjectChange = (field) => (e) =>
+    setProjectInfo(prev => ({ ...prev, [field]: e.target.value }))
+
   // Handle option selection for standard categories
   const handleSelect = (categoryId, optionIndex) => {
     const category = categories.find(c => c.id === categoryId)
@@ -172,6 +177,38 @@ export default function App() {
       </main>
 
       <footer className="app-footer">
+        <div className="project-fields">
+          <span className="project-fields-label">Project details (optional — printed on the summary)</span>
+          <div className="project-fields-row">
+            <label>
+              <span>Project / civic address</span>
+              <input
+                type="text"
+                value={projectInfo.project}
+                onChange={handleProjectChange('project')}
+                placeholder="e.g. 123 Main St, Lot 4"
+              />
+            </label>
+            <label>
+              <span>Permit / application no.</span>
+              <input
+                type="text"
+                value={projectInfo.permit}
+                onChange={handleProjectChange('permit')}
+                placeholder="e.g. BP-2026-0412"
+              />
+            </label>
+            <label>
+              <span>Applicant / owner</span>
+              <input
+                type="text"
+                value={projectInfo.applicant}
+                onChange={handleProjectChange('applicant')}
+                placeholder="Name or company"
+              />
+            </label>
+          </div>
+        </div>
         <p>
           {totalPoints >= targetPoints
             ? `Target met! You have ${totalPoints.toFixed(1)} ECP.`
@@ -186,7 +223,7 @@ export default function App() {
           >
             Save / Print
           </button>
-          <span className="footer-version">v1.0.2 — Updated 2026-08-04</span>
+          <span className="footer-version">v1.1.0 — Updated 2026-09-11</span>
         </div>
       </footer>
 
@@ -196,6 +233,7 @@ export default function App() {
         wallPoints={wallPoints}
         totalPoints={totalPoints}
         selectedTier={selectedTier}
+        projectInfo={projectInfo}
       />
     </div>
   )

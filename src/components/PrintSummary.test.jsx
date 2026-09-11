@@ -108,4 +108,32 @@ describe('PrintSummary', () => {
     )
     expect(screen.getByText(/9.3 more/)).toBeTruthy()
   })
+
+  it('prints project details when provided and blank lines when not', () => {
+    const { container, rerender } = render(
+      <PrintSummary
+        selections={{ airTightness: 1 }}
+        wallSelection={{}}
+        wallPoints={0}
+        totalPoints={3.5}
+        selectedTier={baseTier}
+        projectInfo={{ project: '123 Main St', permit: '', applicant: 'Acme Homes' }}
+      />
+    )
+    expect(container.querySelector('[data-field="project"]').textContent).toBe('123 Main St')
+    expect(container.querySelector('[data-field="applicant"]').textContent).toBe('Acme Homes')
+    expect(container.querySelector('[data-field="permit"]').classList.contains('print-blank')).toBe(true)
+
+    // Omitting projectInfo entirely still renders three blank rows
+    rerender(
+      <PrintSummary
+        selections={{ airTightness: 1 }}
+        wallSelection={{}}
+        wallPoints={0}
+        totalPoints={3.5}
+        selectedTier={baseTier}
+      />
+    )
+    expect(container.querySelectorAll('.print-blank').length).toBe(3)
+  })
 })
