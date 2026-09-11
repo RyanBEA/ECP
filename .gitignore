@@ -41,3 +41,6 @@ src/WallSectionDemo.jsx
 
 # Duplicate logos (canonical copies in public/)
 img/
+
+# Telemetry CSV pulls (contain usage data; never commit)
+telemetry-exports/

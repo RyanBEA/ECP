@@ -71,6 +71,10 @@ Eight scoring categories, each with point thresholds from NBC 2020 Tables 9.36.8
 - Hot Water (Electric), Hot Water (Non-Electric) — mutually exclusive
 - Ventilation (HRV/ERV), Heated Volume
 
+## Skills
+
+- `.claude/skills/ecp-telemetry/` — pull and summarize the anonymous print telemetry (CSV export via `op-with`; no direct DB access from bae). Read its SKILL.md before touching telemetry data.
+
 ## Documentation
 
 | Doc | Content |

@@ -251,3 +251,6 @@ curl -H "Authorization: Bearer $EVENTS_EXPORT_KEY" https://<app>/api/events.csv 
 - Columns: `id, created_at, app_version, session_id, tier, target_points, total_points, met, selections_json, wall_json`.
 
 See [Infrastructure — Print Telemetry](infrastructure.md#print-telemetry) for the full schema and endpoint list.
+
+
+Preferred: `.claude/skills/ecp-telemetry/scripts/pull-events.sh` (injects the key from 1Password via `op-with`) followed by `summarize.py` — see `.claude/skills/ecp-telemetry/SKILL.md`.
