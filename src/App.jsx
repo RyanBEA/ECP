@@ -178,7 +178,10 @@ export default function App() {
 
       <footer className="app-footer">
         <div className="project-fields">
-          <span className="project-fields-label">Project details (optional — printed on the summary)</span>
+          <div className="category-header">
+            <h2 className="category-name">Project Details</h2>
+            <span className="category-metric">optional — printed on the summary</span>
+          </div>
           <div className="project-fields-row">
             <label>
               <span>Project / Address</span>

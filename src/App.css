@@ -688,13 +688,6 @@ h1, h2, h3, h4, h5, h6 {
   border-bottom: 1px solid var(--border-color);
 }
 
-.project-fields-label {
-  display: block;
-  font-size: 0.75rem;
-  color: var(--text-secondary);
-  margin-bottom: 0.4rem;
-}
-
 .project-fields-row {
   display: flex;
   flex-wrap: wrap;
