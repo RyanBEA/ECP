@@ -181,30 +181,27 @@ export default function App() {
           <span className="project-fields-label">Project details (optional — printed on the summary)</span>
           <div className="project-fields-row">
             <label>
-              <span>Project / civic address</span>
+              <span>Project / Address</span>
               <input
                 type="text"
                 value={projectInfo.project}
                 onChange={handleProjectChange('project')}
-                placeholder="e.g. 123 Main St, Lot 4"
               />
             </label>
             <label>
-              <span>Permit / application no.</span>
+              <span>Permit Number</span>
               <input
                 type="text"
                 value={projectInfo.permit}
                 onChange={handleProjectChange('permit')}
-                placeholder="e.g. BP-2026-0412"
               />
             </label>
             <label>
-              <span>Applicant / owner</span>
+              <span>Applicant</span>
               <input
                 type="text"
                 value={projectInfo.applicant}
                 onChange={handleProjectChange('applicant')}
-                placeholder="Name or company"
               />
             </label>
           </div>

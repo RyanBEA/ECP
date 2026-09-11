@@ -3,8 +3,8 @@ import { categories, wallTypes, calculateWallRsi } from '../data/ecpData'
 
 const PROJECT_FIELDS = [
   { key: 'project', label: 'Project / Address' },
-  { key: 'permit', label: 'Permit / Application No.' },
-  { key: 'applicant', label: 'Applicant / Owner' },
+  { key: 'permit', label: 'Permit Number' },
+  { key: 'applicant', label: 'Applicant' },
 ]
 
 export default function PrintSummary({ selections, wallSelection, wallPoints, totalPoints, selectedTier, projectInfo = {} }) {

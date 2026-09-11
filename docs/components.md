@@ -31,7 +31,7 @@ Root component. Owns all application state. No props.
 
 Iterates `categories` array. If `category.type === 'wallBuilder'`, renders `<WallBuilder>`. Otherwise renders `<CategoryCard>`.
 
-Footer contains an optional **Project details** block (three text inputs: project/civic address, permit/application no., applicant/owner) held in `projectInfo` state, plus a "Save / Print" button that calls `window.print()`, disabled when `totalPoints === 0`. The project fields are never required; whatever is entered is printed on the summary. After the footer, renders a hidden `<PrintSummary>` component (visible only in `@media print`).
+Footer contains an optional **Project details** block (three text inputs: Project / Address, Permit Number, Applicant) held in `projectInfo` state, plus a "Save / Print" button that calls `window.print()`, disabled when `totalPoints === 0`. The project fields are never required; whatever is entered is printed on the summary. After the footer, renders a hidden `<PrintSummary>` component (visible only in `@media print`).
 
 ---
 
@@ -412,7 +412,7 @@ Hidden on screen (`display: none`). Visible only in `@media print`.
 
 **Layout:**
 1. **Header** — "NBC 2020 {Tier} Compliance — ECP Summary" + date
-2. **Project details** — three labelled lines (Project / Address, Permit / Application No., Applicant / Owner). Filled values print as text; empty values print as a blank underlined line (`.print-blank`) so they can be completed by hand. Added for AHJ record keeping so permit submissions can be tied to a specific building.
+2. **Project details** — three labelled lines (Project / Address, Permit Number, Applicant). Filled values print as text; empty values print as a blank underlined line (`.print-blank`) so they can be completed by hand. Added for AHJ record keeping so permit submissions can be tied to a specific building.
 3. **Results table** — one row per selected category (name, selection label, points)
 4. **Wall details** — indented sub-rows when wall builder mode was used:
    - Wall Type (e.g., "Wood Frame, Single Stud" or "Wood Frame, Double Stud")

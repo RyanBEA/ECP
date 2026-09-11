@@ -197,7 +197,7 @@ App
 
 9. **Wall assembly Excel export** — The "Export to Excel" button generates a `.xlsx` workbook entirely client-side using ExcelJS (dynamically imported, code-split into its own chunk). The workbook contains live Excel formulas replicating the parallel-path RSI calculation, a source column with NBC table references, and an embedded PNG of the wall section diagram. Three sheet layouts: universal wood template (single/double/service wall), steel K-factor method, and ICF series sum.
 
-10. **Print/PDF export** — A "Save / Print" button in the footer calls `window.print()`. Optional project-detail inputs in the footer (project/address, permit no., applicant) are printed at the top of the summary, as blank lines when left empty. A hidden `PrintSummary` component renders a clean one-page summary table (selected categories, points, wall builder details when applicable). `@media print` CSS hides the interactive UI and shows only the summary. Forces light mode in print. Zero additional dependencies.
+10. **Print/PDF export** — A "Save / Print" button in the footer calls `window.print()`. Optional project-detail inputs in the footer (Project / Address, Permit Number, Applicant) are printed at the top of the summary, as blank lines when left empty. A hidden `PrintSummary` component renders a clean one-page summary table (selected categories, points, wall builder details when applicable). `@media print` CSS hides the interactive UI and shows only the summary. Forces light mode in print. Zero additional dependencies.
 
 ## Cross-References
 
