@@ -239,10 +239,11 @@ export default function App() {
           >
             Save / Print
           </button>
-          <span className="footer-version">v{APP_VERSION} — Updated {APP_UPDATED}</span>
         </div>
         <p className="usage-notice">{USAGE_NOTICE}</p>
       </footer>
+
+      <p className="app-version">v{APP_VERSION} — Updated {APP_UPDATED}</p>
 
       <PrintSummary
         selections={selections}

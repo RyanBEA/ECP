@@ -656,8 +656,12 @@ h1, h2, h3, h4, h5, h6 {
   color: var(--text-secondary);
 }
 
-.footer-version {
+.app-version {
+  text-align: center;
+  font-size: 0.7rem;
+  color: var(--text-secondary);
   font-variant-numeric: tabular-nums;
+  margin: 0.75rem 0 0;
 }
 
 .source-link {
@@ -759,7 +763,8 @@ h1, h2, h3, h4, h5, h6 {
   .app-header,
   .app-intro,
   .categories-container,
-  .app-footer {
+  .app-footer,
+  .app-version {
     display: none !important;
   }
 
