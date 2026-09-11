@@ -4,6 +4,6 @@ export const DISCLAIMER =
   'calculated from user-entered selections and are subject to review and approval by the ' +
   'authority having jurisdiction.'
 
-// Shown in the Project Details block only — not on the printed summary.
+// Shown under the Save / Print button only — not on the printed summary.
 export const USAGE_NOTICE =
   'Anonymous usage statistics (selections and point totals, never project details) are recorded when you print.'

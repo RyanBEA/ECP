@@ -31,7 +31,7 @@ Root component. Owns all application state. No props.
 
 Iterates `categories` array. If `category.type === 'wallBuilder'`, renders `<WallBuilder>`. Otherwise renders `<CategoryCard>`.
 
-Footer contains an optional **Project details** block (three text inputs: Project / Address, Permit Number, Applicant) held in `projectInfo` state, plus a "Save / Print" button that calls `window.print()`, disabled when `totalPoints === 0`. The project fields are never required; whatever is entered is printed on the summary. A disclaimer (`src/data/disclaimer.js`, shared with `PrintSummary`) states the output is not an official compliance document and is subject to AHJ approval. After the footer, renders a hidden `<PrintSummary>` component (visible only in `@media print`).
+Footer contains an optional **Project details** block (three text inputs: Project / Address, Permit Number, Applicant) held in `projectInfo` state, plus a "Save / Print" button that calls `window.print()`, disabled when `totalPoints === 0`. The project fields are never required; whatever is entered is printed on the summary. A disclaimer (`src/data/disclaimer.js`, shared with `PrintSummary`) states the output is not an official compliance document and is subject to AHJ approval. A short usage notice (`USAGE_NOTICE`) sits directly under the Save / Print button. After the footer, renders a hidden `<PrintSummary>` component (visible only in `@media print`).
 
 ---
 

@@ -188,7 +188,6 @@ export default function App() {
             <span className="category-metric">optional — printed on the summary</span>
           </div>
           <p className="category-description">{DISCLAIMER}</p>
-          <p className="category-description">{USAGE_NOTICE}</p>
           <div className="project-fields-row">
             <label>
               <span>Project / Address</span>
@@ -242,6 +241,7 @@ export default function App() {
           </button>
           <span className="footer-version">v{APP_VERSION} — Updated {APP_UPDATED}</span>
         </div>
+        <p className="usage-notice">{USAGE_NOTICE}</p>
       </footer>
 
       <PrintSummary
