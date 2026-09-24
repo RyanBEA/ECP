@@ -90,7 +90,7 @@ export default function PrintSummary({ selections, wallSelection, wallPoints, be
       const rsi = calculateWallRsi(wallSelection)
       wallLabel = rsi ? `RSI ${rsi.toFixed(2)}` : 'Incomplete'
       // Same test and shortfall as the WallBuilder card (simple-mode options all start at or above the minimum)
-      if (rsi && rsi < MIN_WALL_RSI) {
+      if (rsi && Math.round(rsi * 100) / 100 < MIN_WALL_RSI) {
         wallWarning = `⚠ Does not meet code — ${(MIN_WALL_RSI - rsi).toFixed(2)} RSI below minimum ${MIN_WALL_RSI}`
       }
 

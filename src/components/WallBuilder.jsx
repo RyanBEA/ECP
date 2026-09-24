@@ -120,7 +120,8 @@ export default function WallBuilder({ selection, onSelect, variant = 'design', h
 
   const rsi = calculateWallRsi(selection || {})
   const builderPoints = getWallPoints(rsi)
-  const belowCode = rsi !== null && rsi < MIN_WALL_RSI
+  // Compare the displayed (2-decimal) value, as getWallPoints does, so screen, print and points agree.
+  const belowCode = rsi !== null && Math.round(rsi * 100) / 100 < MIN_WALL_RSI
 
   const simplePoints = simpleIndex !== undefined && simpleIndex !== null
     ? wallCategory.options[simpleIndex].points

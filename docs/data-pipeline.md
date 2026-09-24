@@ -199,7 +199,7 @@ You should see the combo counts increase (the new material adds entries for each
    npm test
    ```
 
-   All 619 tests should pass.
+   All 627 tests should pass.
 
 3. **Check the audit workbook.** Open `dist/ECP-Wall-RSI-Calculator.xlsx` in Excel or LibreOffice. The "Wood Frame" sheet should include rows for your new material.
 
@@ -287,7 +287,7 @@ $ npm test
  ✓ src/App.test.jsx (6 tests)
 
  Test Files  15 passed (15)
-       Tests  619 passed (619)
+       Tests  627 passed (627)
 ```
 
 The `validate.test.js` suite (301 tests) validates every entry in the generated JSON by re-computing from the YAML sources using `compute.js`. It covers all wood, steel, and double stud wall combos, plus continuous insulation, ICF, boundary options, threshold entries, the below-grade thresholds and `foundation-data.json`. If you add a new material to YAML and regenerate, this suite automatically picks it up.

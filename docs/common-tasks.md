@@ -180,13 +180,13 @@ A passing run looks like this:
  ✓ src/utils/buildFoundationSheet.test.js (20 tests)
  ✓ src/utils/printEvent.test.js (15 tests)
  ✓ src/components/FieldGroup.test.jsx (4 tests)
- ✓ src/components/PrintSummary.test.jsx (15 tests)
+ ✓ src/components/PrintSummary.test.jsx (23 tests)
  ✓ src/components/WallSection.test.jsx (9 tests)
  ✓ src/components/BelowGradeWallBuilder.test.jsx (25 tests)
  ✓ src/App.test.jsx (6 tests)
 
  Test Files  15 passed (15)
-       Tests  619 passed (619)
+       Tests  627 passed (627)
 ```
 
 ### What each test file covers
