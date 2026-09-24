@@ -142,3 +142,127 @@ describe('buildPrintEvent', () => {
     expect(event1.sessionId).toBe(sessionId)
   })
 })
+
+const BELOW_GRADE_BUILDER_KEYS = [
+  'mode',
+  'foundationType',
+  'concreteThickness',
+  'blockType',
+  'icfFormThickness',
+  'pwfStud',
+  'pwfSpacing',
+  'pwfCavityMaterial',
+  'pwfCavityType',
+  'extInsType',
+  'extInsThickness',
+  'intInsType',
+  'intInsThickness',
+  'hasStudWall',
+  'studSpacing',
+  'cavityMaterial',
+  'cavityType',
+  'studDepth',
+  'studOffset',
+  'finish',
+  'rsi',
+  'points',
+]
+
+function baseArgs(overrides = {}) {
+  return {
+    selections: {},
+    wallSelection: {},
+    wallPoints: 0,
+    belowGradeSelection: {},
+    belowGradePoints: 0,
+    totalPoints: 0,
+    selectedTier: baseTier,
+    appVersion: '1.3.0',
+    ...overrides,
+  }
+}
+
+describe('buildPrintEvent belowGrade', () => {
+  it('is null when there is no below-grade selection', () => {
+    expect(buildPrintEvent(baseArgs()).belowGrade).toBeNull()
+    expect(buildPrintEvent(baseArgs({ belowGradeSelection: undefined })).belowGrade).toBeNull()
+  })
+
+  it('builds a simple-mode below-grade object', () => {
+    const event = buildPrintEvent(baseArgs({
+      belowGradeSelection: { simpleIndex: 1 },
+      belowGradePoints: 0.8,
+    }))
+    // simpleIndex 1 is the first points level (RSI 3.09); index 0 is the 2.98 floor.
+    expect(event.belowGrade).toEqual({
+      mode: 'simple',
+      simpleIndex: 1,
+      rsi: 3.09,
+      points: 0.8,
+    })
+  })
+
+  it('builds a builder-mode object with exactly the listed keys, absent fields null', () => {
+    const event = buildPrintEvent(baseArgs({
+      belowGradeSelection: {
+        foundationType: 'concrete',
+        concreteThickness: '200',
+        hasStudWall: true,
+        studSpacing: '16"',
+        cavityMaterial: 'Fiberglass Batt',
+        cavityType: '2x6 R22',
+        finish: 'gypsum',
+      },
+      belowGradePoints: 0.2,
+    }))
+    const bg = event.belowGrade
+    expect(Object.keys(bg).sort()).toEqual([...BELOW_GRADE_BUILDER_KEYS].sort())
+    expect(bg.mode).toBe('builder')
+    expect(bg.foundationType).toBe('concrete')
+    expect(bg.concreteThickness).toBe('200')
+    expect(bg.hasStudWall).toBe(true)
+    expect(bg.blockType).toBeNull()
+    expect(bg.icfFormThickness).toBeNull()
+    expect(bg.pwfStud).toBeNull()
+    expect(bg.studOffset).toBeNull()
+    expect(bg.points).toBe(0.2)
+    expect(typeof bg.rsi).toBe('number')
+    expect(Number.isFinite(bg.rsi)).toBe(true)
+    expect(bg.rsi).toBe(Math.round(bg.rsi * 100) / 100)
+  })
+
+  it('reports rsi null for an incomplete builder selection', () => {
+    const event = buildPrintEvent(baseArgs({
+      belowGradeSelection: { foundationType: 'concrete', hasStudWall: true },
+    }))
+    expect(event.belowGrade.mode).toBe('builder')
+    expect(event.belowGrade.rsi).toBeNull()
+  })
+
+  it('drops keys that are not on the list and never emits undefined or non-scalar values', () => {
+    const event = buildPrintEvent(baseArgs({
+      belowGradeSelection: {
+        foundationType: 'icf',
+        icfFormThickness: '2-1/2"',
+        finish: 'gypsum',
+        note: 'free text must not pass',
+        nested: { a: 1 },
+      },
+    }))
+    const bg = event.belowGrade
+    expect(bg.note).toBeUndefined()
+    expect(bg.nested).toBeUndefined()
+    for (const value of Object.values(bg)) {
+      const ok =
+        value === null ||
+        typeof value === 'boolean' ||
+        (typeof value === 'number' && Number.isFinite(value)) ||
+        (typeof value === 'string' && value.length <= 60)
+      expect(ok).toBe(true)
+    }
+  })
+
+  it('keeps v: 1', () => {
+    expect(buildPrintEvent(baseArgs({ belowGradeSelection: { simpleIndex: 0 } })).v).toBe(1)
+  })
+})

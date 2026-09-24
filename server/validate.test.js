@@ -112,3 +112,87 @@ describe('validateEvent', () => {
     expect(result.ok).toBe(false)
   })
 })
+
+describe('validateEvent belowGrade', () => {
+  const builder = {
+    mode: 'builder',
+    foundationType: 'concrete',
+    concreteThickness: '200',
+    blockType: null,
+    icfFormThickness: null,
+    pwfStud: null,
+    pwfSpacing: null,
+    pwfCavityMaterial: null,
+    pwfCavityType: null,
+    extInsType: 'XPS',
+    extInsThickness: '2"',
+    intInsType: null,
+    intInsThickness: null,
+    hasStudWall: true,
+    studSpacing: '16"',
+    cavityMaterial: 'Fiberglass Batt',
+    cavityType: '2x6 R22',
+    studDepth: null,
+    studOffset: false,
+    finish: 'gypsum',
+    rsi: 3.12,
+    points: 0.2,
+  }
+
+  it('accepts a valid builder belowGrade and keeps every listed key', () => {
+    const result = validateEvent(validBody({ belowGrade: builder }))
+    expect(result.ok).toBe(true)
+    expect(result.event.belowGrade).toEqual(builder)
+  })
+
+  it('accepts a valid simple belowGrade', () => {
+    const simple = { mode: 'simple', simpleIndex: 2, rsi: null, points: 1.4 }
+    const result = validateEvent(validBody({ belowGrade: simple }))
+    expect(result.ok).toBe(true)
+    expect(result.event.belowGrade).toEqual(simple)
+  })
+
+  it('accepts belowGrade: null and treats a missing belowGrade as null', () => {
+    expect(validateEvent(validBody({ belowGrade: null })).event.belowGrade).toBeNull()
+    const body = validBody()
+    delete body.belowGrade
+    expect(validateEvent(body).event.belowGrade).toBeNull()
+  })
+
+  it('rejects belowGrade with a nested object value', () => {
+    const result = validateEvent(validBody({ belowGrade: { ...builder, finish: { a: 1 } } }))
+    expect(result.ok).toBe(false)
+  })
+
+  it('rejects belowGrade with an array value', () => {
+    const result = validateEvent(validBody({ belowGrade: { ...builder, finish: ['gypsum'] } }))
+    expect(result.ok).toBe(false)
+  })
+
+  it('rejects belowGrade with a 61-character string', () => {
+    const result = validateEvent(validBody({ belowGrade: { ...builder, cavityType: 'x'.repeat(61) } }))
+    expect(result.ok).toBe(false)
+  })
+
+  it('accepts a 60-character string', () => {
+    const result = validateEvent(validBody({ belowGrade: { ...builder, cavityType: 'x'.repeat(60) } }))
+    expect(result.ok).toBe(true)
+  })
+
+  it('rejects a non-finite number', () => {
+    const result = validateEvent(validBody({ belowGrade: { ...builder, rsi: Infinity } }))
+    expect(result.ok).toBe(false)
+  })
+
+  it('rejects belowGrade that is not null or an object', () => {
+    expect(validateEvent(validBody({ belowGrade: 'builder' })).ok).toBe(false)
+    expect(validateEvent(validBody({ belowGrade: [1] })).ok).toBe(false)
+  })
+
+  it('strips an unknown key from belowGrade', () => {
+    const result = validateEvent(validBody({ belowGrade: { ...builder, note: 'dropped' } }))
+    expect(result.ok).toBe(true)
+    expect(result.event.belowGrade.note).toBeUndefined()
+    expect(result.event.belowGrade).toEqual(builder)
+  })
+})

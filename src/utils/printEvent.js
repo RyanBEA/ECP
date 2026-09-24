@@ -2,7 +2,7 @@
 // server when the user clicks "Save / Print". Never includes project,
 // address, permit, or applicant details, or any other free-text input.
 
-import { calculateWallRsi } from '../data/ecpData'
+import { calculateWallRsi, calculateBelowGradeRsi, categories } from '../data/ecpData'
 
 const WALL_FIELDS = [
   'wallType',
@@ -22,6 +22,77 @@ const WALL_FIELDS = [
   'contInsThickness',
 ]
 
+// Below-grade (foundation) builder fields. Every key is always present in a
+// builder-mode event (null when not set) so the stored shape is fixed. Values
+// are option ids/labels from fixed lists, booleans, or null — never free text.
+const BELOW_GRADE_FIELDS = [
+  'foundationType',
+  'concreteThickness',
+  'blockType',
+  'icfFormThickness',
+  'pwfStud',
+  'pwfSpacing',
+  'pwfCavityMaterial',
+  'pwfCavityType',
+  'extInsType',
+  'extInsThickness',
+  'intInsType',
+  'intInsThickness',
+  'hasStudWall',
+  'studSpacing',
+  'cavityMaterial',
+  'cavityType',
+  'studDepth',
+  'studOffset',
+  'finish',
+]
+
+function round2(value) {
+  return typeof value === 'number' && Number.isFinite(value) ? Math.round(value * 100) / 100 : null
+}
+
+// Only booleans, finite numbers, and short strings pass; anything else becomes null.
+function scalarOrNull(value) {
+  if (typeof value === 'boolean') return value
+  if (typeof value === 'number' && Number.isFinite(value)) return value
+  if (typeof value === 'string' && value.length <= 60) return value
+  return null
+}
+
+function buildBelowGrade(selection, points) {
+  if (!selection || typeof selection !== 'object') return null
+  const isSimpleMode = selection.simpleIndex !== undefined
+  const isBuilderMode = !isSimpleMode && !!selection.foundationType
+  if (!isSimpleMode && !isBuilderMode) return null
+
+  if (isSimpleMode) {
+    // Select RSI mode: rsi is the chosen option's RSI level from the category list.
+    const category = categories.find(c => c.id === 'belowGradeWalls')
+    const option = category?.options?.[selection.simpleIndex]
+    return {
+      mode: 'simple',
+      simpleIndex: selection.simpleIndex,
+      rsi: round2(option?.value),
+      points,
+    }
+  }
+
+  let rsi = null
+  try {
+    rsi = round2(calculateBelowGradeRsi(selection))
+  } catch {
+    rsi = null
+  }
+
+  const belowGrade = { mode: 'builder' }
+  BELOW_GRADE_FIELDS.forEach(key => {
+    belowGrade[key] = scalarOrNull(selection[key])
+  })
+  belowGrade.rsi = rsi
+  belowGrade.points = points
+  return belowGrade
+}
+
 function makeSessionId() {
   if (typeof crypto !== 'undefined' && typeof crypto.randomUUID === 'function') {
     return crypto.randomUUID()
@@ -40,6 +111,8 @@ export function buildPrintEvent({
   selections,
   wallSelection,
   wallPoints,
+  belowGradeSelection,
+  belowGradePoints,
   totalPoints,
   selectedTier,
   appVersion,
@@ -88,6 +161,7 @@ export function buildPrintEvent({
     met: totalPoints >= selectedTier.points,
     selections: { ...selections },
     wall,
+    belowGrade: buildBelowGrade(belowGradeSelection, belowGradePoints ?? 0),
   }
 }
 

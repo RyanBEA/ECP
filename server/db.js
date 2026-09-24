@@ -50,6 +50,10 @@ export async function initDb() {
       wall JSONB
     );
   `)
+    // Added for the below-grade (foundation) wall builder; safe on existing tables.
+    await candidate.query(`
+      ALTER TABLE print_events ADD COLUMN IF NOT EXISTS below_grade JSONB;
+    `)
     await candidate.query(`
       CREATE INDEX IF NOT EXISTS print_events_created_at_idx ON print_events (created_at);
     `)
@@ -66,8 +70,8 @@ export async function insertEvent(event) {
   if (!pool) throw new Error('database not configured')
   await pool.query(
     `INSERT INTO print_events
-      (app_version, session_id, tier, target_points, total_points, met, selections, wall)
-     VALUES ($1, $2, $3, $4, $5, $6, $7, $8)`,
+      (app_version, session_id, tier, target_points, total_points, met, selections, wall, below_grade)
+     VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9)`,
     [
       event.appVersion,
       event.sessionId,
@@ -77,6 +81,7 @@ export async function insertEvent(event) {
       event.met,
       JSON.stringify(event.selections),
       event.wall === null ? null : JSON.stringify(event.wall),
+      event.belowGrade == null ? null : JSON.stringify(event.belowGrade),
     ]
   )
 }
@@ -91,7 +96,7 @@ export async function streamEvents(onRow) {
     await client.query('BEGIN')
     await client.query(
       `DECLARE ${cursorName} CURSOR FOR
-        SELECT id, created_at, app_version, session_id, tier, target_points, total_points, met, selections, wall
+        SELECT id, created_at, app_version, session_id, tier, target_points, total_points, met, selections, wall, below_grade
         FROM print_events ORDER BY created_at ASC`
     )
     // eslint-disable-next-line no-constant-condition

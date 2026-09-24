@@ -21,7 +21,7 @@ yourself; the scripts below never print them.
 | Pull all events to CSV | `.claude/skills/ecp-telemetry/scripts/pull-events.sh` → `telemetry-exports/ecp-events-<stamp>.csv` |
 | Summarize a pull | `.claude/skills/ecp-telemetry/scripts/summarize.py telemetry-exports/ecp-events-<stamp>.csv` |
 | One design per visit | add `--final-only` to `summarize.py` (keeps the last event per `session_id`) |
-| Ad-hoc analysis | load the CSV with Python `csv`/`json`; `selections_json` and `wall_json` are JSON columns |
+| Ad-hoc analysis | load the CSV with Python `csv`/`json`; `selections_json`, `wall_json` and `below_grade_json` are JSON columns |
 | Check the endpoint | `curl -s https://ecp.baselineenergy.ca/api/health` → `{"ok":true,"db":true}` |
 
 `telemetry-exports/` is gitignored. Do not commit pulled CSVs.
@@ -35,6 +35,17 @@ yourself; the scripts below never print them.
   `options` array in `src/data/ecpData.js` (labels/thresholds in `docs/data-layer.md`).
 - `wall_json` is `null`, `{"mode":"simple","simpleIndex":n,...}`, or a builder
   object with `wallType`, `assemblyType`, framing/insulation fields, `rsi`, `points`.
+- `below_grade_json` (column `below_grade`, added for the foundation wall builder)
+  is `null` when the Below Grade Walls category is untouched, or
+  `{"mode":"simple","simpleIndex":n,"rsi":<option RSI>,"points":p}`, or a builder
+  object. The builder object always carries the same keys, `null` when a field does
+  not apply to the chosen foundation type: `mode`, `foundationType` (`concrete` |
+  `block` | `icf` | `pwf`), `concreteThickness`, `blockType`, `icfFormThickness`,
+  `pwfStud`, `pwfSpacing`, `pwfCavityMaterial`, `pwfCavityType`, `extInsType`,
+  `extInsThickness`, `intInsType`, `intInsThickness`, `hasStudWall`, `studSpacing`,
+  `cavityMaterial`, `cavityType`, `studDepth`, `studOffset`, `finish`, `rsi`
+  (effective RSI rounded to 2 decimals, `null` when incomplete), `points`.
+  Rows written before the column existed read as an empty cell.
 - Nothing identifying is stored: no project, permit, applicant, IP, or user agent.
   Do not add such fields to reports "for context" — they do not exist.
 

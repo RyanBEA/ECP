@@ -9,6 +9,34 @@ const MAX_APP_VERSION_LEN = 20
 const MAX_SESSION_ID_LEN = 64
 const ALLOWED_TIERS = [2, 3, 4, 5]
 
+// Below-grade (foundation) wall object: fixed key list. Unknown keys are
+// stripped; values must be null, boolean, finite number, or a short string.
+const BELOW_GRADE_KEYS = [
+  'mode',
+  'simpleIndex',
+  'foundationType',
+  'concreteThickness',
+  'blockType',
+  'icfFormThickness',
+  'pwfStud',
+  'pwfSpacing',
+  'pwfCavityMaterial',
+  'pwfCavityType',
+  'extInsType',
+  'extInsThickness',
+  'intInsType',
+  'intInsThickness',
+  'hasStudWall',
+  'studSpacing',
+  'cavityMaterial',
+  'cavityType',
+  'studDepth',
+  'studOffset',
+  'finish',
+  'rsi',
+  'points',
+]
+
 function isFiniteNumber(n) {
   return typeof n === 'number' && Number.isFinite(n)
 }
@@ -33,21 +61,44 @@ function validateSelections(selections) {
   return null
 }
 
+function isValidScalar(value) {
+  return (
+    value === null ||
+    typeof value === 'boolean' ||
+    isFiniteNumber(value) ||
+    (typeof value === 'string' && value.length <= MAX_WALL_STRING_LEN)
+  )
+}
+
 function validateWall(wall) {
   if (wall === null) return null
   if (!isPlainObject(wall)) return 'wall must be null or an object'
   const keys = Object.keys(wall)
   if (keys.length > MAX_WALL_KEYS) return 'too many wall keys'
   for (const key of keys) {
-    const value = wall[key]
-    const validScalar =
-      value === null ||
-      typeof value === 'boolean' ||
-      isFiniteNumber(value) ||
-      (typeof value === 'string' && value.length <= MAX_WALL_STRING_LEN)
-    if (!validScalar) return `invalid wall value for ${key}`
+    if (!isValidScalar(wall[key])) return `invalid wall value for ${key}`
   }
   return null
+}
+
+// Every value (known key or not) must be a scalar, so a nested object under an
+// unknown key is rejected rather than silently dropped.
+function validateBelowGrade(belowGrade) {
+  if (belowGrade === null) return null
+  if (!isPlainObject(belowGrade)) return 'belowGrade must be null or an object'
+  for (const key of Object.keys(belowGrade)) {
+    if (!isValidScalar(belowGrade[key])) return `invalid belowGrade value for ${key}`
+  }
+  return null
+}
+
+function pickBelowGrade(belowGrade) {
+  if (belowGrade === null) return null
+  const picked = {}
+  for (const key of BELOW_GRADE_KEYS) {
+    if (key in belowGrade) picked[key] = belowGrade[key]
+  }
+  return picked
 }
 
 /**
@@ -98,6 +149,12 @@ export function validateEvent(body) {
     return { ok: false, error: wallError }
   }
 
+  const belowGrade = body.belowGrade === undefined ? null : body.belowGrade
+  const belowGradeError = validateBelowGrade(belowGrade)
+  if (belowGradeError) {
+    return { ok: false, error: belowGradeError }
+  }
+
   // Strip unknown top-level keys — only the validated shape is kept.
   const event = {
     v: 1,
@@ -109,6 +166,7 @@ export function validateEvent(body) {
     met: body.met,
     selections: { ...body.selections },
     wall: wall === null ? null : { ...wall },
+    belowGrade: pickBelowGrade(belowGrade),
   }
 
   return { ok: true, event }

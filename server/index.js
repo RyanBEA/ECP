@@ -109,7 +109,7 @@ app.get('/api/events.csv', async (req, res) => {
 
   res.setHeader('Content-Type', 'text/csv; charset=utf-8')
   res.setHeader('Content-Disposition', 'attachment; filename="ecp-events.csv"')
-  res.write('id,created_at,app_version,session_id,tier,target_points,total_points,met,selections_json,wall_json\n')
+  res.write('id,created_at,app_version,session_id,tier,target_points,total_points,met,selections_json,wall_json,below_grade_json\n')
 
   try {
     await streamEvents(row => {
@@ -124,6 +124,7 @@ app.get('/api/events.csv', async (req, res) => {
         csvField(row.met),
         csvField(JSON.stringify(row.selections)),
         csvField(row.wall === null ? '' : JSON.stringify(row.wall)),
+        csvField(row.below_grade == null ? '' : JSON.stringify(row.below_grade)),
       ].join(',')
       res.write(line + '\n')
     })
