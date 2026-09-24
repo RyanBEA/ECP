@@ -51,7 +51,7 @@ yourself; the scripts below never print them.
   three-option list: 0 = RSI 3.09, 1 = 3.46, 2 = 3.90. Version 1.3.0 inserted a
   2.98 / 0-point floor at index 0 of that list, so the same index now names a
   different level. Rows from 1.3.0 on never carry `belowGradeWalls` in
-  `selections_json` (the client strips it); they use the `below_grade` column
+  `selections_json` (the client strips it and the server strips it again); they use the `below_grade` column
   instead, whose `simpleIndex` counts from the NEW list (0 = 2.98, 1 = 3.09,
   2 = 3.46, 3 = 3.90) and whose `rsi` field gives the level directly. Split any
   below-grade analysis on `app_version` and read the old rows with the old list.

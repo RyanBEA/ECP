@@ -180,7 +180,7 @@ describe('PrintSummary below-grade walls', () => {
     expect(screen.getByText('Foundation Type: Poured Concrete')).toBeTruthy()
     expect(screen.getByText('Wall Thickness: 200 mm (8")')).toBeTruthy()
     expect(screen.getByText('Exterior Ins: XPS, 2"')).toBeTruthy()
-    expect(screen.getByText('Stud Spacing: 16" | Cavity: Fiberglass Batt, 2x6 R20 | held off concrete')).toBeTruthy()
+    expect(screen.getByText('Stud Spacing: 16" | Cavity: Fiberglass Batt, 2x6 R20 | held off the concrete')).toBeTruthy()
     expect(screen.getByText('Finish: 1/2" gypsum board')).toBeTruthy()
     expect(screen.getByText('Total Assembly RSI: 4.64')).toBeTruthy()
     expect(container.querySelector('[data-category="belowGradeWalls"] .print-pts').textContent).toBe('1.4')

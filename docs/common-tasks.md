@@ -186,7 +186,7 @@ A passing run looks like this:
  ✓ src/App.test.jsx (6 tests)
 
  Test Files  15 passed (15)
-       Tests  613 passed (613)
+       Tests  619 passed (619)
 ```
 
 ### What each test file covers

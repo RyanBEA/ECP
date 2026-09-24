@@ -94,8 +94,8 @@ function buildBelowGrade(selection, points) {
 }
 
 // From v1.3.0 the Below Grade Walls category is recorded in `belowGrade`, never
-// as an option index in `selections`. Task 2 inserted a 2.98 / 0-point floor at
-// index 0, so an index would now mean a different level than in older rows.
+// as an option index in `selections`. The option list now starts with a 2.98 /
+// 0-point floor at index 0, so an index would mean a different level than in older rows.
 function stripBelowGradeIndex(selections) {
   const copy = { ...selections }
   delete copy.belowGradeWalls

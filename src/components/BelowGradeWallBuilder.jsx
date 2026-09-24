@@ -18,6 +18,7 @@ import {
   getBasementCavityTypes,
   getPwfCavityTypes,
   isBlownInMaterial,
+  hasThickness,
   calculateBelowGradeAssembly,
   getBelowGradePoints,
   MIN_BELOW_GRADE_RSI,
@@ -52,10 +53,7 @@ const STUD_WALL_FIELDS = ['studSpacing', 'cavityMaterial', 'cavityType', 'studDe
 
 // Materials keyed by stud size ('2x6') instead of cavity type ('2x6 R22'): the UI asks for a
 // stud size and the data layer reads `studDepth`.
-const isBlownIn = material => Boolean(material) && material !== EMPTY_CAVITY && isBlownInMaterial(material)
-const usesStudDepth = material => material === EMPTY_CAVITY || isBlownIn(material)
-
-const hasThickness = t => Boolean(t) && t !== 'None'
+const usesStudDepth = material => material === EMPTY_CAVITY || isBlownInMaterial(material)
 
 // '1-1/2"' -> 1.5, '2"' -> 2, 'None' -> 0
 const inchesFromLabel = (thickness) => {
@@ -77,7 +75,7 @@ const frameStud = ({ cavityMaterial, cavityType, studDepth }) => {
   return cavityType ? cavityType.split(' ')[0] : undefined
 }
 
-// Layer list for the cross-section drawing (Task 4), outside to inside. Thicknesses are
+// Layer list for the cross-section drawing, outside to inside. Thicknesses are
 // drawing inches, not thermal inputs; labels come from the calculated assembly so the
 // drawing and the "How it adds up" list always say the same thing. [] when incomplete.
 export function buildFoundationLayers(selection = {}, assembly) {
@@ -113,7 +111,7 @@ export function buildFoundationLayers(selection = {}, assembly) {
     }
     if (sel.hasStudWall !== false && labelOf('frame')) {
       const stud = frameStud(sel)
-      // The data layer appends ', held off the wall' only when the offset RSI applies; mirror
+      // The data layer appends ', held off the concrete' only when the offset RSI applies; mirror
       // that with a 1" air-gap band so the picture matches the label. Not counted in RSI.
       if (/held off/.test(labelOf('frame'))) {
         layers.push({ id: 'air_gap', kind: 'air_gap', label: 'air gap (not counted)', thicknessInches: 1 })
@@ -122,7 +120,7 @@ export function buildFoundationLayers(selection = {}, assembly) {
         id: 'frame', kind: 'frame', label: labelOf('frame'),
         thicknessInches: STUD_INCHES[stud] || 5.5,
         studDepth: stud, studSpacing: spacingNum(sel.studSpacing),
-        cavityLabel: sel.cavityMaterial === EMPTY_CAVITY ? 'empty cavity' : (isBlownIn(sel.cavityMaterial) ? sel.cavityMaterial : sel.cavityType),
+        cavityLabel: sel.cavityMaterial === EMPTY_CAVITY ? 'empty cavity' : (isBlownInMaterial(sel.cavityMaterial) ? sel.cavityMaterial : sel.cavityType),
       })
     }
   } else {
@@ -133,6 +131,34 @@ export function buildFoundationLayers(selection = {}, assembly) {
     layers.push({ id: 'finish', kind: 'gypsum', label: labelOf('finish'), thicknessInches: 0.5 })
   }
   return layers
+}
+
+// Assumptions footnote lines, [label, text], for the chosen foundation type only.
+const BASEMENT_FRAMING = ['Basement framing', '16% / 14.5% / 13% at 16" / 19" (19.2" o.c.) / 24"']
+export function foundationAssumptions(foundationType) {
+  const common = [
+    ['Interior air film', '0.12 RSI'],
+    ['Exterior air film / soil', 'not counted'],
+  ]
+  switch (foundationType) {
+    case 'concrete':
+      return [...common, ['Concrete', '0.0004 RSI/mm'], BASEMENT_FRAMING]
+    case 'block':
+      return [...common, ['Concrete block', '190 mm, RSI by block type from Table A-9.36.2.4.(1)-D'], BASEMENT_FRAMING]
+    case 'icf':
+      return [...common,
+        ['EPS forms', '0.026 RSI/mm per form'],
+        ['Concrete core', '152 mm at 0.0004 RSI/mm'],
+        ['ICF', 'plastic ties'],
+      ]
+    case 'pwf':
+      return [...common,
+        ['PWF framing', '24% / 19% / 16% at 8" / 12" / 16" (Table A-9.36.2.8.(1)-B)'],
+        ['Plywood sheathing', '12.5 mm, 0.109 RSI'],
+      ]
+    default:
+      return common
+  }
 }
 
 export default function BelowGradeWallBuilder({ selection, onSelect }) {
@@ -201,12 +227,16 @@ export default function BelowGradeWallBuilder({ selection, onSelect }) {
       onSelect({ ...sel, simpleIndex: undefined, cavityType: v, studOffset: v === '2x6 R20' ? sel.studOffset : undefined })
       return
     }
+    // Blown-in materials have one cavity entry per stud, named after the stud ('2x8'), so the
+    // Cavity Size follows the stud instead of waiting on a pick the user cannot change.
     if (field === 'pwfCavityMaterial') {
-      onSelect({ ...sel, simpleIndex: undefined, pwfCavityMaterial: v, pwfCavityType: undefined })
+      const pwfCavityType = isBlownInMaterial(v) ? sel.pwfStud : undefined
+      onSelect({ ...sel, simpleIndex: undefined, pwfCavityMaterial: v, pwfCavityType })
       return
     }
     if (field === 'pwfStud') {
-      onSelect({ ...sel, simpleIndex: undefined, pwfStud: v, pwfCavityType: undefined })
+      const pwfCavityType = isBlownInMaterial(sel.pwfCavityMaterial) ? v : undefined
+      onSelect({ ...sel, simpleIndex: undefined, pwfStud: v, pwfCavityType })
       return
     }
     if (field === 'intInsThickness' || field === 'intInsType') {
@@ -247,13 +277,17 @@ export default function BelowGradeWallBuilder({ selection, onSelect }) {
     ((hasThickness(extInsThickness) && !extInsType) || (hasThickness(intInsThickness) && !intInsType))
   const prompt = !foundationType
     ? 'Select a foundation type to begin'
-    : isIcf && !icfFormThickness
-      ? 'Select form thickness to calculate RSI'
-      : (studWallIncomplete || pwfIncomplete)
-        ? 'Select stud wall options to calculate RSI'
-        : insTypeMissing
-          ? 'Select an insulation type'
-          : 'No data for this combination'
+    : foundationType === 'concrete' && !concreteThickness
+      ? 'Select a wall thickness'
+      : foundationType === 'block' && !blockType
+        ? 'Select a block type'
+        : isIcf && !icfFormThickness
+          ? 'Select a form thickness'
+          : (studWallIncomplete || pwfIncomplete)
+            ? 'Select stud wall options to calculate RSI'
+            : insTypeMissing
+              ? 'Select an insulation type'
+              : 'No data for this combination'
 
   const renderSelect = (id, label, value, options, field, { disabled = false, blank = true } = {}) => (
     <div className="wall-selector">
@@ -417,22 +451,12 @@ export default function BelowGradeWallBuilder({ selection, onSelect }) {
           {/* Group 6: Assumptions */}
           {foundationType && (
             <FieldGroup number={nextGroup()} title="Assumptions" variant="footnote">
-              <div className="assumptions-list">
-                <div className="assumption-item">
-                  <span className="assumption-label">Interior air film: </span>0.12 RSI
-                </div>
-                <div className="assumption-item">
-                  <span className="assumption-label">Exterior air film / soil: </span>not counted
-                </div>
-                <div className="assumption-item">
-                  <span className="assumption-label">Concrete: </span>0.0004 RSI/mm
-                </div>
-                <div className="assumption-item">
-                  <span className="assumption-label">Basement framing: </span>16% / 14.5% / 13% at 16" / 19" (19.2" o.c.) / 24"
-                </div>
-                <div className="assumption-item">
-                  <span className="assumption-label">ICF: </span>plastic ties
-                </div>
+              <div className="assumptions-list" data-testid="bg-assumptions">
+                {foundationAssumptions(foundationType).map(([label, text]) => (
+                  <div className="assumption-item" key={label}>
+                    <span className="assumption-label">{label}: </span>{text}
+                  </div>
+                ))}
               </div>
             </FieldGroup>
           )}

@@ -419,7 +419,8 @@ export function getInteriorInsRsi(type, thickness) {
   return getContinuousInsRsi(type, thickness)
 }
 
-const hasThickness = t => Boolean(t) && t !== 'None'
+// A thickness field that names a layer: set and not 'None'.
+export const hasThickness = t => Boolean(t) && t !== 'None'
 
 // Blown-in materials are keyed by stud ('2x6') rather than cavity type ('2x6 R22').
 export const isBlownInMaterial = cavityMaterial =>
@@ -452,7 +453,7 @@ function framedLayer({ spacing, cavityPctByKey, cavityMaterial, cavityType, stud
     const offsetRsi = foundationData.interior_stud_wall.offset_cavity_rsi[key]
     if (studOffset && offsetRsi) {
       cavityRsi = offsetRsi
-      cavityLabel += ', held off the wall'
+      cavityLabel += ', held off the concrete'
     }
   }
   if (!stud || !allowedStuds.includes(stud)) return null

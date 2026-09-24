@@ -113,7 +113,7 @@ describe('BelowGradeWallBuilder', () => {
   it('ICF 2-1/2" shows 3.56 and +0.8 with the finish locked to gypsum', () => {
     render(<Harness />)
     pick('bg-foundationType', 'icf')
-    expect(screen.getByText('Select form thickness to calculate RSI')).toBeInTheDocument()
+    expect(screen.getByText('Select a form thickness')).toBeInTheDocument()
     pick('bg-icfFormThickness', '2-1/2"')
     expect(screen.getByText(/^3\.56 \(R-/)).toBeInTheDocument()
     expect(screen.getByText('+0.8')).toBeInTheDocument()
@@ -238,7 +238,7 @@ describe('BelowGradeWallBuilder', () => {
     const empty = calculateBelowGradeAssembly({ ...FOUNDATION_DEFAULTS.concrete, cavityMaterial: 'None (empty)', cavityType: undefined, studDepth: '2x4' })
     expect(empty.layers.find(l => l.id === 'frame').label).toBe('2x4 @ 16" empty cavity')
     const off = calculateBelowGradeAssembly({ ...FOUNDATION_DEFAULTS.concrete, cavityType: '2x6 R20', studOffset: true })
-    expect(off.layers.find(l => l.id === 'frame').label).toBe('2x6 @ 16" Fiberglass Batt R20, held off the wall')
+    expect(off.layers.find(l => l.id === 'frame').label).toBe('2x6 @ 16" Fiberglass Batt R20, held off the concrete')
     const block = calculateBelowGradeAssembly({ ...FOUNDATION_DEFAULTS.block, blockType: 'light_empty' })
     expect(block.layers.find(l => l.id === 'block').label).toBe('Light-weight block (190 mm), cores empty')
     const lime = calculateBelowGradeAssembly({ ...FOUNDATION_DEFAULTS.block, blockType: 'limestone_perlite' })
@@ -271,6 +271,59 @@ describe('BelowGradeWallBuilder', () => {
     expect(lastCall(spy)).toEqual({})
   })
 
+  it('the Assumptions footnote shows only the lines for the chosen type', () => {
+    render(<Harness />)
+    const footnote = () => screen.getByTestId('bg-assumptions').textContent
+    pick('bg-foundationType', 'pwf')
+    expect(footnote()).not.toContain('16% / 14.5%')
+    expect(footnote()).toContain('24% / 19% / 16%')
+    expect(footnote()).toContain('0.109')
+    expect(footnote()).not.toContain('plastic ties')
+    expect(footnote()).not.toMatch(/Concrete: /)
+    pick('bg-foundationType', 'icf')
+    expect(footnote()).toContain('plastic ties')
+    expect(footnote()).toContain('0.026 RSI/mm')
+    expect(footnote()).not.toContain('Basement framing')
+    pick('bg-foundationType', 'concrete')
+    expect(footnote()).toContain('0.0004 RSI/mm')
+    expect(footnote()).toContain('16% / 14.5% / 13%')
+    expect(footnote()).not.toContain('plastic ties')
+    pick('bg-foundationType', 'block')
+    expect(footnote()).toContain('190 mm')
+    expect(footnote()).not.toMatch(/Concrete: 0.0004/)
+    expect(footnote()).toContain('16% / 14.5% / 13%')
+  })
+
+  it('PWF with a blown-in cavity fills the Cavity Size from the stud', () => {
+    const spy = vi.fn()
+    render(<Harness spy={spy} />)
+    pick('bg-foundationType', 'pwf')
+    pick('bg-pwfCavityMaterial', 'Loose Fill Cellulose')
+    expect(lastCall(spy).pwfCavityType).toBe('2x8')
+    expect(document.getElementById('bg-pwfCavityType')).toHaveValue('2x8')
+    expect(screen.getByText(/^\d\.\d\d \(R-/)).toBeInTheDocument()
+    pick('bg-pwfStud', '2x10')
+    expect(lastCall(spy).pwfCavityType).toBe('2x10')
+    expect(document.getElementById('bg-pwfCavityType')).toHaveValue('2x10')
+    // Back to a batt: the size must be picked again
+    pick('bg-pwfCavityMaterial', 'Fiberglass Batt')
+    expect(lastCall(spy).pwfCavityType).toBeUndefined()
+    expect(screen.getByText('Select stud wall options to calculate RSI')).toBeInTheDocument()
+  })
+
+  it('a blank structural field prompts for that field, not "No data"', () => {
+    render(<Harness />)
+    pick('bg-foundationType', 'concrete')
+    pick('bg-concreteThickness', '')
+    expect(screen.getByText('Select a wall thickness')).toBeInTheDocument()
+    expect(screen.queryByText('No data for this combination')).toBeNull()
+    pick('bg-foundationType', 'block')
+    pick('bg-blockType', '')
+    expect(screen.getByText('Select a block type')).toBeInTheDocument()
+    pick('bg-foundationType', 'icf')
+    expect(screen.getByText('Select a form thickness')).toBeInTheDocument()
+  })
+
   it('shows the code notes and the moisture disclaimer once a type is chosen', () => {
     render(<Harness />)
     expect(screen.queryByText(/9\.36\.8\.7\.\(4\)/)).toBeNull()
@@ -284,7 +337,7 @@ describe('BelowGradeWallBuilder', () => {
   })
 })
 
-describe('buildFoundationLayers (input for the Task 4 drawing)', () => {
+describe('buildFoundationLayers (input for the cross-section drawing)', () => {
   const layersFor = sel => buildFoundationLayers(sel, calculateBelowGradeAssembly(sel))
 
   it('returns [] for an incomplete selection', () => {

@@ -138,6 +138,9 @@ describe('buildFoundationSheet', () => {
       // Not applicable to this wall
       expect(text).not.toContain('9.10.17.10')
       expect(text).not.toMatch(/held off/i)
+      expect(text).toMatch(/Poured concrete: 0.0004 RSI\/mm/)
+      expect(text).not.toMatch(/PWF framing/)
+      expect(text).not.toMatch(/plastic ties/)
     })
   })
 
@@ -195,6 +198,13 @@ describe('buildFoundationSheet', () => {
     it('carries the forced-gypsum note', () => {
       expect(columnA(sheet).join('\n')).toContain('9.10.17.10')
     })
+
+    it('carries the ICF note and not the framing notes', () => {
+      const text = columnA(sheet).join('\n')
+      expect(text).toMatch(/plastic ties/)
+      expect(text).not.toMatch(/Basement stud wall framing/)
+      expect(text).not.toMatch(/PWF framing/)
+    })
   })
 
   describe('PWF 2x8 @ 16" R28', () => {
@@ -222,6 +232,15 @@ describe('buildFoundationSheet', () => {
       const text = columnA(sheet).join('\n')
       expect(text).toMatch(/24% at 8", 19% at 12", 16% at 16"/)
       expect(text).toContain('Table A-9.36.2.8.(1)-B')
+    })
+
+    it('carries the PWF notes and not the basement or ICF ones', () => {
+      const text = columnA(sheet).join('\n')
+      expect(text).toMatch(/PWF framing: 24% at 8"/)
+      expect(text).toMatch(/12.5 mm plywood, RSI 0.109/)
+      expect(text).not.toMatch(/Basement stud wall framing/)
+      expect(text).not.toMatch(/16% at 16", 14.5% at 19"/)
+      expect(text).not.toMatch(/plastic ties/)
     })
   })
 

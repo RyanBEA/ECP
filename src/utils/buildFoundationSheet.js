@@ -127,7 +127,7 @@ function writeFrameRows(sheet, row, layer, data) {
   sheet.getCell(`B${cavRsiRow}`).value = frame.cavityMaterial
   sheet.getCell(`C${cavRsiRow}`).value = frame.cavityType || (frame.cavityMaterial === 'None (empty)' ? 'air space' : '—')
   rsiCell(sheet, `D${cavRsiRow}`, frame.cavityRsi)
-  sourceCell(sheet, cavRsiRow, frame.offset ? 'NBC 2020 Table A-9.36.2.8.(1)-A Note (3), batt held off the wall' : TABLE_D)
+  sourceCell(sheet, cavRsiRow, frame.offset ? 'NBC 2020 Table A-9.36.2.8.(1)-A Note (3), batt held off the concrete' : TABLE_D)
 
   labelCell(sheet, `A${cavPctRow}`, ' Cavity %', SUB_FONT)
   sheet.getCell(`D${cavPctRow}`).value = frame.cavityPct
@@ -192,10 +192,27 @@ function buildNotes(data) {
   const levelText = levels.map(t => `>= ${t.minRsi.toFixed(2)} gives ${t.points}`).join(', ')
   const notes = [
     `Layers counted: the materials plus the interior air film (0.12). No exterior air film and no soil (${NOTE_A_SOURCE}; ${TABLE_D}).`,
-    'Basement stud wall framing: 16% at 16", 14.5% at 19" (19.2" o.c.), 13% at 24" (NBC 2020 Table A-9.36.2.4.(1)-A, basement wood-frame wall inside a concrete foundation wall). The above-ground 23% row does not apply.',
   ]
-  if (data.foundationType === 'pwf') {
-    notes.push('PWF framing: 24% at 8", 19% at 12", 16% at 16". These reproduce NBC 2020 Table A-9.36.2.8.(1)-B with actual stud depths (2x6 140 mm, 2x8 184 mm, 2x10 235 mm).')
+  // Type-specific notes: each foundation type states only the values it uses.
+  switch (data.foundationType) {
+    case 'concrete':
+    case 'block':
+      notes.push(
+        data.foundationType === 'concrete'
+          ? `Poured concrete: 0.0004 RSI/mm (${TABLE_D}).`
+          : `Concrete block: 190 mm, RSI by block type (${TABLE_D}, concrete blocks, 2 or 3 cores).`,
+        'Basement stud wall framing: 16% at 16", 14.5% at 19" (19.2" o.c.), 13% at 24" (NBC 2020 Table A-9.36.2.4.(1)-A, basement wood-frame wall inside a concrete foundation wall). The above-ground 23% row does not apply.',
+      )
+      break
+    case 'icf':
+      notes.push(`ICF: EPS forms at 0.026 RSI/mm per form, 152 mm concrete core at 0.0004 RSI/mm, plastic ties (${TABLE_D}).`)
+      break
+    case 'pwf':
+      notes.push(
+        'PWF framing: 24% at 8", 19% at 12", 16% at 16". These reproduce NBC 2020 Table A-9.36.2.8.(1)-B with actual stud depths (2x6 140 mm, 2x8 184 mm, 2x10 235 mm).',
+        `PWF sheathing: 12.5 mm plywood, RSI 0.109 (${TABLE_D}).`,
+      )
+      break
   }
   if (data.frame?.offset) {
     notes.push('Stud wall held off the concrete: the R20 batt expands to RSI 3.52 (NBC 2020 Table A-9.36.2.8.(1)-A Note (3)). The air gap itself is not counted.')

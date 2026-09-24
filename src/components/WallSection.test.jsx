@@ -126,7 +126,7 @@ describe('WallSection foundation mode', () => {
       const sel = { ...FOUNDATION_DEFAULTS.concrete, cavityType: '2x6 R20', studOffset: true, studSpacing: spacing }
       const layers = layersFor(sel)
       expect(layers.map(l => l.kind)).toEqual(['soil', 'concrete', 'air_gap', 'frame', 'gypsum'])
-      expect(layers.find(l => l.kind === 'frame').label).toMatch(/held off the wall/)
+      expect(layers.find(l => l.kind === 'frame').label).toMatch(/held off the concrete/)
       const { container, unmount } = render(<WallSection wallType="foundation" foundationLayers={layers} />)
       expectOneTextPerLayer(container, layers)
       expect(textsIn(container)).toContain('air gap (not counted)')

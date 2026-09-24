@@ -52,7 +52,7 @@ function belowGradeDetailLines(sel) {
         const cavity = [sel.cavityMaterial, sel.cavityType || sel.studDepth].filter(Boolean).join(', ')
         if (cavity) parts.push(`Cavity: ${cavity}`)
       }
-      if (sel.studOffset) parts.push('held off concrete')
+      if (sel.studOffset) parts.push('held off the concrete')
       lines.push(parts.join(' | '))
     }
   }

@@ -158,6 +158,12 @@ export function validateEvent(body) {
     return { ok: false, error: belowGradeError }
   }
 
+  // From v1.3.0 the Below Grade Walls category lives in `belowGrade`, never as an option
+  // index in `selections` (the index list gained a floor at 0, so an index would be read
+  // against the wrong list). The client strips it; strip it here too.
+  const selections = { ...body.selections }
+  delete selections.belowGradeWalls
+
   // Strip unknown top-level keys — only the validated shape is kept.
   const event = {
     v: 1,
@@ -167,7 +173,7 @@ export function validateEvent(body) {
     targetPoints: body.targetPoints,
     totalPoints: body.totalPoints,
     met: body.met,
-    selections: { ...body.selections },
+    selections,
     wall: wall === null ? null : { ...wall },
     belowGrade: pickBelowGrade(belowGrade),
   }

@@ -189,6 +189,12 @@ describe('validateEvent belowGrade', () => {
     expect(validateEvent(validBody({ belowGrade: [1] })).ok).toBe(false)
   })
 
+  it('strips a belowGradeWalls index from selections', () => {
+    const result = validateEvent(validBody({ selections: { airTightness: 1, belowGradeWalls: 0 } }))
+    expect(result.ok).toBe(true)
+    expect(result.event.selections).toEqual({ airTightness: 1 })
+  })
+
   it('strips an unknown key from belowGrade', () => {
     const result = validateEvent(validBody({ belowGrade: { ...builder, note: 'dropped' } }))
     expect(result.ok).toBe(true)

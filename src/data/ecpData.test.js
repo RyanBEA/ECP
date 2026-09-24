@@ -450,7 +450,7 @@ describe('below-grade', () => {
   })
 })
 
-describe('below-grade hardening (Task 2 review)', () => {
+describe('below-grade input checks (insulation lists, blown-in keys, block labels)', () => {
   const base = { foundationType: 'concrete', concreteThickness: '200', extInsThickness: 'None', intInsThickness: 'None',
     hasStudWall: true, studSpacing: '16"', cavityMaterial: 'Fiberglass Batt', cavityType: '2x6 R22', finish: 'gypsum' }
   it('rejects insulation types that are not on the below-grade lists', () => {
