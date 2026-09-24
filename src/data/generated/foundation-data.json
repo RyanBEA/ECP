@@ -52,6 +52,16 @@
         "rsi": 0.58
       },
       {
+        "id": "medium_eps_beads",
+        "label": "Medium-weight, cores filled with EPS beads",
+        "rsi": 0.56
+      },
+      {
+        "id": "medium_eps_inserts",
+        "label": "Medium-weight, EPS inserts in cores",
+        "rsi": 0.47
+      },
+      {
         "id": "light_empty",
         "label": "Light-weight, cores empty",
         "rsi": 0.32
@@ -75,6 +85,11 @@
         "id": "light_eps_inserts",
         "label": "Light-weight, EPS inserts in cores",
         "rsi": 0.62
+      },
+      {
+        "id": "limestone_perlite",
+        "label": "Limestone aggregate, cores filled with perlite",
+        "rsi": 0.37
       }
     ]
   },

@@ -20,11 +20,14 @@ block:
     - { id: medium_empty,       label: "Medium-weight, cores empty",            rsi: 0.26 }
     - { id: medium_perlite,     label: "Medium-weight, cores filled with perlite",     rsi: 0.53 }
     - { id: medium_vermiculite, label: "Medium-weight, cores filled with vermiculite", rsi: 0.58 }
+    - { id: medium_eps_beads,   label: "Medium-weight, cores filled with EPS beads",   rsi: 0.56 }
+    - { id: medium_eps_inserts, label: "Medium-weight, EPS inserts in cores",  rsi: 0.47 }
     - { id: light_empty,        label: "Light-weight, cores empty",             rsi: 0.32 }
     - { id: light_perlite,      label: "Light-weight, cores filled with perlite",      rsi: 0.99 }
     - { id: light_vermiculite,  label: "Light-weight, cores filled with vermiculite",  rsi: 0.81 }
     - { id: light_eps_beads,    label: "Light-weight, cores filled with EPS beads",    rsi: 0.85 }
     - { id: light_eps_inserts,  label: "Light-weight, EPS inserts in cores",   rsi: 0.62 }
+    - { id: limestone_perlite,  label: "Limestone aggregate, cores filled with perlite", rsi: 0.37 }
 
 interior_stud_wall:
   # Table A-9.36.2.4.(1)-A, "basement wood-frame inside concrete foundation wall"

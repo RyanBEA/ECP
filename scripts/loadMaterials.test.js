@@ -72,7 +72,7 @@ describe('loadMaterials', () => {
 describe('loadMaterials foundation', () => {
   it('loads foundation.yaml', () => {
     expect(m.foundation).toBeDefined()
-    expect(m.foundation.block.options.length).toBe(11)
+    expect(m.foundation.block.options.length).toBe(14)
     expect(m.foundation.interior_stud_wall.cavity_pct[16]).toBe(84)
     expect(m.foundation.pwf.cavity_pct[8]).toBe(76)
     expect(m.foundation.inside_air_film).toBe(0.12)
