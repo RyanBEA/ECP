@@ -355,7 +355,7 @@ import {
   calculateBelowGradeRsi, calculateBelowGradeAssembly, getBelowGradePoints, MIN_BELOW_GRADE_RSI,
   belowGradePointsThresholds, foundationTypes, getBasementCavityTypes, getPwfCavityTypes,
   getInteriorInsRsi, EMPTY_CAVITY, concreteThicknessOptions, blockOptions, extInsTypes, intInsTypes,
-  insThicknesses, pwfStudOptions, pwfSpacingOptions, basementStudOptions, finishOptions,
+  insThicknesses, pwfStudOptions, pwfSpacingOptions, basementStudOptions, finishOptions, isBlownInMaterial,
 } from './ecpData'
 
 describe('below-grade', () => {
@@ -447,5 +447,34 @@ describe('below-grade', () => {
     expect(getInteriorInsRsi('Closed-Cell Spray Foam', '2"')).toBeCloseTo(1.8288, 4)
     expect(getInteriorInsRsi('XPS', '1-1/2"')).toBeCloseTo(1.28, 4)
     expect(getInteriorInsRsi('XPS', 'None')).toBe(0)
+  })
+})
+
+describe('below-grade hardening (Task 2 review)', () => {
+  const base = { foundationType: 'concrete', concreteThickness: '200', extInsThickness: 'None', intInsThickness: 'None',
+    hasStudWall: true, studSpacing: '16"', cavityMaterial: 'Fiberglass Batt', cavityType: '2x6 R22', finish: 'gypsum' }
+  it('rejects insulation types that are not on the below-grade lists', () => {
+    expect(calculateBelowGradeRsi({ ...base, extInsType: 'Polyiso', extInsThickness: '2"' })).toBeNull()
+    expect(calculateBelowGradeRsi({ ...base, intInsType: 'Mineral Wool (Rock Wool)', intInsThickness: '2"' })).toBeNull()
+  })
+  it('blown-in cavity accepts the stud in studDepth or cavityType', () => {
+    const a = calculateBelowGradeRsi({ ...base, cavityMaterial: 'Loose Fill Cellulose', cavityType: undefined, studDepth: '2x6' })
+    const b = calculateBelowGradeRsi({ ...base, cavityMaterial: 'Loose Fill Cellulose', cavityType: '2x6' })
+    expect(a).not.toBeNull()
+    expect(b).toBe(a)
+    expect(isBlownInMaterial('Loose Fill Cellulose')).toBe(true)
+    expect(isBlownInMaterial('Fiberglass Batt')).toBe(false)
+    expect(isBlownInMaterial('Nope')).toBe(false)
+  })
+  it('limestone block label says block', () => {
+    const a = calculateBelowGradeAssembly({ ...base, foundationType: 'block', blockType: 'limestone_perlite', concreteThickness: undefined })
+    expect(a.layers.find(l => l.id === 'block').label).toMatch(/block/)
+  })
+  it('two-decimal rounding matches the points rule for the near-edge cases', () => {
+    const r2 = x => Math.round(x * 100) / 100
+    expect(r2(calculateBelowGradeRsi({ ...base, cavityType: '2x6 R20', studSpacing: '24"' }))).toBe(2.98)
+    expect(r2(calculateBelowGradeRsi({ ...base, cavityType: '2x6 R24', studSpacing: '24"' }))).toBe(3.46)
+    expect(r2(calculateBelowGradeRsi({ ...base, concreteThickness: '250' }))).toBe(3.14)
+    expect(r2(calculateBelowGradeRsi({ ...base, foundationType: 'block', blockType: 'light_empty', concreteThickness: undefined }))).toBe(3.36)
   })
 })

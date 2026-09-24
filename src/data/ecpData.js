@@ -422,8 +422,10 @@ export function getInteriorInsRsi(type, thickness) {
 const hasThickness = t => Boolean(t) && t !== 'None'
 
 // Blown-in materials are keyed by stud ('2x6') rather than cavity type ('2x6 R22').
-const isBlownIn = cavityMaterial =>
-  Object.keys(woodCavityEntries[cavityMaterial] || {}).every(k => !k.includes(' '))
+export const isBlownInMaterial = cavityMaterial =>
+  Boolean(woodCavityEntries[cavityMaterial]) &&
+  Object.keys(woodCavityEntries[cavityMaterial]).every(k => !k.includes(' '))
+const isBlownIn = isBlownInMaterial
 
 // Framed layer for the basement interior stud wall or the PWF wall. Returns null when any
 // lookup fails. `requiredStud` (PWF) pins the stud; `allowedStuds` (basement) limits it.
@@ -439,7 +441,8 @@ function framedLayer({ spacing, cavityPctByKey, cavityMaterial, cavityType, stud
   } else {
     const entries = woodCavityEntries[cavityMaterial]
     if (!entries) return null
-    const key = isBlownIn(cavityMaterial) ? (requiredStud || studDepth) : cavityType
+    // Blown-in: the UI may carry the stud in studDepth or in cavityType ('2x6'); accept either.
+    const key = isBlownIn(cavityMaterial) ? (requiredStud || studDepth || cavityType) : cavityType
     const entry = entries[key]
     if (!entry) return null
     stud = entry.stud
@@ -496,6 +499,7 @@ export function calculateBelowGradeAssembly(selection = {}) {
     forceGypsum = true
   } else if (foundationType === 'concrete' || foundationType === 'block') {
     if (hasThickness(extInsThickness)) {
+      if (!extInsTypes.includes(extInsType)) return null   // no polyiso or spray foam outside (9.25.2.2.(3))
       const rsi = getContinuousInsRsi(extInsType, extInsThickness)
       if (!rsi) return null
       layers.push({ id: 'ext_ins', label: `${extInsThickness} ${extInsType} (exterior)`, rsi })
@@ -508,10 +512,11 @@ export function calculateBelowGradeAssembly(selection = {}) {
     } else {
       const b = foundationData.block.options.find(o => o.id === blockType)
       if (!b) return null
-      layers.push({ id: 'block', label: b.label.replace(/^(\S+-weight),/, '$1 block,'), rsi: b.rsi })
+      layers.push({ id: 'block', label: b.label.replace(/^(\S+-weight|Limestone aggregate),/, '$1 block,'), rsi: b.rsi })
     }
 
     if (hasThickness(intInsThickness)) {
+      if (!intInsTypes.includes(intInsType)) return null
       const rsi = getInteriorInsRsi(intInsType, intInsThickness)
       if (!rsi) return null
       layers.push({ id: 'int_ins', label: `${intInsThickness} ${intInsType} (interior)`, rsi })
