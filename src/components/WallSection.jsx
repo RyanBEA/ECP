@@ -9,9 +9,10 @@ import React from 'react'
  * - ICF: drywall -> EPS foam -> concrete -> EPS foam -> cladding
  * - Double stud: two wood stud walls with optional gap and service wall
  * - Single + service wall: primary stud wall with interior service cavity
+ * - Foundation: below-grade wall from a layer list (soil hatch, foam, concrete/block/ICF, studs, gypsum)
  */
 export default function WallSection({
-  wallType = 'wood',           // 'wood', 'steel', or 'icf'
+  wallType = 'wood',           // 'wood', 'steel', 'icf', or 'foundation'
   studDepth = '2x6',           // '2x4' or '2x6'
   studSpacing = 16,            // 16, 19, or 24 inches
   continuousIns = 0,           // inches of continuous insulation
@@ -30,6 +31,7 @@ export default function WallSection({
   serviceCavityLabel = null,  // Label for service wall cavity
   interiorLayerLabel = null,  // Label for interior layer (between service and primary)
   interiorLayerThicknessInches = 0, // Thickness of interior layer
+  foundationLayers = null,    // Foundation mode: layer list, outside to inside (see BelowGradeWallBuilder)
   width = 600,
 }) {
   // Use consistent scale for proper proportions
@@ -194,28 +196,33 @@ export default function WallSection({
   }
 
   // Shared helper: renders a wood stud+cavity section
-  const renderStudCavity = (startY, depth, spacingIn) => {
+  // opts (foundation mode only): lengthInches / widthPx override the wall length,
+  // showBatt=false draws an empty cavity. Defaults reproduce the original behaviour exactly.
+  const renderStudCavity = (startY, depth, spacingIn, opts = {}) => {
+    const lenIn = opts.lengthInches ?? wallLengthInches
+    const widthPx = opts.widthPx ?? wallWidthPx
+    const showBatt = opts.showBatt !== false
     const studH = depth * scale
-    const numSt = Math.ceil(wallLengthInches / spacingIn) + 1
+    const numSt = Math.ceil(lenIn / spacingIn) + 1
     return (
       <g>
-        <rect x={0} y={startY} width={wallWidthPx} height={studH}
+        <rect x={0} y={startY} width={widthPx} height={studH}
           fill={colors.cavity} stroke="#9ca3af" strokeWidth="1" />
-        {Array.from({ length: numSt - 1 }).map((_, i) => {
+        {showBatt && Array.from({ length: numSt - 1 }).map((_, i) => {
           const cavStartX = (i * spacingIn + studWidthInches) * scale
           const cavW = (spacingIn - studWidthInches) * scale
-          if (cavStartX >= wallWidthPx) return null
+          if (cavStartX >= widthPx) return null
           return (
             <g key={`cav-${startY}-${i}`}>
-              {generateCavityPattern(cavStartX, Math.min(cavW, wallWidthPx - cavStartX), startY, studH)}
+              {generateCavityPattern(cavStartX, Math.min(cavW, widthPx - cavStartX), startY, studH)}
             </g>
           )
         })}
         {Array.from({ length: numSt }).map((_, i) => {
           const sx = i * spacingIn * scale
           const sw = studWidthInches * scale
-          if (sx >= wallWidthPx) return null
-          const aw = Math.min(sw, wallWidthPx - sx)
+          if (sx >= widthPx) return null
+          const aw = Math.min(sw, widthPx - sx)
           return (
             <g key={`stud-${startY}-${i}`}>
               <rect x={sx} y={startY} width={aw} height={studH}
@@ -232,6 +239,172 @@ export default function WallSection({
           )
         })}
       </g>
+    )
+  }
+
+  // --- Foundation (below-grade) Rendering ---
+  // Plan view in the same orientation as the ICF drawing: top = inside (gypsum), bottom = outside.
+  // `foundationLayers` arrives outside-to-inside (soil first); it is reversed here so the
+  // interior finish sits at the top and the soil hatch at the bottom.
+  if (wallType === 'foundation') {
+    const fdInput = Array.isArray(foundationLayers) ? foundationLayers : []
+    const fdDrawOrder = [...fdInput].reverse()
+    const fdFrames = fdDrawOrder.filter(l => l.kind === 'frame')
+    const fdSpacing = fdFrames.length ? Math.max(...fdFrames.map(l => l.studSpacing || 16)) : null
+    const fdLengthInches = fdSpacing ? fdSpacing * 1.5 : 24
+    const fdWidthPx = fdLengthInches * scale
+    const fdTotalThickness = fdDrawOrder.reduce((sum, l) => sum + (l.thicknessInches || 0), 0)
+    const fdSvgWidth = fdWidthPx + 280   // room for long block labels
+    const fdSvgHeight = fdTotalThickness * scale + 80
+    const fdStartY = 30
+    const fdBottomY = fdStartY + fdTotalThickness * scale
+    const soilPatternId = 'foundation-soil-hatch'
+
+    let fdY = fdStartY
+    const fdLayers = fdDrawOrder.map((l, i) => {
+      const h = (l.thicknessInches || 0) * scale
+      const placed = { ...l, y: fdY, h, midY: fdY + h / 2, name: l.label || l.kind, key: `${l.id || l.kind}-${i}` }
+      fdY += h
+      return placed
+    })
+
+    // Concrete speckle, same deterministic positions as the ICF core, count scaled to the area
+    const renderConcrete = (l) => {
+      const count = Math.max(12, Math.round(40 * (fdLengthInches * l.thicknessInches) / (24 * 6)))
+      const speckles = Array.from({ length: count }).map((_, i) => ({
+        x: ((i * 17 + 7) % 100) / 100,
+        y: ((i * 31 + 13) % 100) / 100,
+      }))
+      return (
+        <g>
+          <rect x={0} y={l.y} width={fdWidthPx} height={l.h} fill="#6b7280" stroke="#374151" strokeWidth="1" />
+          {speckles.map((sp, i) => (
+            <circle key={`speckle-${i}`} cx={sp.x * fdWidthPx} cy={l.y + sp.y * l.h} r={1.5} fill="#9ca3af" opacity={0.5} />
+          ))}
+        </g>
+      )
+    }
+
+    // Concrete block in plan: 16" units with a mortar joint, two cores each. Filled cores get the
+    // insulation fill so an empty block and a perlite-filled block look different.
+    const renderBlock = (l) => {
+      const unitIn = 16
+      const jointIn = 0.375
+      const shellIn = 1.25
+      const webIn = 1
+      const filled = /perlite|vermiculite|EPS/i.test(l.name)
+      const units = Math.ceil(fdLengthInches / unitIn) + 1
+      const coreY = l.y + shellIn * scale
+      const coreH = Math.max(l.h - 2 * shellIn * scale, 2)
+      return (
+        <g>
+          <rect x={0} y={l.y} width={fdWidthPx} height={l.h} fill="#9ca3af" stroke="#4b5563" strokeWidth="1" />
+          {Array.from({ length: units }).map((_, i) => {
+            const ux = (i * unitIn - unitIn / 2) * scale   // half-unit offset so a joint shows mid-wall
+            const uw = (unitIn - jointIn) * scale
+            const coreW = ((unitIn - jointIn) - 2 * shellIn - webIn) / 2 * scale
+            const core1X = ux + shellIn * scale
+            const core2X = core1X + coreW + webIn * scale
+            return (
+              <g key={`block-${i}`}>
+                <rect x={ux} y={l.y} width={uw} height={l.h} fill="none" stroke="#4b5563" strokeWidth="1" />
+                {[core1X, core2X].map((cx, j) => (
+                  <g key={`core-${i}-${j}`}>
+                    <rect x={cx} y={coreY} width={coreW} height={coreH} rx="2"
+                      fill={filled ? '#fce7f3' : '#e5e7eb'} stroke={filled ? '#db2777' : '#6b7280'} strokeWidth="1" />
+                    {filled && generateContInsPattern(cx, coreW, coreY, coreH)}
+                  </g>
+                ))}
+              </g>
+            )
+          })}
+          {/* clip everything to the wall length */}
+          <rect x={-unitIn * scale} y={l.y - 1} width={unitIn * scale} height={l.h + 2} fill="#fff" />
+          <rect x={fdWidthPx} y={l.y - 1} width={unitIn * scale} height={l.h + 2} fill="#fff" />
+          <rect x={0} y={l.y} width={fdWidthPx} height={l.h} fill="none" stroke="#4b5563" strokeWidth="1" />
+        </g>
+      )
+    }
+
+    const renderFoundationLayer = (l) => {
+      switch (l.kind) {
+        case 'gypsum':
+          return <rect x={0} y={l.y} width={fdWidthPx} height={l.h} fill={colors.drywall} stroke="#9ca3af" strokeWidth="1" />
+        case 'sheathing':
+          return <rect x={0} y={l.y} width={fdWidthPx} height={l.h} fill={colors.sheathing} stroke="#6b7280" strokeWidth="1" />
+        case 'ext_ins':
+        case 'int_ins':
+        case 'icf_foam':
+          return (
+            <g>
+              <rect x={0} y={l.y} width={fdWidthPx} height={l.h} fill="#fce7f3" stroke="#db2777" strokeWidth="1" />
+              {generateContInsPattern(0, fdWidthPx, l.y, l.h)}
+            </g>
+          )
+        case 'concrete':
+          return renderConcrete(l)
+        case 'block':
+          return renderBlock(l)
+        case 'frame':
+          return renderStudCavity(l.y, l.thicknessInches, l.studSpacing || 16, {
+            lengthInches: fdLengthInches, widthPx: fdWidthPx, showBatt: l.cavityLabel !== 'empty cavity',
+          })
+        case 'soil':
+          return (
+            <g>
+              <rect x={0} y={l.y} width={fdWidthPx} height={l.h} fill="#f5f0e6" stroke="none" />
+              <rect x={0} y={l.y} width={fdWidthPx} height={l.h} fill={`url(#${soilPatternId})`} stroke="#a8a29e" strokeWidth="1" />
+            </g>
+          )
+        default:
+          return <rect x={0} y={l.y} width={fdWidthPx} height={l.h} fill="#e5e7eb" stroke="#9ca3af" strokeWidth="1" />
+      }
+    }
+
+    return (
+      <div className="wall-section" style={{ width: '100%', overflowX: 'auto' }}>
+        <svg
+          width="100%"
+          viewBox={`0 0 ${fdSvgWidth} ${fdSvgHeight}`}
+          preserveAspectRatio="xMidYMid meet"
+          style={{ background: '#fff', border: '1px solid #e5e7eb', borderRadius: '8px', maxHeight: '300px' }}
+        >
+          <defs>
+            <pattern id={soilPatternId} patternUnits="userSpaceOnUse" width="8" height="8" patternTransform="rotate(45)">
+              <line x1="0" y1="0" x2="0" y2="8" stroke="#a8a29e" strokeWidth="1" />
+            </pattern>
+          </defs>
+
+          <text x={fdSvgWidth / 2} y="18" textAnchor="middle" fontSize="11" fill="#6b7280" fontWeight="500">
+            INTERIOR
+          </text>
+
+          <g transform="translate(20, 0)">
+            {fdLayers.map(l => (
+              <g key={l.key}>{renderFoundationLayer(l)}</g>
+            ))}
+
+            {renderLabels(fdLayers, fdWidthPx, fdStartY)}
+
+            {/* Stud spacing dimension at bottom */}
+            {fdSpacing && (
+              <g transform={`translate(0, ${fdBottomY + 15})`}>
+                <line x1={0} y1="0" x2={fdSpacing * scale} y2="0" stroke="#9ca3af" strokeWidth="1" />
+                <line x1={0} y1="-5" x2={0} y2="5" stroke="#9ca3af" strokeWidth="1" />
+                <line x1={fdSpacing * scale} y1="-5" x2={fdSpacing * scale} y2="5" stroke="#9ca3af" strokeWidth="1" />
+                <text x={fdSpacing * scale / 2} y="15" textAnchor="middle" fontSize="10" fill="#6b7280">
+                  {fdSpacing}" o.c.
+                </text>
+              </g>
+            )}
+          </g>
+
+          <text x={fdSvgWidth / 2} y={fdBottomY + (fdSpacing ? 45 : 25)}
+            textAnchor="middle" fontSize="11" fill="#6b7280" fontWeight="500">
+            EXTERIOR
+          </text>
+        </svg>
+      </div>
     )
   }
 

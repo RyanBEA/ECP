@@ -24,6 +24,7 @@ import {
 } from '../data/ecpData'
 import OptionButton from './OptionButton'
 import FieldGroup from './FieldGroup'
+import WallSection from './WallSection'
 
 const belowGradeCategory = categories.find(c => c.id === 'belowGradeWalls')
 
@@ -476,7 +477,7 @@ export default function BelowGradeWallBuilder({ selection, onSelect }) {
           {/* Cross-section drawing */}
           {assembly && foundationLayers.length > 0 && (
             <div className="wall-section-container" ref={svgRef}>
-              {/* Task 4: <WallSection wallType="foundation" foundationLayers={foundationLayers} /> */}
+              <WallSection wallType="foundation" foundationLayers={foundationLayers} />
             </div>
           )}
 
