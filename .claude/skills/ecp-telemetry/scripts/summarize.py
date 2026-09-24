@@ -47,6 +47,10 @@ def main():
     for cat in sorted(sel):
         picks = ', '.join(f'[{i}]×{c}' for i, c in sorted(sel[cat].items()))
         print(f'  {cat:22s} {picks}')
+    if 'belowGradeWalls' in sel:
+        # Only rows before v1.3.0 carry this key; their index is into the OLD three-option list.
+        print('  (belowGradeWalls above = rows before v1.3.0, old list: [0]=3.09, [1]=3.46, [2]=3.90;'
+              ' later rows are in below_grade below)')
 
     wall = Counter()
     rsi = []
@@ -60,6 +64,28 @@ def main():
     print('\nwalls: ' + ', '.join(f'{k}={v}' for k, v in wall.most_common()))
     if rsi:
         print(f'builder RSI: min {min(rsi):.2f}  avg {sum(rsi)/len(rsi):.2f}  max {max(rsi):.2f}')
+
+    # below_grade_json: added in v1.3.0; absent from older exports, empty for older rows.
+    bg = Counter()
+    bg_level = Counter()
+    bg_rsi = []
+    for r in rows:
+        raw = r.get('below_grade_json') or ''
+        b = json.loads(raw) if raw else None
+        if not b: bg['none'] += 1; continue
+        mode = b.get('mode', '?')
+        bg[mode] += 1
+        if mode == 'simple':
+            bg_level[f"{b.get('rsi')}/{b.get('points')}pts"] += 1
+        elif mode == 'builder':
+            bg[f"builder:{b.get('foundationType','?')}"] += 1
+            if b.get('rsi') is not None: bg_rsi.append(float(b['rsi']))
+            else: bg['builder:incomplete'] += 1
+    print('\nbelow grade: ' + ', '.join(f'{k}={v}' for k, v in bg.most_common()))
+    if bg_level:
+        print('below grade simple levels (rsi/points): ' + ', '.join(f'{k}={v}' for k, v in sorted(bg_level.items())))
+    if bg_rsi:
+        print(f'below grade builder RSI: min {min(bg_rsi):.2f}  avg {sum(bg_rsi)/len(bg_rsi):.2f}  max {max(bg_rsi):.2f}')
 
 if __name__ == '__main__':
     main()

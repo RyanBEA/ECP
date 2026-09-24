@@ -16,11 +16,13 @@ Root component. Owns all application state. No props.
 | `selectedTierId` | number | `2` | Tier selector value |
 | `selections` | `{ [categoryId]: number }` | `{}` | Option index per standard category |
 | `wallSelection` | object | `{}` | Wall builder state (see WallBuilder) |
+| `belowGradeSelection` | object | `{}` | Below-grade wall builder state (see BelowGradeWallBuilder) |
 
 ### Derived (useMemo)
 
 - **`wallPoints`** — From `wallSelection`: if `simpleIndex` is set, reads `categories[wall].options[simpleIndex].points`. Otherwise calls `calculateWallRsi(wallSelection)` → `getWallPoints()`.
-- **`totalPoints`** — Sum of all `selections` option points + `wallPoints`.
+- **`belowGradePoints`** - Same pattern from `belowGradeSelection`: if `simpleIndex` is set, reads `categories[belowGradeWalls].options[simpleIndex].points`. Otherwise calls `calculateBelowGradeRsi(belowGradeSelection)` then `getBelowGradePoints()` (0 when the assembly is incomplete).
+- **`totalPoints`** — Sum of all `selections` option points + `wallPoints` + `belowGradePoints`.
 
 ### Key Functions
 
@@ -29,7 +31,7 @@ Root component. Owns all application state. No props.
 
 ### Rendering
 
-Iterates `categories` array. If `category.type === 'wallBuilder'`, renders `<WallBuilder>`. Otherwise renders `<CategoryCard>`.
+Iterates `categories` array. If `category.type === 'wallBuilder'`, renders `<WallBuilder>`; if `category.type === 'belowGradeBuilder'`, renders `<BelowGradeWallBuilder>`. Otherwise renders `<CategoryCard>`.
 
 Footer contains an optional **Project details** block (three text inputs: Project / Address, Permit Number, Applicant) held in `projectInfo` state, plus a "Save / Print" button that calls `window.print()`, disabled when `totalPoints === 0`. The project fields are never required; whatever is entered is printed on the summary. A disclaimer (`src/data/disclaimer.js`, shared with `PrintSummary`) states the output is not an official compliance document and is subject to AHJ approval. A short usage notice (`USAGE_NOTICE`) sits directly under the Save / Print button. After the footer, renders a hidden `<PrintSummary>` component (visible only in `@media print`).
 
@@ -264,6 +266,112 @@ Renders `OptionButton` grid from `wallCategory.options`. Selection tracked by `s
 
 ---
 
+## BelowGradeWallBuilder (`src/components/BelowGradeWallBuilder.jsx`)
+
+Dual-mode input for the Below Grade Walls category, mirroring WallBuilder: "Build Assembly" (builder, the default) or "Select RSI" (simple). Builder mode uses progressive disclosure based on the foundation type. The card heading is "Below Grade Walls".
+
+### Props
+
+| Prop | Type | Required | Description |
+|------|------|----------|-------------|
+| `selection` | object | yes | Below-grade state from App.jsx (may be `{}`) |
+| `onSelect` | `(newSelection) => void` | yes | Replaces the entire below-grade selection in App.jsx |
+
+### Selection Object Shape
+
+```js
+// Builder mode -- poured concrete (defaults when "Poured Concrete" is chosen):
+{
+  foundationType: 'concrete',
+  concreteThickness: '200',        // '200' | '250'
+  extInsType: undefined,           // 'XPS' | 'EPS' | 'Mineral Wool (Rock Wool)' | 'Mineral Wool (Glass Fibre)'
+  extInsThickness: 'None',         // 'None' | '1"' | '1-1/2"' | '2"' | '2-1/2"' | '3"' | '3-1/2"' | '4"'
+  intInsType: undefined,           // 'XPS' | 'EPS' | 'Polyiso' | 'Closed-Cell Spray Foam'
+  intInsThickness: 'None',         // same list as extInsThickness
+  hasStudWall: true,
+  studSpacing: '16"',              // '16"' | '19"' | '24"'
+  cavityMaterial: 'Fiberglass Batt',   // any cavity material, or 'None (empty)'
+  cavityType: '2x6 R22',           // 2x4 / 2x6 batts only; absent for blown-in or empty
+  studDepth: undefined,            // '2x4' | '2x6', used instead of cavityType for blown-in or empty cavities
+  studOffset: undefined,           // boolean, only meaningful for cavityType '2x6 R20'
+  finish: 'gypsum',                // 'gypsum' | 'none'
+}
+
+// Builder mode -- concrete block: as concrete, but `blockType: 'normal_empty'` (an id from
+// foundation.yaml block.options) replaces `concreteThickness`.
+
+// Builder mode -- ICF:
+{ foundationType: 'icf', icfFormThickness: '2-1/2"', finish: 'gypsum' }   // icfFormThickness starts empty
+
+// Builder mode -- permanent wood foundation (defaults):
+{
+  foundationType: 'pwf',
+  pwfStud: '2x8',                  // '2x6' | '2x8' | '2x10'
+  pwfSpacing: '16"',               // '8"' | '12"' | '16"'
+  pwfCavityMaterial: 'Fiberglass Batt',
+  pwfCavityType: '2x8 R28',        // cavity entries of that material whose stud matches pwfStud
+  finish: 'gypsum',
+}
+
+// Simple mode:
+{ simpleIndex: 1 }                 // index 0 is the 2.98 / 0-point floor, 1..3 the point levels
+
+// Empty (initial):
+{}
+```
+
+Builder fields and `simpleIndex` are mutually exclusive. Mode switching calls `onSelect({})`. Choosing a foundation type replaces the whole selection with that type's entry in the exported `FOUNDATION_DEFAULTS`, so no field from another type survives. Changing `cavityMaterial` clears `cavityType` and `studOffset` and sets `studDepth` to `'2x6'` when the material is blown-in or `'None (empty)'`. Changing `cavityType` away from `2x6 R20` clears `studOffset`. Changing `pwfStud` or `pwfCavityMaterial` clears `pwfCavityType`. Setting an interior insulation thickness forces `finish` to `'gypsum'`. Unticking the stud wall sets `hasStudWall: false` and clears the five stud-wall fields; ticking it restores the stud-wall defaults (16", Fiberglass Batt, 2x6 R22).
+
+### Internal State
+
+| State | Type | Default |
+|-------|------|---------|
+| `mode` | `'builder'` \| `'simple'` | `'builder'` |
+| `exporting` | boolean | `false` |
+
+### Refs
+
+| Ref | Target | Purpose |
+|-----|--------|---------|
+| `svgRef` | `.wall-section-container` div | SVG element for the Excel export PNG |
+
+### Builder Mode -- FieldGroup Cards
+
+Group numbers are dynamic (no gaps). Groups 2 to 4 appear only for poured concrete and concrete block; 5 and 6 appear once a foundation type is chosen.
+
+1. **Foundation** (always visible) -- Foundation Type select (Poured Concrete, Concrete Block, ICF, Permanent Wood Foundation). Concrete adds Wall Thickness; block adds Block Type (14 options); ICF adds EPS Form Thickness (per side); PWF adds a second row of Stud Size, Stud Spacing, Cavity Insulation, Cavity Size.
+2. **Exterior Insulation** -- Type (XPS, EPS, two mineral wools; no polyiso) and Thickness (None to 4").
+3. **Interior Insulation** -- Type (XPS, EPS, Polyiso, Closed-Cell Spray Foam) and Thickness (None to 4").
+4. **Interior Stud Wall** -- checkbox (on by default). When on: Stud Spacing, Cavity Insulation (the cavity materials plus "None (empty)"), then Cavity Size for batts or Stud Size for blown-in and empty cavities. A "Stud wall held off the concrete" checkbox appears only when the cavity is `2x6 R20`.
+5. **Interior Finish** -- Finish select (1/2" gypsum board, None (unfinished)) with no blank option. Disabled and shown as gypsum for ICF and whenever interior insulation has a thickness, with the line "Gypsum board required over foam, 9.10.17.10".
+6. **Assumptions** (footnote variant) -- interior air film 0.12; exterior air film and soil not counted; concrete 0.0004 RSI/mm; basement framing 16% / 14.5% / 13% at 16" / 19" (19.2" o.c.) / 24"; ICF plastic ties.
+
+Below the groups, a `.wall-disclaimer` block repeats the moisture disclaimer and LEEP link from WallBuilder and adds three code notes as a bulleted list (`data-testid="bg-code-notes"`): the lowest foundation wall assembly sets the points (9.36.8.7.(4)), insulation covers the full wall height (9.25.2.3.(4)), and a wall whose top is 600 mm or more above grade must meet the above-ground wall RSI over that portion (9.36.8.5.(4)).
+
+### Result Box
+
+When `calculateBelowGradeAssembly(selection)` returns an assembly:
+
+- Effective RSI with the R-value, then either **Points** (`getBelowGradePoints`) or, when the RSI rounded to 2 decimals is under `MIN_BELOW_GRADE_RSI` (2.98), the minimum and a red "Does not meet code" warning giving the shortfall against 2.98, worded and marked like the WallBuilder warning (a warning sign and an em dash).
+- **Hint** (`data-testid="bg-hint"`): shown only when the wall is below the minimum and is concrete or block with a stud wall at `16"` and cavity `2x6 R20` (exterior or interior foam can carry R20 @ 16" past the minimum, and then the hint stays hidden): "R20 at 16" o.c. does not reach the 2.98 minimum on its own; R22, 24" spacing, or exterior insulation does."
+- **How it adds up** (`data-testid="bg-layers"`): one line per layer of the assembly, outside to inside, with its RSI to 2 decimals. This is the same layer list the export prices.
+
+When the assembly is `null` the box shows a prompt instead: "Select a foundation type to begin", "Select form thickness to calculate RSI" (ICF), "Select stud wall options to calculate RSI" (stud wall or PWF fields missing), "Select an insulation type" (an exterior or interior thickness chosen before its type), else "No data for this combination".
+
+Default poured concrete shows 3.12 and +0.2; ICF 2-1/2" shows 3.56 and +0.8; PWF default shows 3.98 and +1.4.
+
+### Cross-Section and Export
+
+When the assembly is valid the card renders `<WallSection wallType="foundation" foundationLayers={...} />` inside `.wall-section-container`, followed by an "Export to Excel" button and a Clear button. The exported `buildFoundationLayers(selection, assembly)` builds the drawing's layer list (outside to inside) from the selection and the calculated assembly's labels: a 2" soil band marked "soil (not counted)", then the structural and insulation layers with drawing thicknesses in inches (concrete 8 or 10, block 7.5, ICF core 6, foam per its label, studs per `STUD_INCHES`, gypsum and PWF plywood 0.5). When the frame label says the stud wall is held off the concrete, a 1" band marked "air gap (not counted)" (`kind: 'air_gap'`) goes between the concrete side and the frame; it is drawing only and adds no RSI. It returns `[]` when the assembly is missing.
+
+`handleExport()` mirrors WallBuilder: sets `exporting`, finds the SVG in `svgRef`, calls `exportFoundationAssembly(selection, svgElement)` from `src/utils/exportFoundationAssembly.js`, and resets `exporting` when done or on error.
+
+### Simple Mode
+
+Renders `OptionButton`s from the Below Grade Walls category options (2.98 / 0 pts, 3.09 / 0.2, 3.46 / 0.8, 3.90 / 1.4) plus a Clear button when one is selected. Selection is `simpleIndex` in the parent state.
+
+---
+
 ## FieldGroup (`src/components/FieldGroup.jsx`)
 
 Presentational wrapper that renders a numbered card with a header badge and title. Used by WallBuilder to visually group related fields.
@@ -281,13 +389,13 @@ Presentational wrapper that renders a numbered card with a header badge and titl
 
 ## WallSection (`src/components/WallSection.jsx`)
 
-Stateless SVG component rendering a top-down cross-section of the wall assembly. Supports three rendering modes based on `wallType`.
+Stateless SVG component rendering a top-down cross-section of the wall assembly. Supports four rendering modes based on `wallType`: wood, steel, ICF, and foundation (below-grade, driven by a layer list).
 
 ### Props
 
 | Prop | Type | Default | Description |
 |------|------|---------|-------------|
-| `wallType` | `'wood'` \| `'steel'` \| `'icf'` | `'wood'` | Determines rendering mode |
+| `wallType` | `'wood'` \| `'steel'` \| `'icf'` \| `'foundation'` | `'wood'` | Determines rendering mode |
 | `studDepth` | `'2x4'` \| `'2x6'` \| `'2x8'` \| `'2x10'` \| `'2x12'` | `'2x6'` | Stud size → cavity depth (3.5" to 11.25") |
 | `studSpacing` | number | `16` | On-center spacing in inches |
 | `continuousIns` | number | `0` | Continuous insulation thickness (0–3 inches) |
@@ -306,6 +414,7 @@ Stateless SVG component rendering a top-down cross-section of the wall assembly.
 | `serviceCavityLabel` | string \| null | `null` | Label for service wall cavity |
 | `interiorLayerLabel` | string \| null | `null` | Label for interior layer (between service and primary) |
 | `interiorLayerThicknessInches` | number | `0` | Thickness of interior layer (inches) |
+| `foundationLayers` | array \| null | `null` | Foundation mode only: layer list, outside to inside (see below) |
 | `width` | number | `600` | Accepted but unused (SVG uses `width="100%"` with viewBox) |
 
 ### Rendering Modes
@@ -355,11 +464,25 @@ Two wood stud walls (outer and inner) on a wider plate, with an insulation-fille
 
 Adds an interior service cavity on the conditioned side. Layers from outside to inside: cladding, sheathing, primary stud cavity, interior layer (sheathing or rigid insulation), service stud cavity, drywall. Works with both single and double stud primary walls.
 
+#### Foundation (`wallType === 'foundation'`)
+
+Draws whatever `foundationLayers` says, so the SVG and the "How it adds up" list always agree. Each entry is:
+
+```js
+{ id, kind, label, thicknessInches,
+  studDepth, studSpacing, cavityLabel }   // frame layers only
+```
+
+`kind` picks the fill: `soil` (beige with a 45-degree hatch), `ext_ins` / `int_ins` / `icf_foam` (pink with the continuous-insulation pattern), `concrete` (gray with the ICF speckle, count scaled to the area), `block` (16" units with a 3/8" joint and two cores each; the cores take the insulation fill when the label mentions perlite, vermiculite or EPS), `frame` (the wood stud/cavity drawing; when `cavityLabel` is `'empty cavity'` there is no batt pattern and the cavity is a pale fill), `air_gap` (white with a dashed outline), `sheathing`, `gypsum`; anything else draws a plain gray band. Frame and block clip ids carry an `fd-` prefix so a foundation drawing and an above-ground drawing on the same page do not share ids.
+
+The list arrives outside to inside (soil first) and is reversed so the interior finish is at the top under an "INTERIOR" caption and the soil at the bottom, the same orientation as the ICF drawing. Wall length is `studSpacing * 1.5` inches when a frame layer is present, 24" otherwise; the SVG height follows the total thickness (max display height 300px) and the width adds a label column sized from the longest label (about 4.8px per character, never under 200px) so long block and held-off labels stay inside the viewBox. A stud-spacing dimension line is drawn at the bottom when a frame is present. A missing or non-array `foundationLayers` renders an empty drawing, not an error.
+
 ### Geometry
 
 - **Scale:** 10px per inch (uniform both axes)
 - **Wall length (wood/steel):** `studSpacing * 1.5` inches (shows ~2.5 studs)
 - **Wall length (ICF):** 24" fixed
+- **Wall length (foundation):** `studSpacing * 1.5` inches with a stud wall or PWF frame, 24" otherwise
 - **Label system:** Fixed-spacing labels on the right with leader lines pointing to each layer mid-point.
 - **Responsive:** `width="100%"` on SVG with `viewBox` and `preserveAspectRatio="xMidYMid meet"`.
 
@@ -402,6 +525,8 @@ Hidden print-only component that renders a clean one-page summary of the user's 
 | `selections` | `{ [categoryId]: number }` | yes | Option index per standard category (from App.jsx state) |
 | `wallSelection` | object | yes | Wall builder state (from App.jsx state) |
 | `wallPoints` | number | yes | Points earned from wall category |
+| `belowGradeSelection` | object | no | Below-grade builder state (from App.jsx state); defaults to `{}` |
+| `belowGradePoints` | number | no | Points earned from the Below Grade Walls category; defaults to `0` |
 | `totalPoints` | number | yes | Total accumulated ECP points |
 | `selectedTier` | `{ id, label, points }` | yes | Currently selected tier object |
 | `projectInfo` | `{ project, permit, applicant }` | no | Optional project details from the footer inputs; defaults to `{}` |
@@ -422,12 +547,13 @@ Hidden on screen (`display: none`). Visible only in `@media print`.
    - Service wall details (when `hasServiceWall` is true)
    - Continuous insulation (when present and not "None")
    - Total Assembly RSI
+   - **Below Grade Walls row** - printed right after the above-ground wall rows whenever `belowGradePoints > 0`, a `foundationType` is set, or `simpleIndex` is defined. Simple mode prints the option as `>= RSI x.xx` (a real greater-than-or-equal sign on the page, as in the other rows); builder mode prints `RSI x.xx` (or `Incomplete`) followed by indented detail lines: Foundation Type; Wall Thickness / Block Type / EPS Form Thickness / `Studs: 2x8 @ 16" | Cavity: ...` per type; Exterior Ins and Interior Ins when a thickness is set; `Stud Wall: none` or `Stud Spacing: 16" | Cavity: Fiberglass Batt, 2x6 R22` (the cavity reads `2x6 empty` for an empty cavity, and `held off concrete` is appended when `studOffset`); Finish; Total Assembly RSI.
 5. **Total row** — points sum / target
 6. **Status** — pass/fail message
 7. **Disclaimer** — shared `DISCLAIMER` text: not an official compliance document, subject to AHJ review and approval
-8. **Footer** — "Generated by ECP Calculator v1.2 — for reference only"
+8. **Footer** — "Generated by ECP Calculator v1.3 — for reference only"
 
-Unselected categories are omitted. Simple wall mode shows the option value without detail sub-rows.
+Unselected categories are omitted. Simple wall mode shows the option value without detail sub-rows. `aboveGroundWalls` and `belowGradeWalls` are excluded from the generic category rows (`BUILDER_CATEGORIES`) and rendered by their own blocks.
 
 ### Detection Logic
 
@@ -435,6 +561,7 @@ Unselected categories are omitted. Simple wall mode shows the option value witho
 - **Simple mode:** `wallSelection.simpleIndex` is defined
 - **Double stud:** `wallSelection.assemblyType === 'doubleStud'`
 - **ICF:** `wallSelection.wallType === 'icf'` — no framing details shown
+- **Below-grade builder mode:** `belowGradeSelection.foundationType` is set and `belowGradeSelection.simpleIndex` is undefined; the RSI comes from `calculateBelowGradeRsi()`
 
 ---
 
@@ -468,3 +595,17 @@ All layouts include a Source column (E) with NBC table references.
 ### exportWallAssembly (`src/utils/exportWallAssembly.js`)
 
 `exportWallAssembly(selection, svgElement)` — orchestrator. Dynamically imports ExcelJS, calls resolveWallData, buildWallSheet, svgToPng (with graceful degradation), and triggers a browser file download. Filename: `Wall-Assembly-RSI-{type}-{date}.xlsx`.
+
+### resolveFoundationData (`src/utils/resolveFoundationData.js`)
+
+`resolveFoundationData(selection)` -- wraps `calculateBelowGradeAssembly()` and adds the working the sheet needs. Returns `null` whenever the assembly is `null` (or, defensively, when the frame layer cannot be re-resolved).
+
+**Output:** `{ foundationType, foundationTypeLabel, structure, spacing, finishLabel, finishForced, finishSelected, intInsThickness, layers, concrete, block, icf, frame, totalRsi, roundedRsi, points, minRsi, meetsMinimum }`. `concrete` is `{ mm, rsiPerMm }`, `block` is `{ id, label, thicknessMm, rsi }`, `icf` is `{ formLabel, formThicknessMm, epsRsiPerMm, concreteCoreMm, concreteRsiPerMm }`, each `null` for the other types. `frame` (basement stud wall or PWF) is `{ stud, spacing, studDepthMm, studRsi, cavityMaterial, cavityType, cavityRsi, cavityPct, framingPct, offset, ppRsi }` or `null`. `structure` is a one-line description for the sheet header (e.g. `200 mm (8") poured concrete`).
+
+### buildFoundationSheet (`src/utils/buildFoundationSheet.js`)
+
+`buildFoundationSheet(workbook, data)` -- adds a "Foundation Wall RSI" worksheet. One layout for all four foundation types: header block (rows 1-5: title, Foundation Type, Structure, Stud Spacing when present, ECP Points), column headers on row 7 (Layer, Material, Detail, RSI, Source), then one row per layer outside to inside. Continuous layers with a known mm x RSI/mm working (concrete, spray foam, ICF forms and core) are live formulas; the frame layer is a parallel-path formula over working rows for stud depth, stud RSI, cavity RSI, cavity % and framing %. After the layers: Total Effective RSI (sum of the layer rows), Rounded to 2 decimals, Code Minimum RSI, Meets Minimum? (an `IF`), ECP Points (nested `IF` over the `belowGrade` thresholds), and a Notes block (layers counted, basement framing %, PWF framing % when PWF, the offset batt when used, the gypsum-over-foam rule when forced, the lowest-assembly rule, the minimum and levels). Column E cites the NBC table for each value.
+
+### exportFoundationAssembly (`src/utils/exportFoundationAssembly.js`)
+
+`exportFoundationAssembly(selection, svgElement)` -- orchestrator with the same contract as `exportWallAssembly`: dynamic ExcelJS import, `resolveFoundationData` (throws on an incomplete assembly), `buildFoundationSheet`, `svgToPng` with graceful degradation, browser download. Filename: `Foundation-Wall-RSI-{Foundation-Type-Label}-{date}.xlsx`.

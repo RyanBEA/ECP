@@ -79,7 +79,7 @@ The app runs on Railway as a single Node.js/Express server that serves the stati
 
 ## Print Telemetry
 
-An anonymous event is sent to the server each time a user clicks "Save / Print" (see `src/utils/printEvent.js` and `src/App.jsx`). No project/address/permit/applicant text or other free-text input is ever recorded — only the tier, point totals, and the category/wall selections (indices and enum-like fields), plus a per-page-load random `sessionId` held only in memory.
+An anonymous event is sent to the server each time a user clicks "Save / Print" (see `src/utils/printEvent.js` and `src/App.jsx`). No project/address/permit/applicant text or other free-text input is ever recorded — only the tier, point totals, and the category/wall selections (indices and enum-like fields), plus a per-page-load random `sessionId` held only in memory. The below-grade (foundation) wall is recorded in its own `below_grade` column (fixed keys, option ids and labels, booleans, rounded RSI and points); from v1.3.0 the Below Grade Walls category is no longer recorded as an option index in `selections`. See `.claude/skills/ecp-telemetry/SKILL.md` for the column shapes and the pre-1.3.0 index shift.
 
 ### Storage
 
@@ -98,6 +98,8 @@ CREATE TABLE IF NOT EXISTS print_events (
   selections JSONB NOT NULL,
   wall JSONB
 );
+-- Added for the below-grade (foundation) wall builder; safe on existing tables.
+ALTER TABLE print_events ADD COLUMN IF NOT EXISTS below_grade JSONB;
 CREATE INDEX IF NOT EXISTS print_events_created_at_idx ON print_events (created_at);
 ```
 

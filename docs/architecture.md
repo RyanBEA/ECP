@@ -31,7 +31,8 @@ ecp-calculator/
 │       ├── cavity-insulation.yaml
 │       ├── continuous-insulation.yaml
 │       ├── sheathing-cladding.yaml
-│       └── icf.yaml
+│       ├── icf.yaml
+│       └── foundation.yaml      # Below-grade (foundation) wall materials
 ├── scripts/
 │   ├── generate.js              # Build pipeline: YAML → JSON + audit workbook
 │   ├── compute.js               # Runtime RSI formulas (shared with React via alias)
@@ -58,13 +59,19 @@ ecp-calculator/
 │   │       ├── icf-data.json
 │   │       ├── boundary-options.json
 │   │       ├── thresholds.json
-│   │       └── double-stud-data.json
+│   │       ├── double-stud-data.json
+│   │       └── foundation-data.json
 │   ├── utils/
 │   │   ├── resolveWallData.js       # Extracts all intermediate RSI values from selection
 │   │   ├── resolveWallData.test.js  # Unit tests for resolveWallData
 │   │   ├── buildWallSheet.js        # Builds Excel sheet with live formulas
 │   │   ├── buildWallSheet.test.js   # Unit tests for buildWallSheet
 │   │   ├── exportWallAssembly.js    # Orchestrator: resolve → sheet → PNG → download
+│   │   ├── resolveFoundationData.js      # Foundation wall: all intermediate RSI values
+│   │   ├── resolveFoundationData.test.js
+│   │   ├── buildFoundationSheet.js       # Foundation wall Excel sheet with live formulas
+│   │   ├── buildFoundationSheet.test.js
+│   │   ├── exportFoundationAssembly.js   # Foundation orchestrator: resolve -> sheet -> PNG -> download
 │   │   ├── svgToPng.js              # SVG DOM element → base64 PNG via canvas
 │   │   ├── printEvent.js            # Builds + sends anonymous print telemetry events
 │   │   └── printEvent.test.js       # Unit tests for buildPrintEvent
@@ -72,7 +79,10 @@ ecp-calculator/
 │       ├── CategoryCard.jsx     # Standard category selection UI
 │       ├── OptionButton.jsx     # Individual option button
 │       ├── WallBuilder.jsx      # Wall assembly builder (simple + builder modes)
-│       ├── WallSection.jsx      # SVG wall cross-section diagram (wood/steel/ICF)
+│       ├── BelowGradeWallBuilder.jsx      # Below-grade (foundation) wall builder (simple + builder modes)
+│       ├── BelowGradeWallBuilder.test.jsx
+│       ├── WallSection.jsx      # SVG wall cross-section diagram (wood/steel/ICF/foundation)
+│       ├── WallSection.test.jsx
 │       ├── FieldGroup.jsx       # Numbered card wrapper for field groups
 │       ├── FieldGroup.test.jsx  # Unit tests for FieldGroup
 │       ├── PointsCounter.jsx    # ECP points progress display
@@ -94,7 +104,7 @@ ecp-calculator/
 YAML materials → generate.js → generated/*.json → ecpData.js + compute.js
      │
      ▼
-App.jsx (state: selections, wallSelection, selectedTierId, darkMode)
+App.jsx (state: selections, wallSelection, belowGradeSelection, selectedTierId, darkMode)
      │
      ├── WallBuilder ──► WallSection (SVG diagram: wood/steel/ICF/doubleStud/serviceWall)
      │     │
@@ -111,12 +121,27 @@ App.jsx (state: selections, wallSelection, selectedTierId, darkMode)
      │                 ├── buildWallSheet → ExcelJS workbook with live formulas
      │                 └── svgToPng → wall section image embedded in sheet
      │
+     ├── BelowGradeWallBuilder --> WallSection (wallType 'foundation', layer list)
+     │     │
+     │     ├── Foundation type selector -> progressive disclosure
+     │     │   ├── Concrete/Block: exterior ins, interior ins, interior stud wall
+     │     │   ├── ICF: form thickness
+     │     │   └── PWF: stud size, spacing, cavity
+     │     │
+     │     ├── Uses: calculateBelowGradeAssembly(selection), getBelowGradePoints()
+     │     │
+     │     └── Export to Excel (below diagram, when the assembly is complete)
+     │           └── exportFoundationAssembly(selection, svgElement)
+     │                 ├── resolveFoundationData -> all intermediate RSI values
+     │                 ├── buildFoundationSheet -> ExcelJS workbook with live formulas
+     │                 └── svgToPng -> foundation section image embedded in sheet
+     │
      ├── CategoryCard ──► OptionButton (one per threshold)
      │
      ├── PointsCounter (totalPoints vs targetPoints)
      │
      └── PrintSummary (hidden on screen, visible in @media print)
-           └── Summary table of selected categories + wall details
+           └── Summary table of selected categories + wall and below-grade wall details
 ```
 
 ## State Management
@@ -129,18 +154,22 @@ All state lives in `App.jsx` — no context providers, no external state librari
 | `selectedTierId` | number | `2` | Tier 2 (10 pts) or Tier 3 (20 pts) |
 | `selections` | `{ [categoryId]: optionIndex }` | `{}` | Selected option index per standard category |
 | `wallSelection` | object | `{}` | Wall builder state (see below) |
+| `belowGradeSelection` | object | `{}` | Below-grade wall builder state (see below) |
 
 The `wallSelection` object shape varies by mode and wall type. See [Components Reference — WallBuilder](components.md#wallbuilder-srccomponentswallbuilderjsx) for the full shape. Key fields include `wallType`, `assemblyType`, `studSpacing`, framing fields, `hasServiceWall`, service wall fields, `interiorLayerMaterial`, and `simpleIndex` (simple mode).
+
+The `belowGradeSelection` object has the same two modes: `{ simpleIndex }` or builder fields keyed on `foundationType` (`concrete`, `block`, `icf`, `pwf`). See [Components Reference - BelowGradeWallBuilder](components.md#belowgradewallbuilder-srccomponentsbelowgradewallbuilderjsx) for the full shape.
 
 ### Derived Values (useMemo)
 
 - **`wallPoints`** — Resolves wall points from either simple mode (`simpleIndex`) or builder mode (`calculateWallRsi(wallSelection)` → `getWallPoints`).
-- **`totalPoints`** — Sum of all category option points + wall points.
+- **`belowGradePoints`** - Same pattern from `belowGradeSelection`: the option's points in simple mode, else `calculateBelowGradeRsi(belowGradeSelection)` then `getBelowGradePoints` (0 when the assembly is incomplete).
+- **`totalPoints`** — Sum of all category option points + wall points + below-grade wall points.
 
 ### Points Calculation
 
 ```
-totalPoints = Σ(category.options[selectedIndex].points) + wallPoints
+totalPoints = Σ(category.options[selectedIndex].points) + wallPoints + belowGradePoints
 
 Compliance: totalPoints >= selectedTier.points
 ```
@@ -173,7 +202,17 @@ App
 │   │   │   └── Export to Excel button (visible when RSI valid)
 │   │   └── Simple mode: OptionButton grid
 │   │
-│   └── CategoryCard × 7 (standard categories)
+│   ├── BelowGradeWallBuilder (for category.type === 'belowGradeBuilder')
+│   │   ├── Mode toggle (Build Assembly / Select RSI)
+│   │   ├── Builder mode:
+│   │   │   ├── FieldGroup cards: Foundation, Exterior Insulation, Interior Insulation,
+│   │   │   │   Interior Stud Wall (concrete/block only), Interior Finish, Assumptions
+│   │   │   ├── Result (RSI + points, or below-minimum warning; layer list)
+│   │   │   ├── WallSection SVG (foundation mode)
+│   │   │   └── Export to Excel button (visible when the assembly is complete)
+│   │   └── Simple mode: OptionButton grid (2.98 floor + three point levels)
+│   │
+│   └── CategoryCard × 6 (standard categories)
 │       └── OptionButton × N per category
 │
 ├── <footer>
@@ -190,7 +229,7 @@ App
 
 2. **Hybrid lookup + compute** — JSON stores the hard lookups (cavity RSI, framing factors). A thin compute module (`scripts/compute.js`, ~260 lines) does runtime math for variable boundary layers and the steel modified zone method (NBC K-values depend on spacing and insulating sheathing). An auditable Excel workbook is generated alongside the JSON.
 
-3. **Progressive disclosure** — Wall builder shows only relevant fields based on wall type. Wood/Steel shows framing + continuous insulation dropdowns. ICF shows only form thickness. Cavity size options are further filtered by the selected insulation material and wall type (e.g., wood uses 2x4 studs, steel uses 2x3-5/8 studs; batt materials offer sizes with R-values; loose fill/dense pack offer stud size only). Reduces cognitive load.
+3. **Progressive disclosure** — Wall builder shows only relevant fields based on wall type. Wood/Steel shows framing + continuous insulation dropdowns. ICF shows only form thickness. Cavity size options are further filtered by the selected insulation material and wall type (e.g., wood uses 2x4 studs, steel uses 2x3-5/8 studs; batt materials offer sizes with R-values; loose fill/dense pack offer stud size only). Reduces cognitive load. The below-grade builder does the same by foundation type: concrete and block show exterior insulation, interior insulation and the interior stud wall; ICF shows only form thickness; PWF shows its stud, spacing and cavity.
 
 4. **No routing** — Single-page, single-view app. No React Router needed.
 
@@ -198,11 +237,11 @@ App
 
 6. **Exclusive groups** — DHW Electric and DHW Non-Electric use `exclusiveGroup: 'dhw'` so only one can be selected. Enforced at both the data level (App.jsx clears siblings) and UI level (CategoryCard disables siblings).
 
-7. **Dual wall input modes** — The wall category supports both direct RSI selection (simple mode) and assembly-based calculation (builder mode). Mode switching clears state completely.
+7. **Dual wall input modes** — The wall category supports both direct RSI selection (simple mode) and assembly-based calculation (builder mode). Mode switching clears state completely. The Below Grade Walls category works the same way; its Select RSI list starts with a 2.98 / 0-point floor (the code minimum) ahead of the three point levels.
 
 8. **PWA support** — Service worker + manifest for offline use and "Add to Home Screen" on mobile.
 
-9. **Wall assembly Excel export** — The "Export to Excel" button generates a `.xlsx` workbook entirely client-side using ExcelJS (dynamically imported, code-split into its own chunk). The workbook contains live Excel formulas replicating the parallel-path RSI calculation, a source column with NBC table references, and an embedded PNG of the wall section diagram. Three sheet layouts: universal wood template (single/double/service wall), steel K-factor method, and ICF series sum.
+9. **Wall assembly Excel export** — The "Export to Excel" button generates a `.xlsx` workbook entirely client-side using ExcelJS (dynamically imported, code-split into its own chunk). The workbook contains live Excel formulas replicating the parallel-path RSI calculation, a source column with NBC table references, and an embedded PNG of the wall section diagram. Three sheet layouts: universal wood template (single/double/service wall), steel K-factor method, and ICF series sum. The Below Grade Walls builder has its own "Export to Excel" with one "Foundation Wall RSI" layout for all four foundation types.
 
 10. **Print/PDF export** — A "Save / Print" button in the footer calls `window.print()`. Optional project-detail inputs in the footer (Project / Address, Permit Number, Applicant) are printed at the top of the summary, as blank lines when left empty. A hidden `PrintSummary` component renders a clean one-page summary table (selected categories, points, wall builder details when applicable). `@media print` CSS hides the interactive UI and shows only the summary. Forces light mode in print. Zero additional dependencies.
 

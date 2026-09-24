@@ -19,7 +19,7 @@ yourself; the scripts below never print them.
 | Task | Command (run from the `ecp-calculator/` repo root, on bae as Ryan) |
 |---|---|
 | Pull all events to CSV | `.claude/skills/ecp-telemetry/scripts/pull-events.sh` → `telemetry-exports/ecp-events-<stamp>.csv` |
-| Summarize a pull | `.claude/skills/ecp-telemetry/scripts/summarize.py telemetry-exports/ecp-events-<stamp>.csv` |
+| Summarize a pull | `.claude/skills/ecp-telemetry/scripts/summarize.py telemetry-exports/ecp-events-<stamp>.csv` (tiers, selections, walls, and below grade: mode, foundation type, Select RSI levels, builder RSI; exports without `below_grade_json` still work) |
 | One design per visit | add `--final-only` to `summarize.py` (keeps the last event per `session_id`) |
 | Ad-hoc analysis | load the CSV with Python `csv`/`json`; `selections_json`, `wall_json` and `below_grade_json` are JSON columns |
 | Check the endpoint | `curl -s https://ecp.baselineenergy.ca/api/health` → `{"ok":true,"db":true}` |

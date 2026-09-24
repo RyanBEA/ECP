@@ -169,30 +169,44 @@ npm test
 A passing run looks like this:
 
 ```
- ✓ scripts/compute.test.js (22 tests)
- ✓ scripts/loadMaterials.test.js (9 tests)
- ✓ scripts/validate.test.js (274 tests)
- ✓ src/data/ecpData.test.js (35 tests)
+ ✓ scripts/compute.test.js (43 tests)
+ ✓ scripts/loadMaterials.test.js (10 tests)
+ ✓ scripts/validate.test.js (301 tests)
+ ✓ server/validate.test.js (29 tests)
+ ✓ src/data/ecpData.test.js (66 tests)
  ✓ src/utils/resolveWallData.test.js (24 tests)
  ✓ src/utils/buildWallSheet.test.js (16 tests)
+ ✓ src/utils/resolveFoundationData.test.js (30 tests)
+ ✓ src/utils/buildFoundationSheet.test.js (20 tests)
+ ✓ src/utils/printEvent.test.js (15 tests)
  ✓ src/components/FieldGroup.test.jsx (4 tests)
- ✓ src/components/PrintSummary.test.jsx (7 tests)
+ ✓ src/components/PrintSummary.test.jsx (15 tests)
+ ✓ src/components/WallSection.test.jsx (9 tests)
+ ✓ src/components/BelowGradeWallBuilder.test.jsx (25 tests)
+ ✓ src/App.test.jsx (6 tests)
 
- Test Files  8 passed (8)
-       Tests  391 passed (391)
+ Test Files  15 passed (15)
+       Tests  613 passed (613)
 ```
 
 ### What each test file covers
 
 | Test file | What it checks |
 |-----------|---------------|
-| `compute.test.js` | Core thermal math: parallel-path RSI, wood/steel/ICF/double-stud wall calculations |
+| `compute.test.js` | Core thermal math: parallel-path RSI, wood/steel/ICF/double-stud wall calculations, `foundationWallRsi` |
 | `loadMaterials.test.js` | YAML loading: ensures all material files parse correctly and have required fields |
-| `validate.test.js` | Round-trip validation: re-computes every entry in the generated JSON from YAML sources (274 tests covering all wood, steel, double stud, continuous insulation, ICF, boundary, and threshold entries) |
-| `ecpData.test.js` | Data layer API: verifies exports, lookup functions, threshold lookups, and category definitions |
+| `validate.test.js` | Round-trip validation: re-computes every entry in the generated JSON from YAML sources (301 tests covering all wood, steel, double stud, continuous insulation, ICF, boundary, threshold, below-grade threshold and foundation data entries) |
+| `ecpData.test.js` | Data layer API: verifies exports, lookup functions, threshold lookups, and category definitions, plus the below-grade API (layer lists, `null` rules, points) |
 | `resolveWallData.test.js` | Wall data resolution: ensures the Excel export utility can extract correct intermediate RSI values |
 | `buildWallSheet.test.js` | Excel sheet builder: validates that the wall assembly export produces correct formulas and structure |
-| `PrintSummary.test.jsx` | Print summary: empty state, category rows, wall builder details (single/double stud), pass/fail status |
+| `resolveFoundationData.test.js` | Foundation export data: intermediate RSI values, frame working and `null` for incomplete assemblies |
+| `buildFoundationSheet.test.js` | Foundation Excel sheet: layer rows, live formulas, minimum check, points and notes |
+| `printEvent.test.js` | Print telemetry event: only listed fields, `belowGrade` shape, no below-grade index in `selections` |
+| `server/validate.test.js` | Server-side validation of telemetry events, including the `belowGrade` object |
+| `PrintSummary.test.jsx` | Print summary: empty state, category rows, wall builder details (single/double stud), Below Grade Walls row, pass/fail status |
+| `BelowGradeWallBuilder.test.jsx` | Below-grade builder: defaults per foundation type, field clearing on type/material/stud-wall changes, finish lock, RSI and points, R20 hint, prompts, mode switch; `buildFoundationLayers` |
+| `WallSection.test.jsx` | Cross-section SVG, foundation mode: one label per layer, ICF/PWF/block drawings, clip ids that do not collide with the above-ground drawing, held-off air gap; wood mode still renders |
+| `App.test.jsx` | App wiring: costing toggle and archetype picker; total points across both wall builders in simple, builder and empty states |
 | `FieldGroup.test.jsx` | UI component: tests the numbered card wrapper renders correctly |
 
 ### Common failure pattern
@@ -248,7 +262,7 @@ curl -H "Authorization: Bearer $EVENTS_EXPORT_KEY" https://<app>/api/events.csv 
 
 - `$EVENTS_EXPORT_KEY` must match the `EVENTS_EXPORT_KEY` environment variable configured on the server. Without a matching key the endpoint returns `401`; if the server has no `EVENTS_EXPORT_KEY` configured at all, it returns `503`.
 - If the server has no `DATABASE_URL` configured, both this endpoint and `POST /api/events` return `503`.
-- Columns: `id, created_at, app_version, session_id, tier, target_points, total_points, met, selections_json, wall_json`.
+- Columns: `id, created_at, app_version, session_id, tier, target_points, total_points, met, selections_json, wall_json, below_grade_json`. `below_grade_json` is empty for rows recorded before the column existed.
 
 See [Infrastructure — Print Telemetry](infrastructure.md#print-telemetry) for the full schema and endpoint list.
 
