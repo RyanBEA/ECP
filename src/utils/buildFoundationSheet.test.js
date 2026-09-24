@@ -70,7 +70,7 @@ describe('buildFoundationSheet', () => {
 
     it('writes the frame layer as a parallel-path formula over its working rows', () => {
       expect(sheet.getCell('A9').value).toBe('Stud Wall (parallel path)')
-      expect(sheet.getCell('B9').value).toBe('2x6 @ 16" Fiberglass Batt 2x6 R22')
+      expect(sheet.getCell('B9').value).toBe('2x6 @ 16" Fiberglass Batt R22')
       const pp = sheet.getCell('D9')
       expect(pp.value).toHaveProperty('formula')
       expect(pp.value.formula).toBe('100/(D14/D11+D13/D12)')

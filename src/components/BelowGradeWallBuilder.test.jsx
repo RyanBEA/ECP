@@ -48,13 +48,44 @@ describe('BelowGradeWallBuilder', () => {
     pick('bg-foundationType', 'concrete')
     pick('bg-cavityType', '2x6 R20')
     expect(screen.getByText(/^2\.87 \(R-/)).toBeInTheDocument()
-    expect(screen.getByText(/Does not meet code - 0\.11 RSI below minimum 2\.98/)).toBeInTheDocument()
+    expect(screen.getByText('⚠ Does not meet code — 0.11 RSI below minimum 2.98')).toBeInTheDocument()
     expect(screen.getByTestId('bg-hint')).toHaveTextContent(/R20 at 16" o\.c\. does not reach the 2\.98 minimum/)
     expect(screen.getByLabelText(/held off the concrete/)).toBeInTheDocument()
     pick('bg-studSpacing', '24"')
     expect(screen.getByText(/^2\.98 \(R-/)).toBeInTheDocument()
     expect(screen.getByText('+0')).toBeInTheDocument()
     expect(screen.queryByTestId('bg-hint')).toBeNull()
+  })
+
+  it('R20 at 16" with 2" XPS outside passes, so the R20 hint stays hidden', () => {
+    render(<Harness />)
+    pick('bg-foundationType', 'concrete')
+    pick('bg-cavityType', '2x6 R20')
+    pick('bg-extInsType', 'XPS')
+    pick('bg-extInsThickness', '2"')
+    expect(screen.getByText(/^4\.55 \(R-/)).toBeInTheDocument()
+    expect(screen.queryByText(/Does not meet code/)).toBeNull()
+    expect(screen.queryByTestId('bg-hint')).toBeNull()
+  })
+
+  it('a thickness chosen before its type prompts for the type, not "No data"', () => {
+    render(<Harness />)
+    pick('bg-foundationType', 'concrete')
+    pick('bg-extInsThickness', '2"')
+    expect(screen.getByText('Select an insulation type')).toBeInTheDocument()
+    expect(screen.queryByText('No data for this combination')).toBeNull()
+    pick('bg-extInsType', 'XPS')
+    expect(screen.queryByText('Select an insulation type')).toBeNull()
+    pick('bg-intInsThickness', '1"')
+    expect(screen.getByText('Select an insulation type')).toBeInTheDocument()
+  })
+
+  it('Dense Pack Cellulose asks for a stud size, not a cavity size', () => {
+    render(<Harness />)
+    pick('bg-foundationType', 'concrete')
+    pick('bg-cavityMaterial', 'Dense Pack Cellulose')
+    expect(document.getElementById('bg-studDepth')).toBeInTheDocument()
+    expect(document.getElementById('bg-cavityType')).toBeNull()
   })
 
   it('switching foundation type replaces the whole selection (concrete -> ICF drops every concrete field)', () => {
@@ -196,6 +227,22 @@ describe('BelowGradeWallBuilder', () => {
     expect(list).toHaveTextContent('Interior air film')
     expect(list).toHaveTextContent('0.12')
     expect(list.querySelectorAll('li')).toHaveLength(4)
+    // The stud is named once in the frame line.
+    expect(list).toHaveTextContent('2x6 @ 16" Fiberglass Batt R22 ... ')
+    expect(list).not.toHaveTextContent('Batt 2x6')
+  })
+
+  it('layer labels: blown-in names the material only, block names its thickness', () => {
+    const blown = calculateBelowGradeAssembly({ ...FOUNDATION_DEFAULTS.concrete, cavityMaterial: 'Loose Fill Cellulose', cavityType: undefined, studDepth: '2x6' })
+    expect(blown.layers.find(l => l.id === 'frame').label).toBe('2x6 @ 16" Loose Fill Cellulose')
+    const empty = calculateBelowGradeAssembly({ ...FOUNDATION_DEFAULTS.concrete, cavityMaterial: 'None (empty)', cavityType: undefined, studDepth: '2x4' })
+    expect(empty.layers.find(l => l.id === 'frame').label).toBe('2x4 @ 16" empty cavity')
+    const off = calculateBelowGradeAssembly({ ...FOUNDATION_DEFAULTS.concrete, cavityType: '2x6 R20', studOffset: true })
+    expect(off.layers.find(l => l.id === 'frame').label).toBe('2x6 @ 16" Fiberglass Batt R20, held off the wall')
+    const block = calculateBelowGradeAssembly({ ...FOUNDATION_DEFAULTS.block, blockType: 'light_empty' })
+    expect(block.layers.find(l => l.id === 'block').label).toBe('Light-weight block (190 mm), cores empty')
+    const lime = calculateBelowGradeAssembly({ ...FOUNDATION_DEFAULTS.block, blockType: 'limestone_perlite' })
+    expect(lime.layers.find(l => l.id === 'block').label).toBe('Limestone aggregate block (190 mm), cores filled with perlite')
   })
 
   it('mode switch clears the selection; simple mode offers the four options incl. the 2.98 floor', () => {
@@ -232,6 +279,8 @@ describe('BelowGradeWallBuilder', () => {
     expect(screen.getByText(/full height of the foundation wall \(9\.25\.2\.3\.\(4\)\)/)).toBeInTheDocument()
     expect(screen.getByText(/600 mm or more above grade/)).toBeInTheDocument()
     expect(screen.getByRole('link', { name: /LEEP/ })).toBeInTheDocument()
+    // The three code sentences are their own list under the disclaimer, one item each.
+    expect(screen.getByTestId('bg-code-notes').querySelectorAll('li')).toHaveLength(3)
   })
 })
 

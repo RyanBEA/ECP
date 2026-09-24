@@ -447,7 +447,8 @@ function framedLayer({ spacing, cavityPctByKey, cavityMaterial, cavityType, stud
     if (!entry) return null
     stud = entry.stud
     cavityRsi = entry.cavityRsi
-    cavityLabel = `${cavityMaterial} ${key}`
+    // Label names the stud once: '2x6 @ 16" Fiberglass Batt R22', not '... Batt 2x6 R22'.
+    cavityLabel = key.includes(' ') ? `${cavityMaterial} ${key.replace(/^\S+ /, '')}` : cavityMaterial
     const offsetRsi = foundationData.interior_stud_wall.offset_cavity_rsi[key]
     if (studOffset && offsetRsi) {
       cavityRsi = offsetRsi
@@ -512,7 +513,7 @@ export function calculateBelowGradeAssembly(selection = {}) {
     } else {
       const b = foundationData.block.options.find(o => o.id === blockType)
       if (!b) return null
-      layers.push({ id: 'block', label: b.label.replace(/^(\S+-weight|Limestone aggregate),/, '$1 block,'), rsi: b.rsi })
+      layers.push({ id: 'block', label: b.label.replace(/^(\S+-weight|Limestone aggregate),/, `$1 block (${foundationData.block.thickness_mm} mm),`), rsi: b.rsi })
     }
 
     if (hasThickness(intInsThickness)) {

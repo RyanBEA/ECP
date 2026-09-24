@@ -101,7 +101,7 @@ describe('WallSection foundation mode', () => {
       .filter(r => Number(r.getAttribute('x')) + Number(r.getAttribute('width')) > wallWidthPx + 0.5)
     expect(outsideClip).toHaveLength(0)
     // Longest label gets a wider viewBox than the 200 px floor.
-    const longest = 'Medium-weight block, cores filled with vermiculite'
+    const longest = 'Medium-weight block (190 mm), cores filled with vermiculite'
     expect(layers.map(l => l.label)).toContain(longest)
     expect(labelBudget(layers)).toBeGreaterThan(200)
     expect(svg.getAttribute('viewBox').split(' ')[2]).toBe(String(wallWidthPx + 100 + labelBudget(layers)))

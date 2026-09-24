@@ -173,7 +173,8 @@ export default function BelowGradeWallBuilder({ selection, onSelect }) {
   const rsi = assembly ? assembly.total : null
   const builderPoints = getBelowGradePoints(rsi)
   const belowCode = rsi !== null && Math.round(rsi * 100) / 100 < MIN_BELOW_GRADE_RSI
-  const showR20Hint = isConcreteOrBlock && hasStudWall && cavityType === '2x6 R20' && studSpacing === '16"'
+  // Only when it explains a failure: exterior or interior foam can already carry R20 @ 16" past the minimum.
+  const showR20Hint = belowCode && isConcreteOrBlock && hasStudWall && cavityType === '2x6 R20' && studSpacing === '16"'
 
   const foundationLayers = buildFoundationLayers(sel, assembly)
 
@@ -241,13 +242,18 @@ export default function BelowGradeWallBuilder({ selection, onSelect }) {
 
   const studWallIncomplete = showStudWall && !(studSpacing && cavityMaterial && (usesStudDepth(cavityMaterial) ? studDepth : cavityType))
   const pwfIncomplete = isPwf && !(pwfStud && pwfSpacing && pwfCavityMaterial && pwfCavityType)
+  // A thickness with no type yet: the data layer returns null, but the user is mid-choice.
+  const insTypeMissing = isConcreteOrBlock &&
+    ((hasThickness(extInsThickness) && !extInsType) || (hasThickness(intInsThickness) && !intInsType))
   const prompt = !foundationType
     ? 'Select a foundation type to begin'
     : isIcf && !icfFormThickness
       ? 'Select form thickness to calculate RSI'
       : (studWallIncomplete || pwfIncomplete)
         ? 'Select stud wall options to calculate RSI'
-        : 'No data for this combination'
+        : insTypeMissing
+          ? 'Select an insulation type'
+          : 'No data for this combination'
 
   const renderSelect = (id, label, value, options, field, { disabled = false, blank = true } = {}) => (
     <div className="wall-selector">
@@ -422,7 +428,7 @@ export default function BelowGradeWallBuilder({ selection, onSelect }) {
                   <span className="assumption-label">Concrete: </span>0.0004 RSI/mm
                 </div>
                 <div className="assumption-item">
-                  <span className="assumption-label">Basement framing: </span>16% / 14.5% / 13% at 16" / 19.2" / 24"
+                  <span className="assumption-label">Basement framing: </span>16% / 14.5% / 13% at 16" / 19" (19.2" o.c.) / 24"
                 </div>
                 <div className="assumption-item">
                   <span className="assumption-label">ICF: </span>plastic ties
@@ -442,9 +448,11 @@ export default function BelowGradeWallBuilder({ selection, onSelect }) {
               risk. Consult a building science professional or
               the <a href="https://natural-resources.canada.ca/energy-efficiency/home-energy-efficiency/leep-nze-wall-guides" target="_blank" rel="noopener noreferrer">NRCan LEEP Wall Assembly Guides</a> before
               finalizing your wall design.
-              {' '}Where foundation walls have more than one assembly, the lowest effective RSI sets the points (9.36.8.7.(4)); build the weakest wall here.
-              {' '}Insulation must cover the full height of the foundation wall (9.25.2.3.(4)).
-              {' '}Where the top of a foundation wall is 600 mm or more above grade on average, the above-ground portion must meet the above-ground wall RSI (9.36.8.5.(4)).
+              <ul data-testid="bg-code-notes" style={{ margin: '0.4rem 0 0', paddingLeft: '1.1rem' }}>
+                <li>Where foundation walls have more than one assembly, the lowest effective RSI sets the points (9.36.8.7.(4)); build the weakest wall here.</li>
+                <li>Insulation must cover the full height of the foundation wall (9.25.2.3.(4)).</li>
+                <li>Where the top of a foundation wall is 600 mm or more above grade on average, the above-ground portion must meet the above-ground wall RSI (9.36.8.5.(4)).</li>
+              </ul>
             </div>
           )}
 
@@ -463,7 +471,7 @@ export default function BelowGradeWallBuilder({ selection, onSelect }) {
                       <span className="value">{MIN_BELOW_GRADE_RSI} (R-{(MIN_BELOW_GRADE_RSI * 5.678).toFixed(1)})</span>
                     </div>
                     <div className="wall-warning">
-                      Does not meet code - {(MIN_BELOW_GRADE_RSI - rsi).toFixed(2)} RSI below minimum {MIN_BELOW_GRADE_RSI}
+                      ⚠ Does not meet code — {(MIN_BELOW_GRADE_RSI - rsi).toFixed(2)} RSI below minimum {MIN_BELOW_GRADE_RSI}
                     </div>
                   </>
                 ) : (
