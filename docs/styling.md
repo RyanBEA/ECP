@@ -136,6 +136,7 @@ Print-specific classes (only styled inside `@media print`):
 | `.print-table` | Full-width table with collapse borders |
 | `.print-row` | Standard category row |
 | `.print-wall-detail` | Indented sub-row (9pt, gray) for wall builder details |
+| `.print-wall-warning` | Indented sub-row (10pt, bold, black) flagging a wall below its code minimum; the glyph carries it, not colour |
 | `.print-total` | Bold total row with top border |
 | `.print-status` | Right-aligned pass/fail status (12pt bold) |
 | `.print-pts` | Right-aligned points column |
