@@ -216,6 +216,18 @@ describe('resolveFoundationData', () => {
     }
   })
 
+  describe('blown-in cavity', () => {
+    it('keys the basement stud wall by studDepth and falls back to cavityType', () => {
+      const withDepth = resolveFoundationData({ ...defaultConcrete, cavityMaterial: 'Loose Fill Cellulose', cavityType: undefined, studDepth: '2x6' })
+      const withType = resolveFoundationData({ ...defaultConcrete, cavityMaterial: 'Loose Fill Cellulose', cavityType: '2x6', studDepth: undefined })
+      expect(withDepth).not.toBeNull()
+      expect(withDepth.frame.stud).toBe('2x6')
+      expect(withDepth.frame.cavityType).toBe('2x6')
+      expect(withType.frame.cavityRsi).toBe(withDepth.frame.cavityRsi)
+      expect(withType.totalRsi).toBeCloseTo(withDepth.totalRsi, 9)
+    })
+  })
+
   describe('null selection', () => {
     it('returns null when the assembly is null', () => {
       expect(resolveFoundationData({})).toBeNull()

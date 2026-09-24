@@ -73,15 +73,15 @@ describe('buildFoundationSheet', () => {
       expect(sheet.getCell('B9').value).toBe('2x6 @ 16" Fiberglass Batt 2x6 R22')
       const pp = sheet.getCell('D9')
       expect(pp.value).toHaveProperty('formula')
-      expect(pp.value.formula).toBe('100/(D14/D10+D13/D12)')
+      expect(pp.value.formula).toBe('100/(D14/D11+D13/D12)')
       expect(pp.value.result).toBeCloseTo(2.845, 3)
 
-      // Working rows 10-14: stud RSI, stud depth, cavity RSI, cavity %, framing %
-      expect(sheet.getCell('A10').value.trim()).toBe('Stud RSI')
-      expect(sheet.getCell('D10').value.formula).toBe('D11*0.0085')
-      expect(sheet.getCell('D10').value.result).toBeCloseTo(1.19, 9)
-      expect(sheet.getCell('A11').value.trim()).toBe('Stud Depth (mm)')
-      expect(sheet.getCell('D11').value).toBe(140)
+      // Working rows 10-14: stud depth, stud RSI, cavity RSI, cavity %, framing %
+      expect(sheet.getCell('A10').value.trim()).toBe('Stud Depth (mm)')
+      expect(sheet.getCell('D10').value).toBe(140)
+      expect(sheet.getCell('A11').value.trim()).toBe('Stud RSI')
+      expect(sheet.getCell('D11').value.formula).toBe('D10*0.0085')
+      expect(sheet.getCell('D11').value.result).toBeCloseTo(1.19, 9)
       expect(sheet.getCell('A12').value.trim()).toBe('Cavity Insulation RSI')
       expect(sheet.getCell('B12').value).toBe('Fiberglass Batt')
       expect(sheet.getCell('C12').value).toBe('2x6 R22')
@@ -129,7 +129,7 @@ describe('buildFoundationSheet', () => {
       expect(text).toMatch(/interior air film/i)
       expect(text).toMatch(/no exterior air film/i)
       expect(text).toMatch(/no soil/i)
-      expect(text).toMatch(/16% at 16", 14.5% at 19.2", 13% at 24"/)
+      expect(text).toMatch(/16% at 16", 14.5% at 19" \(19.2" o.c.\), 13% at 24"/)
       expect(text).toMatch(/lowest/i)
       expect(text).toContain('9.36.8.7.(4)')
       expect(text).toContain('2.98')
@@ -222,6 +222,19 @@ describe('buildFoundationSheet', () => {
       const text = columnA(sheet).join('\n')
       expect(text).toMatch(/24% at 8", 19% at 12", 16% at 16"/)
       expect(text).toContain('Table A-9.36.2.8.(1)-B')
+    })
+  })
+
+  describe('frame layer without resolved working', () => {
+    it('does not throw and writes the frame RSI as a plain value', () => {
+      const data = { ...resolveFoundationData(defaultConcrete), frame: null, spacing: null }
+      const workbook = new ExcelJS.Workbook()
+      expect(() => buildFoundationSheet(workbook, data)).not.toThrow()
+      const sheet = workbook.getWorksheet('Foundation Wall RSI')
+      expect(sheet.getCell('A9').value).toBe('Stud Wall (parallel path)')
+      expect(sheet.getCell('D9').value).toBeCloseTo(2.845, 3)
+      expect(findRow(sheet, 'Stud RSI')).toBeNull()
+      expect(sheet.getCell(`D${findRow(sheet, 'Total Effective RSI')}`).value.formula).toBe('D8+D9+D10+D11')
     })
   })
 

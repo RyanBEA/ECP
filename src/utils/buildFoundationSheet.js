@@ -34,6 +34,7 @@ const LAYER_NAMES = {
   icf_forms: 'EPS Forms (x2 sides)',
   icf_core: 'Concrete Core',
   int_ins: 'Interior Insulation',
+  frame: 'Stud Wall (parallel path)',
   finish: 'Interior Finish',
   inside_air: 'Interior Air Film',
 }
@@ -101,8 +102,8 @@ function writeFrameRows(sheet, row, layer, data) {
   const { frame } = data
   const isPwf = data.foundationType === 'pwf'
   const ppRow = row
-  const studRsiRow = row + 1
-  const depthRow = row + 2
+  const depthRow = row + 1
+  const studRsiRow = row + 2
   const cavRsiRow = row + 3
   const cavPctRow = row + 4
   const frmPctRow = row + 5
@@ -113,14 +114,14 @@ function writeFrameRows(sheet, row, layer, data) {
   formulaCell(sheet, `D${ppRow}`, `100/(D${frmPctRow}/D${studRsiRow}+D${cavPctRow}/D${cavRsiRow})`, layer.rsi)
   sourceCell(sheet, ppRow, 'NBC 2020 Note A-9.36.2.4.(1), parallel path')
 
+  labelCell(sheet, `A${depthRow}`, ' Stud Depth (mm)', SUB_FONT)
+  sheet.getCell(`B${depthRow}`).value = frame.stud
+  sheet.getCell(`D${depthRow}`).value = frame.studDepthMm
+
   labelCell(sheet, `A${studRsiRow}`, ' Stud RSI', SUB_FONT)
   sheet.getCell(`C${studRsiRow}`).value = 'depth × 0.0085'
   formulaCell(sheet, `D${studRsiRow}`, `D${depthRow}*0.0085`, frame.studRsi)
   sourceCell(sheet, studRsiRow, `${TABLE_D} (softwood 0.0085 RSI/mm)`)
-
-  labelCell(sheet, `A${depthRow}`, ' Stud Depth (mm)', SUB_FONT)
-  sheet.getCell(`B${depthRow}`).value = frame.stud
-  sheet.getCell(`D${depthRow}`).value = frame.studDepthMm
 
   labelCell(sheet, `A${cavRsiRow}`, ' Cavity Insulation RSI', SUB_FONT)
   sheet.getCell(`B${cavRsiRow}`).value = frame.cavityMaterial
@@ -191,7 +192,7 @@ function buildNotes(data) {
   const levelText = levels.map(t => `>= ${t.minRsi.toFixed(2)} gives ${t.points}`).join(', ')
   const notes = [
     `Layers counted: the materials plus the interior air film (0.12). No exterior air film and no soil (${NOTE_A_SOURCE}; ${TABLE_D}).`,
-    'Basement stud wall framing: 16% at 16", 14.5% at 19.2", 13% at 24" (NBC 2020 Table A-9.36.2.4.(1)-A, basement wood-frame wall inside a concrete foundation wall). The above-ground 23% row does not apply.',
+    'Basement stud wall framing: 16% at 16", 14.5% at 19" (19.2" o.c.), 13% at 24" (NBC 2020 Table A-9.36.2.4.(1)-A, basement wood-frame wall inside a concrete foundation wall). The above-ground 23% row does not apply.',
   ]
   if (data.foundationType === 'pwf') {
     notes.push('PWF framing: 24% at 8", 19% at 12", 16% at 16". These reproduce NBC 2020 Table A-9.36.2.8.(1)-B with actual stud depths (2x6 140 mm, 2x8 184 mm, 2x10 235 mm).')
@@ -233,9 +234,10 @@ export function buildFoundationSheet(workbook, data) {
   const layerRows = []
   for (const layer of data.layers) {
     layerRows.push(row)
-    if (layer.id === 'frame') {
+    if (layer.id === 'frame' && data.frame) {
       row = writeFrameRows(sheet, row, layer, data)
     } else {
+      // A frame layer with no resolved working (should not happen) is written as a plain value
       writeLayerRow(sheet, row, layer, data)
       row++
     }

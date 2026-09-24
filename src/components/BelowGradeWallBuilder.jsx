@@ -25,6 +25,7 @@ import {
 import OptionButton from './OptionButton'
 import FieldGroup from './FieldGroup'
 import WallSection from './WallSection'
+import { exportFoundationAssembly } from '../utils/exportFoundationAssembly'
 
 const belowGradeCategory = categories.find(c => c.id === 'belowGradeWalls')
 
@@ -132,6 +133,19 @@ export function buildFoundationLayers(selection = {}, assembly) {
 export default function BelowGradeWallBuilder({ selection, onSelect }) {
   const [mode, setMode] = useState('builder')
   const svgRef = useRef(null)
+  const [exporting, setExporting] = useState(false)
+
+  const handleExport = async () => {
+    setExporting(true)
+    try {
+      const svgEl = svgRef.current?.querySelector('svg')
+      await exportFoundationAssembly(selection, svgEl)
+    } catch (err) {
+      console.error('Export failed:', err)
+    } finally {
+      setExporting(false)
+    }
+  }
 
   const sel = selection || {}
   const {
@@ -481,7 +495,17 @@ export default function BelowGradeWallBuilder({ selection, onSelect }) {
             </div>
           )}
 
-          {/* Task 5: Export button calls exportFoundationAssembly(selection, svgRef.current) */}
+          {/* Export to Excel button */}
+          {assembly && (
+            <button
+              className="option-button export-button"
+              onClick={handleExport}
+              disabled={exporting}
+              type="button"
+            >
+              {exporting ? 'Exporting...' : 'Export to Excel'}
+            </button>
+          )}
 
           {/* Clear button */}
           {foundationType && (

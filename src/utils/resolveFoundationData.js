@@ -17,6 +17,7 @@ import foundationData from '../data/generated/foundation-data.json'
 import { parallelPath } from '@scripts/compute.js'
 import {
   calculateBelowGradeAssembly, getBelowGradePoints, foundationTypes, EMPTY_CAVITY, MIN_BELOW_GRADE_RSI,
+  isBlownInMaterial,
 } from '../data/ecpData'
 
 const SOFTWOOD_RSI_PER_MM = 0.0085
@@ -24,10 +25,6 @@ const SOFTWOOD_RSI_PER_MM = 0.0085
 // Cavity RSI does not depend on spacing, so the 16" wood table is the canonical lookup
 // (same as ecpData.js).
 const woodCavityEntries = wallData.wood.spacings['16'].materials
-
-// Blown-in materials are keyed by stud ('2x6') rather than cavity type ('2x6 R22').
-const isBlownIn = cavityMaterial =>
-  Object.keys(woodCavityEntries[cavityMaterial] || {}).every(k => !k.includes(' '))
 
 /**
  * Parallel-path working for the frame layer. Mirrors framedLayer() in ecpData.js; only
@@ -47,7 +44,7 @@ function resolveFrame(selection) {
     cavityRsi = foundationData.interior_stud_wall.empty_cavity_rsi
   } else {
     const entries = woodCavityEntries[cavityMaterial] || {}
-    const key = isBlownIn(cavityMaterial) ? (isPwf ? selection.pwfStud : selection.studDepth) : cavityType
+    const key = isBlownInMaterial(cavityMaterial) ? (isPwf ? selection.pwfStud : (selection.studDepth || cavityType)) : cavityType
     const entry = entries[key]
     if (!entry) return null
     stud = entry.stud
@@ -118,7 +115,11 @@ export function resolveFoundationData(selection) {
   }
 
   // Frame working (basement stud wall or PWF)
-  const frame = layerIds.includes('frame') ? resolveFrame(selection) : null
+  const hasFrameLayer = layerIds.includes('frame')
+  const frame = hasFrameLayer ? resolveFrame(selection) : null
+  // The data layer validated the frame, so this only fails if the two drift apart. Return
+  // null rather than hand the sheet builder a frame layer with no working rows.
+  if (hasFrameLayer && !frame) return null
 
   // Finish: forced to gypsum for ICF and whenever interior insulation is present (9.10.17.10)
   const hasIntIns = layerIds.includes('int_ins')
