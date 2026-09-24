@@ -233,3 +233,77 @@ describe('PrintSummary below-grade walls', () => {
     expect(rows).toEqual(['Above Ground Walls', 'Below Grade Walls', 'Air Tightness'])
   })
 })
+
+describe('PrintSummary code-minimum flags', () => {
+  // 2x4 R12 @ 16", no foam: RSI 1.94, below the 2.97 minimum
+  const failingWall = { wallType: 'wood', assemblyType: 'single', studSpacing: '16"', cavityMaterial: 'Fiberglass Batt', cavityType: '2x4 R12' }
+  // 2x6 R24 @ 16": RSI 3.11, meets the minimum
+  const passingWall = { ...failingWall, cavityType: '2x6 R24' }
+  const concrete = {
+    foundationType: 'concrete', concreteThickness: '200', extInsThickness: 'None', intInsThickness: 'None',
+    hasStudWall: true, studSpacing: '16"', cavityMaterial: 'Fiberglass Batt', finish: 'gypsum',
+  }
+  // R20 @ 16": RSI 2.87, below the 2.98 minimum; R22 @ 16": RSI 3.12, meets it
+  const failingBg = { ...concrete, cavityType: '2x6 R20' }
+  const passingBg = { ...concrete, cavityType: '2x6 R22' }
+
+  const renderSummary = (props) => render(
+    <PrintSummary selections={{ airTightness: 4 }} wallPoints={0} belowGradePoints={0} totalPoints={13.3} selectedTier={baseTier} {...props} />
+  )
+
+  it('above-ground wall below minimum: flag under the row and Not Met despite enough points', () => {
+    const { container } = renderSummary({ wallSelection: failingWall, belowGradeSelection: passingBg })
+    expect(screen.getByText('RSI 1.94')).toBeTruthy()
+    const flag = container.querySelector('[data-warning="aboveGroundWalls"]')
+    expect(flag.textContent).toBe('⚠ Does not meet code — 1.03 RSI below minimum 2.97')
+    // The flag sits directly under the Above Ground Walls row
+    expect(flag.previousElementSibling.querySelector('td').textContent).toBe('Above Ground Walls')
+    expect(container.querySelector('[data-warning="belowGradeWalls"]')).toBeNull()
+    expect(container.querySelector('.print-status').textContent).toBe('✗ Tier 2 Not Met — wall below code minimum')
+    expect(screen.queryByText(/Tier 2 Met/)).toBeNull()
+  })
+
+  it('below-grade wall below minimum: flag under the row and Not Met despite enough points', () => {
+    const { container } = renderSummary({ wallSelection: passingWall, belowGradeSelection: failingBg })
+    const flag = container.querySelector('[data-warning="belowGradeWalls"]')
+    expect(flag.textContent).toBe('⚠ Does not meet code — 0.11 RSI below minimum 2.98')
+    expect(flag.previousElementSibling.dataset.category).toBe('belowGradeWalls')
+    expect(container.querySelector('[data-warning="aboveGroundWalls"]')).toBeNull()
+    expect(container.querySelector('.print-status').textContent).toBe('✗ Tier 2 Not Met — wall below code minimum')
+  })
+
+  it('both walls below minimum: both flags, plural status', () => {
+    const { container } = renderSummary({ wallSelection: failingWall, belowGradeSelection: failingBg })
+    expect(container.querySelectorAll('.print-wall-warning').length).toBe(2)
+    expect(container.querySelector('.print-status').textContent).toBe('✗ Tier 2 Not Met — walls below code minimum')
+  })
+
+  it('passing pair with enough points: no flags, Met', () => {
+    const { container } = renderSummary({ wallSelection: passingWall, belowGradeSelection: passingBg })
+    expect(container.querySelectorAll('.print-wall-warning').length).toBe(0)
+    expect(container.querySelector('.print-status').textContent).toBe('✓ Tier 2 Met')
+  })
+
+  it('passing pair short on points: points wording, no wall note', () => {
+    const { container } = renderSummary({ wallSelection: passingWall, belowGradeSelection: passingBg, totalPoints: 4.1 })
+    expect(container.querySelectorAll('.print-wall-warning').length).toBe(0)
+    expect(container.querySelector('.print-status').textContent).toBe('5.9 more points needed for Tier 2')
+  })
+
+  it('short on points and a wall below minimum: points wording plus the wall note', () => {
+    const { container } = renderSummary({ wallSelection: failingWall, belowGradeSelection: passingBg, totalPoints: 4.1 })
+    expect(container.querySelector('.print-status').textContent).toBe('5.9 more points needed for Tier 2 — wall below code minimum')
+  })
+
+  it('simple mode never flags (options start at the minimum)', () => {
+    const { container } = renderSummary({ wallSelection: { simpleIndex: 0 }, belowGradeSelection: { simpleIndex: 0 } })
+    expect(container.querySelectorAll('.print-wall-warning').length).toBe(0)
+    expect(container.querySelector('.print-status').textContent).toBe('✓ Tier 2 Met')
+  })
+
+  it('incomplete builder selections do not flag', () => {
+    const { container } = renderSummary({ wallSelection: { wallType: 'wood', assemblyType: 'single' }, belowGradeSelection: { foundationType: 'icf', finish: 'gypsum' } })
+    expect(container.querySelectorAll('.print-wall-warning').length).toBe(0)
+    expect(container.querySelector('.print-status').textContent).toBe('✓ Tier 2 Met')
+  })
+})

@@ -1,5 +1,5 @@
 import React from 'react'
-import { categories, wallTypes, calculateWallRsi, foundationTypes, concreteThicknessOptions, blockOptions, finishOptions, calculateBelowGradeRsi, EMPTY_CAVITY } from '../data/ecpData'
+import { categories, wallTypes, calculateWallRsi, foundationTypes, concreteThicknessOptions, blockOptions, finishOptions, calculateBelowGradeRsi, EMPTY_CAVITY, MIN_WALL_RSI, MIN_BELOW_GRADE_RSI } from '../data/ecpData'
 import { DISCLAIMER } from '../data/disclaimer'
 
 const PROJECT_FIELDS = [
@@ -83,11 +83,16 @@ export default function PrintSummary({ selections, wallSelection, wallPoints, be
   const isBuilderMode = wallSelection.wallType && wallSelection.simpleIndex === undefined
   let wallLabel = ''
   let wallDetails = null
+  let wallWarning = null
 
   if (hasWall) {
     if (isBuilderMode) {
       const rsi = calculateWallRsi(wallSelection)
       wallLabel = rsi ? `RSI ${rsi.toFixed(2)}` : 'Incomplete'
+      // Same test and shortfall as the WallBuilder card (simple-mode options all start at or above the minimum)
+      if (rsi && rsi < MIN_WALL_RSI) {
+        wallWarning = `⚠ Does not meet code — ${(MIN_WALL_RSI - rsi).toFixed(2)} RSI below minimum ${MIN_WALL_RSI}`
+      }
 
       const wallTypeName = wallTypes.find(w => w.id === wallSelection.wallType)?.label || wallSelection.wallType
       const assemblyLabel = wallSelection.assemblyType === 'doubleStud' ? 'Double Stud' : 'Single Stud'
@@ -146,11 +151,16 @@ export default function PrintSummary({ selections, wallSelection, wallPoints, be
   const isBelowGradeBuilder = bg.foundationType && bg.simpleIndex === undefined
   let belowGradeLabel = ''
   let belowGradeDetails = null
+  let belowGradeWarning = null
 
   if (hasBelowGrade) {
     if (isBelowGradeBuilder) {
       const rsi = calculateBelowGradeRsi(bg)
       belowGradeLabel = rsi ? `RSI ${rsi.toFixed(2)}` : 'Incomplete'
+      // Same test and shortfall as the BelowGradeWallBuilder card (simple-mode floor option is the minimum itself)
+      if (rsi && Math.round(rsi * 100) / 100 < MIN_BELOW_GRADE_RSI) {
+        belowGradeWarning = `⚠ Does not meet code — ${(MIN_BELOW_GRADE_RSI - rsi).toFixed(2)} RSI below minimum ${MIN_BELOW_GRADE_RSI}`
+      }
       belowGradeDetails = belowGradeDetailLines(bg)
       if (rsi) belowGradeDetails.push(`Total Assembly RSI: ${rsi.toFixed(2)}`)
     } else {
@@ -163,7 +173,20 @@ export default function PrintSummary({ selections, wallSelection, wallPoints, be
   }
 
   const targetPoints = selectedTier.points
-  const isMet = totalPoints >= targetPoints
+  const pointsMet = totalPoints >= targetPoints
+  const wallsFailing = [wallWarning, belowGradeWarning].filter(Boolean).length
+  const wallNote = wallsFailing > 1 ? 'walls below code minimum' : 'wall below code minimum'
+  // Met needs the points target AND every wall at or above its code minimum (9.36.2.8)
+  const isMet = pointsMet && wallsFailing === 0
+  let statusText
+  if (isMet) {
+    statusText = `✓ ${selectedTier.label} Met`
+  } else if (pointsMet) {
+    statusText = `✗ ${selectedTier.label} Not Met — ${wallNote}`
+  } else {
+    statusText = `${(targetPoints - totalPoints).toFixed(1)} more points needed for ${selectedTier.label}`
+    if (wallsFailing) statusText += ` — ${wallNote}`
+  }
 
   return (
     <div className="print-summary">
@@ -200,6 +223,11 @@ export default function PrintSummary({ selections, wallSelection, wallPoints, be
                 <td>{wallLabel}</td>
                 <td className="print-pts">{wallPoints.toFixed(1)}</td>
               </tr>
+              {wallWarning && (
+                <tr className="print-wall-warning" data-warning="aboveGroundWalls">
+                  <td colSpan="3">{wallWarning}</td>
+                </tr>
+              )}
               {wallDetails && (
                 <>
                   {wallDetails.wallType && (
@@ -238,6 +266,11 @@ export default function PrintSummary({ selections, wallSelection, wallPoints, be
                 <td>{belowGradeLabel}</td>
                 <td className="print-pts">{belowGradePoints.toFixed(1)}</td>
               </tr>
+              {belowGradeWarning && (
+                <tr className="print-wall-warning" data-warning="belowGradeWalls">
+                  <td colSpan="3">{belowGradeWarning}</td>
+                </tr>
+              )}
               {belowGradeDetails && belowGradeDetails.map((line, i) => (
                 <tr key={i} className="print-wall-detail">
                   <td colSpan="3">{line}</td>
@@ -260,12 +293,7 @@ export default function PrintSummary({ selections, wallSelection, wallPoints, be
             <td className="print-pts">{totalPoints.toFixed(1)} / {targetPoints}</td>
           </tr>
           <tr className="print-status">
-            <td colSpan="3">
-              {isMet
-                ? `✓ ${selectedTier.label} Met`
-                : `${(targetPoints - totalPoints).toFixed(1)} more points needed for ${selectedTier.label}`
-              }
-            </td>
+            <td colSpan="3">{statusText}</td>
           </tr>
         </tfoot>
       </table>

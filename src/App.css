@@ -1317,6 +1317,14 @@ h1, h2, h3, h4, h5, h6 {
     color: #555;
   }
 
+  /* Below-minimum wall flag: black and bold so it survives B&W printing; the glyph carries it, not colour */
+  .print-wall-warning td {
+    padding-left: 1.5rem;
+    font-size: 10pt;
+    font-weight: 700;
+    color: #111;
+  }
+
   .print-total td {
     border-top: 2px solid #111;
     font-weight: 700;
