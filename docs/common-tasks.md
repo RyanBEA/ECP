@@ -145,7 +145,7 @@ The app registers a service worker that caches pages for offline use. After a de
    ```
 3. Increment the version number:
    ```javascript
-   const CACHE_NAME = 'ecp-calculator-v2';
+   const CACHE_NAME = 'ecp-calculator-v3';
    ```
 4. Rebuild and deploy:
    ```

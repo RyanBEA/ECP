@@ -38,7 +38,9 @@ interior_stud_wall:
   offset_cavity_rsi: { "2x6 R20": 3.52 }
 
 pwf:
-  # Permanent wood foundation. cavity_pct reproduces Table A-9.36.2.8.(1)-B to 0.01 for 38x185 and 38x235.
+  # Permanent wood foundation. cavity_pct reproduces Table A-9.36.2.8.(1)-B (all 60 cells within 0.005)
+  # using the actual stud depths in framing.yaml: 2x8 = 184 mm (the table header says 38x185, which does
+  # not reproduce at any cavity %), 2x10 = 235 mm.
   cavity_pct: { 8: 76, 12: 81, 16: 84 }
   studs: ["2x6", "2x8", "2x10"]
   sheathing: { id: pwf_sheathing, label: "12.5 mm plywood sheathing", rsi: 0.109 }   # Table D, softwood plywood

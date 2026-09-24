@@ -1,4 +1,4 @@
-const CACHE_NAME = 'ecp-calculator-v2';
+const CACHE_NAME = 'ecp-calculator-v3';
 
 const ASSETS = [
   '/',

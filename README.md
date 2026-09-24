@@ -196,7 +196,7 @@ For auto-deploy platforms (Railway, Vercel, Netlify, etc.):
 - **Start command:** `npx serve dist -s` (or use the platform's static file serving)
 - **Output directory:** `dist`
 
-When deploying changes, update the cache version string in `public/sw.js` (currently `ecp-calculator-v2`) to ensure users receive the latest version. The service worker caches the app shell for offline use; a stale cache name means returning visitors may see an old version until the new service worker activates.
+When deploying changes, update the cache version string in `public/sw.js` (currently `ecp-calculator-v3`) to ensure users receive the latest version. The service worker caches the app shell for offline use; a stale cache name means returning visitors may see an old version until the new service worker activates.
 
 ## Documentation
 
