@@ -10,7 +10,8 @@
  *   - Continuous insulation: 25 combos
  *   - ICF forms: 4 combos
  *   - Boundary options: 15 combos (7 sheathing + 8 cladding)
- *   - Thresholds: 11 entries + structural checks
+ *   - Thresholds: 11 wall + 3 below-grade entries + structural checks
+ *   - Foundation data: concrete, block, spray foam and lists vs YAML
  */
 import { describe, it, expect } from 'vitest'
 import { readFileSync } from 'fs'
@@ -35,6 +36,7 @@ const contInsData = readJson('continuous-ins.json')
 const icfData = readJson('icf-data.json')
 const boundaryData = readJson('boundary-options.json')
 const thresholdData = readJson('thresholds.json')
+const foundationData = readJson('foundation-data.json')
 
 // Map display labels back to YAML material keys
 const labelToKey = {}
@@ -358,5 +360,77 @@ describe('Thresholds', () => {
       expect(entry.minRsi).toBeGreaterThan(0)
       expect(entry.points).toBeGreaterThan(0)
     })
+  })
+})
+
+// ─────────────────────────────────────────────────────────────
+// 8. Below-grade thresholds (Table 9.36.8.7 Zone 6, Table 9.36.2.8.-B)
+// ─────────────────────────────────────────────────────────────
+describe('Below-grade thresholds', () => {
+  it('belowGrade has the three Zone 6 levels in order', () => {
+    expect(thresholdData.belowGrade).toEqual([
+      { minRsi: 3.09, points: 0.2 },
+      { minRsi: 3.46, points: 0.8 },
+      { minRsi: 3.9, points: 1.4 },
+    ])
+  })
+
+  it('minBelowGradeRsi is 2.98 and below the first level', () => {
+    expect(thresholdData.minBelowGradeRsi).toBe(2.98)
+    expect(thresholdData.minBelowGradeRsi).toBeLessThan(thresholdData.belowGrade[0].minRsi)
+  })
+})
+
+// ─────────────────────────────────────────────────────────────
+// 9. Foundation data (foundation-data.json vs foundation.yaml)
+// ─────────────────────────────────────────────────────────────
+describe('Foundation data', () => {
+  const f = m.foundation
+
+  it('inside air film and pass-through sections match YAML', () => {
+    expect(foundationData.inside_air_film).toBe(f.inside_air_film)
+    expect(foundationData.block).toEqual(f.block)
+    expect(foundationData.interior_stud_wall).toEqual(f.interior_stud_wall)
+    expect(foundationData.pwf).toEqual(f.pwf)
+    expect(foundationData.exterior_ins_types).toEqual(f.exterior_ins_types)
+    expect(foundationData.interior_ins_types).toEqual(f.interior_ins_types)
+    expect(foundationData.ins_thicknesses).toEqual(f.ins_thicknesses)
+    expect(foundationData.finish).toEqual(f.finish)
+  })
+
+  foundationData.concrete.thicknesses.forEach(t => {
+    it(`concrete ${t.label}: rsi = mm * rsi_per_mm`, () => {
+      const y = f.concrete.thicknesses.find(x => x.id === t.id)
+      expect(y).toBeTruthy()
+      expect(t.mm).toBe(y.mm)
+      expect(t.rsi).toBeCloseTo(round6(y.mm * f.concrete.rsi_per_mm), 6)
+    })
+  })
+
+  it('concrete: 200 mm = 0.08, 250 mm = 0.10', () => {
+    const byId = Object.fromEntries(foundationData.concrete.thicknesses.map(t => [t.id, t.rsi]))
+    expect(byId['200']).toBeCloseTo(0.08, 6)
+    expect(byId['250']).toBeCloseTo(0.10, 6)
+  })
+
+  for (const [label, rsi] of Object.entries(foundationData.spray_foam.thicknesses)) {
+    it(`spray foam ${label}: rsi = mm * ${f.spray_foam.rsi_per_mm}`, () => {
+      const y = f.spray_foam.thicknesses.find(t => t.label === label)
+      expect(y).toBeTruthy()
+      expect(rsi).toBeCloseTo(round6(y.mm * f.spray_foam.rsi_per_mm), 6)
+    })
+  }
+
+  it('spray foam thicknesses cover every non-None ins_thickness', () => {
+    const expected = f.ins_thicknesses.filter(t => t !== 'None')
+    expect(Object.keys(foundationData.spray_foam.thicknesses)).toEqual(expected)
+  })
+
+  it('every non-None ins_thickness exists in continuous-ins.json for XPS, EPS, Polyiso and mineral wools', () => {
+    for (const type of [...f.exterior_ins_types, ...f.interior_ins_types.filter(t => t !== f.spray_foam.label)]) {
+      for (const th of f.ins_thicknesses.filter(t => t !== 'None')) {
+        expect(contInsData[type]?.thicknesses[th], `${type} ${th}`).toBeGreaterThan(0)
+      }
+    }
   })
 })

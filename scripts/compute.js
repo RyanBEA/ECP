@@ -259,3 +259,27 @@ export function doubleWallRsi({
 
   return boundarySum(boundary, { contInsRsi }) + outerPp + gapRsi + innerPp
 }
+
+/**
+ * Effective RSI of a foundation (below-grade) wall.
+ * Continuous layers in series (isothermal planes); a framed layer by parallel path.
+ * Counts materials plus the interior air film only: no exterior film, no soil
+ * (NBC 2020 Note A-9.36.2.8.(1)).
+ *
+ * @param {object} params
+ * @param {Array<{id:string,label:string,rsi?:number,frame?:{studDepthMm:number,cavityRsi:number,cavityPct:number}}>} params.layers
+ *   Ordered outside to inside. A layer has either `rsi` (continuous) or `frame` (stud + cavity, parallel path).
+ * @param {number} [params.insideAirFilm=0.12] - Interior air film RSI, appended as an `inside_air` layer (0 to omit)
+ * @returns {{ total: number, layers: Array<{id:string,label:string,rsi:number}> }}
+ */
+export function foundationWallRsi({ layers, insideAirFilm = 0.12 }) {
+  const out = layers.map(l => {
+    if (l.frame) {
+      const { studDepthMm, cavityRsi, cavityPct } = l.frame
+      return { id: l.id, label: l.label, rsi: parallelPath(studDepthMm * 0.0085, cavityRsi, cavityPct) }
+    }
+    return { id: l.id, label: l.label, rsi: l.rsi || 0 }
+  })
+  if (insideAirFilm) out.push({ id: 'inside_air', label: 'Interior air film', rsi: insideAirFilm })
+  return { total: out.reduce((s, l) => s + l.rsi, 0), layers: out }
+}

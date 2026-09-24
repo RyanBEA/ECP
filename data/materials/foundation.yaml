@@ -1,0 +1,60 @@
+# Foundation (below-grade) wall materials
+# Source: NBC 2020 Table A-9.36.2.4.(1)-A (basement framing row), Table A-9.36.2.4.(1)-D,
+# Table A-9.36.2.8.(1)-A Note (3), Table A-9.36.2.8.(1)-B (PWF, reproduced by the cavity_pct below)
+
+inside_air_film: 0.12          # Table D, walls, heat flow horizontal. No exterior film below grade.
+
+concrete:
+  rsi_per_mm: 0.0004           # Table D, sand and gravel concrete 2400 kg/m3
+  thicknesses:
+    - { id: "200", label: '200 mm (8")', mm: 200 }
+    - { id: "250", label: '250 mm (10")', mm: 250 }
+
+block:
+  thickness_mm: 190
+  source: "NBC 2020 Table A-9.36.2.4.(1)-D, concrete blocks, 190 mm, 2 or 3 cores"
+  options:
+    - { id: normal_empty,       label: "Normal-weight, cores empty",            rsi: 0.21 }
+    - { id: normal_perlite,     label: "Normal-weight, cores filled with perlite",     rsi: 0.35 }
+    - { id: normal_vermiculite, label: "Normal-weight, cores filled with vermiculite", rsi: 0.51 }
+    - { id: medium_empty,       label: "Medium-weight, cores empty",            rsi: 0.26 }
+    - { id: medium_perlite,     label: "Medium-weight, cores filled with perlite",     rsi: 0.53 }
+    - { id: medium_vermiculite, label: "Medium-weight, cores filled with vermiculite", rsi: 0.58 }
+    - { id: light_empty,        label: "Light-weight, cores empty",             rsi: 0.32 }
+    - { id: light_perlite,      label: "Light-weight, cores filled with perlite",      rsi: 0.99 }
+    - { id: light_vermiculite,  label: "Light-weight, cores filled with vermiculite",  rsi: 0.81 }
+    - { id: light_eps_beads,    label: "Light-weight, cores filled with EPS beads",    rsi: 0.85 }
+    - { id: light_eps_inserts,  label: "Light-weight, EPS inserts in cores",   rsi: 0.62 }
+
+interior_stud_wall:
+  # Table A-9.36.2.4.(1)-A, "basement wood-frame inside concrete foundation wall"
+  cavity_pct: { 16: 84, 19: 85.5, 24: 87 }
+  studs: ["2x4", "2x6"]
+  empty_cavity_rsi: 0.18       # Table D, wall air space 20 to 90 mm, non-reflective
+  # Table A-9.36.2.8.(1)-A Note (3): R20 batts keep 3.52 in a wood frame offset from the back-up wall
+  offset_cavity_rsi: { "2x6 R20": 3.52 }
+
+pwf:
+  # Permanent wood foundation. cavity_pct reproduces Table A-9.36.2.8.(1)-B to 0.01 for 38x185 and 38x235.
+  cavity_pct: { 8: 76, 12: 81, 16: 84 }
+  studs: ["2x6", "2x8", "2x10"]
+  sheathing: { id: pwf_sheathing, label: "12.5 mm plywood sheathing", rsi: 0.109 }   # Table D, softwood plywood
+
+spray_foam:
+  label: "Closed-Cell Spray Foam"
+  rsi_per_mm: 0.036            # Table D, sprayed polyurethane foam, medium density (CAN/ULC-S705.1)
+  thicknesses:
+    - { label: '1"',     mm: 25.4 }
+    - { label: '1-1/2"', mm: 38.1 }
+    - { label: '2"',     mm: 50.8 }
+    - { label: '2-1/2"', mm: 63.5 }
+    - { label: '3"',     mm: 76.2 }
+    - { label: '3-1/2"', mm: 88.9 }
+    - { label: '4"',     mm: 101.6 }
+
+exterior_ins_types: ["XPS", "EPS", "Mineral Wool (Rock Wool)", "Mineral Wool (Glass Fibre)"]   # no polyiso in ground contact (9.25.2.2.(3))
+interior_ins_types: ["XPS", "EPS", "Polyiso", "Closed-Cell Spray Foam"]
+ins_thicknesses: ["None", '1"', '1-1/2"', '2"', '2-1/2"', '3"', '3-1/2"', '4"']
+
+finish:
+  gypsum: { label: '1/2" gypsum board', rsi: 0.08 }

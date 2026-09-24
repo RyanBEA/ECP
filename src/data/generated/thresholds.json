@@ -45,5 +45,20 @@
       "points": 13.6
     }
   ],
-  "minWallRsi": 2.97
+  "minWallRsi": 2.97,
+  "belowGrade": [
+    {
+      "minRsi": 3.09,
+      "points": 0.2
+    },
+    {
+      "minRsi": 3.46,
+      "points": 0.8
+    },
+    {
+      "minRsi": 3.9,
+      "points": 1.4
+    }
+  ],
+  "minBelowGradeRsi": 2.98
 }

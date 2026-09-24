@@ -12,6 +12,8 @@ eps:
     - { label: '2"',     mm: 50.8,  rsi: 1.3208 }     # 50.8 * 0.026
     - { label: '2-1/2"', mm: 63.5,  rsi: 1.651 }      # 63.5 * 0.026
     - { label: '3"',     mm: 76.2,  rsi: 1.9812 }     # 76.2 * 0.026
+    - { label: '3-1/2"', mm: 88.9,  rsi: 2.3114 }     # 88.9 * 0.026
+    - { label: '4"',     mm: 101.6, rsi: 2.6416 }     # 101.6 * 0.026
 
 xps:
   label: "XPS"
@@ -22,6 +24,8 @@ xps:
     - { label: '2"',     mm: 50.8,  rsi: 1.68 }        # table value
     - { label: '2-1/2"', mm: 63.5,  rsi: 2.1336 }     # 63.5 * 0.0336
     - { label: '3"',     mm: 76.2,  rsi: 2.56032 }    # 76.2 * 0.0336
+    - { label: '3-1/2"', mm: 88.9,  rsi: 2.98704 }    # 88.9 * 0.0336
+    - { label: '4"',     mm: 101.6, rsi: 3.41376 }    # 101.6 * 0.0336
 
 polyiso:
   label: "Polyiso"
@@ -38,6 +42,8 @@ polyiso:
     - { label: '2"',     mm: 50.8,  rsi: 1.8 }         # NBC table value (50mm)
     - { label: '2-1/2"', mm: 63.5,  rsi: 2.286 }      # 63.5 * 0.036
     - { label: '3"',     mm: 76.2,  rsi: 2.7432 }     # 76.2 * 0.036
+    - { label: '3-1/2"', mm: 88.9,  rsi: 3.2004 }     # 88.9 * 0.036
+    - { label: '4"',     mm: 101.6, rsi: 3.6576 }     # 101.6 * 0.036
 
 mineral_wool_rockwool:
   label: "Mineral Wool (Rock Wool)"
@@ -49,6 +55,8 @@ mineral_wool_rockwool:
     - { label: '2"',     mm: 50.8,  rsi: 1.40716 }    # 50.8 * 0.0277
     - { label: '2-1/2"', mm: 63.5,  rsi: 1.75895 }   # 63.5 * 0.0277
     - { label: '3"',     mm: 76.2,  rsi: 2.11074 }    # 76.2 * 0.0277
+    - { label: '3-1/2"', mm: 88.9,  rsi: 2.46253 }    # 88.9 * 0.0277
+    - { label: '4"',     mm: 101.6, rsi: 2.81432 }    # 101.6 * 0.0277
 
 mineral_wool_glassfibre:
   label: "Mineral Wool (Glass Fibre)"
@@ -60,3 +68,5 @@ mineral_wool_glassfibre:
     - { label: '2"',     mm: 50.8,  rsi: 1.51384 }    # 50.8 * 0.0298
     - { label: '2-1/2"', mm: 63.5,  rsi: 1.8923 }    # 63.5 * 0.0298
     - { label: '3"',     mm: 76.2,  rsi: 2.27076 }    # 76.2 * 0.0298
+    - { label: '3-1/2"', mm: 88.9,  rsi: 2.64922 }    # 88.9 * 0.0298
+    - { label: '4"',     mm: 101.6, rsi: 3.02768 }    # 101.6 * 0.0298

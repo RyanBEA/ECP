@@ -3,6 +3,7 @@ import {
   woodWallRsi, steelWallRsi, icfWallRsi, parallelPath,
   doubleStudWallRsi, doubleWallRsi,
   steelKValues, steelCavityPct,
+  foundationWallRsi,
 } from './compute.js'
 
 describe('parallelPath', () => {
@@ -348,5 +349,44 @@ describe('doubleWallRsi', () => {
     // Total ≈ 0.448 + 2.364 + 1.829 + 1.504 = 6.145
     expect(rsi).toBeGreaterThan(5.5)
     expect(rsi).toBeLessThan(7.0)
+  })
+})
+
+describe('foundationWallRsi', () => {
+  const conc = { id: 'concrete', label: '200 mm concrete', rsi: 0.08 }
+  const frame = (d, c, p) => ({ id: 'frame', label: 'stud wall', frame: { studDepthMm: d, cavityRsi: c, cavityPct: p } })
+  // NBC Table A-9.36.2.8.(1)-A: finish and air film "to be made up", so insideAirFilm 0 here
+  it.each([
+    [[conc, frame(140, 3.34, 87)], 2.78],
+    [[conc, frame(140, 4.23, 87)], 3.26],
+    [[conc, frame(89, 2.11, 87)], 1.79],
+    [[conc, frame(89, 2.11, 87), { id: 'int_ins', label: 'R8', rsi: 1.41 }], 3.20],
+    [[conc, { id: 'int_ins', label: 'R10', rsi: 1.76 }], 1.84],
+    [[{ id: 'icf_forms', label: 'EPS', rsi: 3.52 }, { id: 'icf_core', label: '150 mm', rsi: 0.06 }], 3.58],
+  ])('reproduces NBC table row %#', (layers, expected) => {
+    expect(foundationWallRsi({ layers, insideAirFilm: 0 }).total).toBeCloseTo(expected, 2)
+  })
+  // Table A-9.36.2.8.(1)-C, framing/cavity portion only
+  it.each([
+    [140, 3.52, 84, 2.68], [140, 3.34, 84, 2.59], [140, 3.52, 87, 2.81], [89, 2.11, 84, 1.64], [89, 0.18, 84, 0.20],
+  ])('reproduces Table C %s/%s/%s', (d, c, p, expected) => {
+    expect(foundationWallRsi({ layers: [frame(d, c, p)], insideAirFilm: 0 }).total).toBeCloseTo(expected, 2)
+  })
+  // Table A-9.36.2.8.(1)-B, PWF framing/cavity: 38x185 and 38x235 at 203/304/406 mm.
+  // The 2x8 is 184 mm (framing.yaml), the depth the app uses; with 184 mm and 76/81/84 %
+  // every one of the table's 60 cells reproduces within 0.005. With 185 mm two of these rows miss.
+  it.each([
+    [184, 3.52, 76, 2.71], [184, 3.52, 81, 2.84], [184, 3.52, 84, 2.93],
+    [235, 3.52, 76, 2.98], [235, 3.52, 81, 3.07], [235, 3.52, 84, 3.14],
+    [184, 4.93, 84, 3.67], [235, 5.46, 76, 3.86], [184, 2.11, 76, 1.95],
+  ])('reproduces PWF Table B %s/%s/%s', (d, c, p, expected) => {
+    expect(foundationWallRsi({ layers: [frame(d, c, p)], insideAirFilm: 0 }).total).toBeCloseTo(expected, 2)
+  })
+  it('appends the interior air film and returns per-layer values', () => {
+    const r = foundationWallRsi({ layers: [conc, frame(140, 3.87, 84), { id: 'finish', label: 'gypsum', rsi: 0.08 }] })
+    expect(r.total).toBeCloseTo(3.1249, 3)
+    expect(r.layers.map(l => l.id)).toEqual(['concrete', 'frame', 'finish', 'inside_air'])
+    expect(r.layers[1].rsi).toBeCloseTo(2.845, 3)
+    expect(r.layers[3].rsi).toBe(0.12)
   })
 })

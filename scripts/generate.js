@@ -9,6 +9,7 @@
  *   - src/data/generated/boundary-options.json  (cladding/sheathing options)
  *   - src/data/generated/thresholds.json       (ECP point thresholds)
  *   - src/data/generated/double-stud-data.json (double stud combos)
+ *   - src/data/generated/foundation-data.json  (below-grade wall materials)
  *
  * Usage:
  *   node scripts/generate.js           # generate all JSON
@@ -227,6 +228,38 @@ function generateThresholds() {
       { minRsi: 5.45, points: 13.6 },
     ],
     minWallRsi: 2.97,
+    // Below-grade (foundation) walls, Table 9.36.8.7 Zone 6; minimum Table 9.36.2.8.-B
+    belowGrade: [
+      { minRsi: 3.09, points: 0.2 },
+      { minRsi: 3.46, points: 0.8 },
+      { minRsi: 3.9, points: 1.4 },
+    ],
+    minBelowGradeRsi: 2.98,
+  }
+}
+
+// --- Foundation Data JSON ---
+function generateFoundationData() {
+  const f = m.foundation
+  return {
+    inside_air_film: f.inside_air_film,
+    concrete: {
+      rsi_per_mm: f.concrete.rsi_per_mm,
+      thicknesses: f.concrete.thicknesses.map(t => ({ ...t, rsi: round6(t.mm * f.concrete.rsi_per_mm) })),
+    },
+    block: f.block,
+    interior_stud_wall: f.interior_stud_wall,
+    pwf: f.pwf,
+    spray_foam: {
+      label: f.spray_foam.label,
+      rsi_per_mm: f.spray_foam.rsi_per_mm,
+      // label -> rsi map, same shape as continuous-ins.json thicknesses
+      thicknesses: Object.fromEntries(f.spray_foam.thicknesses.map(t => [t.label, round6(t.mm * f.spray_foam.rsi_per_mm)])),
+    },
+    exterior_ins_types: f.exterior_ins_types,
+    interior_ins_types: f.interior_ins_types,
+    ins_thicknesses: f.ins_thicknesses,
+    finish: f.finish,
   }
 }
 
@@ -454,6 +487,7 @@ async function main() {
   writeJson('boundary-options.json', generateBoundaryOptions())
   writeJson('thresholds.json', generateThresholds())
   writeJson('double-stud-data.json', generateDoubleStudData())
+  writeJson('foundation-data.json', generateFoundationData())
 
   await generateExcel(wallData)
 
