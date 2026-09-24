@@ -46,6 +46,15 @@ yourself; the scripts below never print them.
   `cavityMaterial`, `cavityType`, `studDepth`, `studOffset`, `finish`, `rsi`
   (effective RSI rounded to 2 decimals, `null` when incomplete), `points`.
   Rows written before the column existed read as an empty cell.
+- **Historical index shift, Below Grade Walls.** Rows recorded before app version
+  1.3.0 hold `belowGradeWalls` inside `selections_json` as an index into the OLD
+  three-option list: 0 = RSI 3.09, 1 = 3.46, 2 = 3.90. Version 1.3.0 inserted a
+  2.98 / 0-point floor at index 0 of that list, so the same index now names a
+  different level. Rows from 1.3.0 on never carry `belowGradeWalls` in
+  `selections_json` (the client strips it); they use the `below_grade` column
+  instead, whose `simpleIndex` counts from the NEW list (0 = 2.98, 1 = 3.09,
+  2 = 3.46, 3 = 3.90) and whose `rsi` field gives the level directly. Split any
+  below-grade analysis on `app_version` and read the old rows with the old list.
 - Nothing identifying is stored: no project, permit, applicant, IP, or user agent.
   Do not add such fields to reports "for context" — they do not exist.
 

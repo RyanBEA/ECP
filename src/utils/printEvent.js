@@ -93,6 +93,15 @@ function buildBelowGrade(selection, points) {
   return belowGrade
 }
 
+// From v1.3.0 the Below Grade Walls category is recorded in `belowGrade`, never
+// as an option index in `selections`. Task 2 inserted a 2.98 / 0-point floor at
+// index 0, so an index would now mean a different level than in older rows.
+function stripBelowGradeIndex(selections) {
+  const copy = { ...selections }
+  delete copy.belowGradeWalls
+  return copy
+}
+
 function makeSessionId() {
   if (typeof crypto !== 'undefined' && typeof crypto.randomUUID === 'function') {
     return crypto.randomUUID()
@@ -159,7 +168,7 @@ export function buildPrintEvent({
     targetPoints: selectedTier.points,
     totalPoints: Math.round(totalPoints * 10) / 10,
     met: totalPoints >= selectedTier.points,
-    selections: { ...selections },
+    selections: stripBelowGradeIndex(selections),
     wall,
     belowGrade: buildBelowGrade(belowGradeSelection, belowGradePoints ?? 0),
   }

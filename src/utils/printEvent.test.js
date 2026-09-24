@@ -262,6 +262,16 @@ describe('buildPrintEvent belowGrade', () => {
     }
   })
 
+  it('never records belowGradeWalls as an index in selections', () => {
+    const event = buildPrintEvent(baseArgs({
+      selections: { airTightness: 1, belowGradeWalls: 2 },
+      belowGradeSelection: { simpleIndex: 2 },
+      belowGradePoints: 1.4,
+    }))
+    expect(event.selections).toEqual({ airTightness: 1 })
+    expect(event.belowGrade.simpleIndex).toBe(2)
+  })
+
   it('keeps v: 1', () => {
     expect(buildPrintEvent(baseArgs({ belowGradeSelection: { simpleIndex: 0 } })).v).toBe(1)
   })
