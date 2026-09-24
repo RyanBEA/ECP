@@ -55,7 +55,8 @@ export default function WallSection({
 
   // Generate batt insulation pattern - semicircles at edges + diagonal lines
   // Three overlapping instances offset by period/3 each
-  const generateCavityPattern = (startX, cavityWidth, startYPos, cavityHeight) => {
+  // clipPrefix keeps ids unique when two WallSections share a page (url(#id) is document-wide)
+  const generateCavityPattern = (startX, cavityWidth, startYPos, cavityHeight, clipPrefix = '') => {
     // Cavity bounds (drywall surface to sheathing surface)
     const cavityTop = startYPos
     const cavityBottom = startYPos + cavityHeight
@@ -72,7 +73,7 @@ export default function WallSection({
     const period = 3 * r
 
     // Unique clip path ID for this cavity
-    const clipId = `cavity-clip-${startX}-${startYPos}`
+    const clipId = `${clipPrefix}cavity-clip-${startX}-${startYPos}`
 
     // Generate one instance of the pattern
     const generatePath = (offsetX) => {
@@ -197,24 +198,27 @@ export default function WallSection({
 
   // Shared helper: renders a wood stud+cavity section
   // opts (foundation mode only): lengthInches / widthPx override the wall length,
-  // showBatt=false draws an empty cavity. Defaults reproduce the original behaviour exactly.
+  // showBatt=false draws an empty cavity, cavityFill overrides the cavity colour,
+  // clipPrefix namespaces the batt clip ids. Defaults reproduce the original behaviour exactly.
   const renderStudCavity = (startY, depth, spacingIn, opts = {}) => {
     const lenIn = opts.lengthInches ?? wallLengthInches
     const widthPx = opts.widthPx ?? wallWidthPx
     const showBatt = opts.showBatt !== false
+    const cavityFill = opts.cavityFill ?? colors.cavity
+    const clipPrefix = opts.clipPrefix ?? ''
     const studH = depth * scale
     const numSt = Math.ceil(lenIn / spacingIn) + 1
     return (
       <g>
         <rect x={0} y={startY} width={widthPx} height={studH}
-          fill={colors.cavity} stroke="#9ca3af" strokeWidth="1" />
+          fill={cavityFill} stroke="#9ca3af" strokeWidth="1" />
         {showBatt && Array.from({ length: numSt - 1 }).map((_, i) => {
           const cavStartX = (i * spacingIn + studWidthInches) * scale
           const cavW = (spacingIn - studWidthInches) * scale
           if (cavStartX >= widthPx) return null
           return (
             <g key={`cav-${startY}-${i}`}>
-              {generateCavityPattern(cavStartX, Math.min(cavW, widthPx - cavStartX), startY, studH)}
+              {generateCavityPattern(cavStartX, Math.min(cavW, widthPx - cavStartX), startY, studH, clipPrefix)}
             </g>
           )
         })}
@@ -254,7 +258,11 @@ export default function WallSection({
     const fdLengthInches = fdSpacing ? fdSpacing * 1.5 : 24
     const fdWidthPx = fdLengthInches * scale
     const fdTotalThickness = fdDrawOrder.reduce((sum, l) => sum + (l.thicknessInches || 0), 0)
-    const fdSvgWidth = fdWidthPx + 280   // room for long block labels
+    // Label column sized from the longest label (about 4.8 px per character at 9 px), 200 px floor,
+    // so block and held-off labels end inside the viewBox at every stud spacing.
+    const fdMaxLabelChars = fdDrawOrder.reduce((m, l) => Math.max(m, String(l.label || l.kind || '').length), 0)
+    const fdLabelBudget = Math.max(200, Math.ceil(fdMaxLabelChars * 4.8))
+    const fdSvgWidth = fdWidthPx + 100 + fdLabelBudget
     const fdSvgHeight = fdTotalThickness * scale + 80
     const fdStartY = 30
     const fdBottomY = fdStartY + fdTotalThickness * scale
@@ -296,9 +304,16 @@ export default function WallSection({
       const units = Math.ceil(fdLengthInches / unitIn) + 1
       const coreY = l.y + shellIn * scale
       const coreH = Math.max(l.h - 2 * shellIn * scale, 2)
+      const blockClipId = `fd-block-clip-${l.y}`
       return (
         <g>
+          <defs>
+            <clipPath id={blockClipId}>
+              <rect x={0} y={l.y} width={fdWidthPx} height={l.h} />
+            </clipPath>
+          </defs>
           <rect x={0} y={l.y} width={fdWidthPx} height={l.h} fill="#9ca3af" stroke="#4b5563" strokeWidth="1" />
+          <g clipPath={`url(#${blockClipId})`}>
           {Array.from({ length: units }).map((_, i) => {
             const ux = (i * unitIn - unitIn / 2) * scale   // half-unit offset so a joint shows mid-wall
             const uw = (unitIn - jointIn) * scale
@@ -318,9 +333,7 @@ export default function WallSection({
               </g>
             )
           })}
-          {/* clip everything to the wall length */}
-          <rect x={-unitIn * scale} y={l.y - 1} width={unitIn * scale} height={l.h + 2} fill="#fff" />
-          <rect x={fdWidthPx} y={l.y - 1} width={unitIn * scale} height={l.h + 2} fill="#fff" />
+          </g>
           <rect x={0} y={l.y} width={fdWidthPx} height={l.h} fill="none" stroke="#4b5563" strokeWidth="1" />
         </g>
       )
@@ -347,8 +360,12 @@ export default function WallSection({
           return renderBlock(l)
         case 'frame':
           return renderStudCavity(l.y, l.thicknessInches, l.studSpacing || 16, {
-            lengthInches: fdLengthInches, widthPx: fdWidthPx, showBatt: l.cavityLabel !== 'empty cavity',
+            lengthInches: fdLengthInches, widthPx: fdWidthPx, clipPrefix: 'fd-',
+            showBatt: l.cavityLabel !== 'empty cavity',
+            cavityFill: l.cavityLabel === 'empty cavity' ? '#f9fafb' : colors.cavity,
           })
+        case 'air_gap':
+          return <rect x={0} y={l.y} width={fdWidthPx} height={l.h} fill="#fff" stroke="#9ca3af" strokeWidth="1" strokeDasharray="3 2" />
         case 'soil':
           return (
             <g>

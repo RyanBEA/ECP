@@ -96,9 +96,9 @@ export function buildFoundationLayers(selection = {}, assembly) {
     })
   } else if (sel.foundationType === 'icf') {
     const foam = inchesFromLabel(sel.icfFormThickness)
-    layers.push({ id: 'icf_foam_ext', kind: 'icf_foam', label: `${sel.icfFormThickness} EPS form`, thicknessInches: foam })
+    layers.push({ id: 'icf_foam_ext', kind: 'icf_foam', label: `${sel.icfFormThickness} EPS form (exterior)`, thicknessInches: foam })
     layers.push({ id: 'icf_core', kind: 'concrete', label: labelOf('icf_core') || '152 mm concrete core', thicknessInches: 6 })
-    layers.push({ id: 'icf_foam_int', kind: 'icf_foam', label: `${sel.icfFormThickness} EPS form`, thicknessInches: foam })
+    layers.push({ id: 'icf_foam_int', kind: 'icf_foam', label: `${sel.icfFormThickness} EPS form (interior)`, thicknessInches: foam })
   } else if (sel.foundationType === 'concrete' || sel.foundationType === 'block') {
     if (hasThickness(sel.extInsThickness)) {
       layers.push({ id: 'ext_ins', kind: 'ext_ins', label: labelOf('ext_ins'), thicknessInches: inchesFromLabel(sel.extInsThickness) })
@@ -113,6 +113,11 @@ export function buildFoundationLayers(selection = {}, assembly) {
     }
     if (sel.hasStudWall !== false && labelOf('frame')) {
       const stud = frameStud(sel)
+      // The data layer appends ', held off the wall' only when the offset RSI applies; mirror
+      // that with a 1" air-gap band so the picture matches the label. Not counted in RSI.
+      if (/held off/.test(labelOf('frame'))) {
+        layers.push({ id: 'air_gap', kind: 'air_gap', label: 'air gap (not counted)', thicknessInches: 1 })
+      }
       layers.push({
         id: 'frame', kind: 'frame', label: labelOf('frame'),
         thicknessInches: STUD_INCHES[stud] || 5.5,
