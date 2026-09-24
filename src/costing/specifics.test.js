@@ -121,7 +121,7 @@ describe('buildSpecifics: the other lines', () => {
     expect(m.notes).toContain('Gas heaters are priced as natural gas.')
   })
   it('below grade: the assumed layers as specification rows, one priced row', () => {
-    const m = model(scenario({ selections: { belowGradeWalls: 0 } }), 'belowGradeWalls')   // 3.09 vs 3.46
+    const m = model(scenario({ selections: { belowGradeWalls: 1 } }), 'belowGradeWalls')   // 3.09 vs 3.46
     expect(m.label).toBe('Assembly')
     expect(m.specRows.map(r => [r.item, r.design, r.baseline])).toEqual([
       ['Interior finish', '1/2 in gypsum', '1/2 in gypsum'],
@@ -166,10 +166,10 @@ describe('basicViewText', () => {
     expect(basicViewText(s.line('aboveGroundWalls'), s.ctx, s.sentences).baselineText).toBe('RSI 2.97 level, priced as 2x6 R22 batt, OSB, vinyl')
   })
   it('below grade, ventilation, water heating and airtightness', () => {
-    const s = scenario({ selections: { belowGradeWalls: 2, hrv: 2, dhwGas: 3, airTightness: 2 } })
+    const s = scenario({ selections: { belowGradeWalls: 3, hrv: 2, dhwGas: 3, airTightness: 2 } })
     const bg = basicViewText(s.line('belowGradeWalls'), s.ctx, s.sentences)
     expect(bg.designText).toBe('RSI 3.9, priced as 200 mm concrete, 2 in XPS, 2x6 R20 @ 16 in interior, gypsum')
-    expect(bg.notice.text).toBe('There is no foundation builder yet, so each RSI level is priced as a common assembly that reaches it. Your own foundation cannot be priced in this version.')
+    expect(bg.notice.text).toBe('Each RSI level is priced as a common assembly that reaches it, including a foundation built in the below-grade wall builder. Your own foundation layers cannot be priced in this version.')
     expect(bg.notice.goToPoints).toBe(false)
     expect(bg.quantity.field).toBe('foundationHeightFt')
     expect(basicViewText(s.line('hrv'), s.ctx, s.sentences).quantity).toEqual({ text: 'One HRV, sized from your 3 bedrooms.', field: 'bedrooms' })

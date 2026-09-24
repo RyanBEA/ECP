@@ -35,7 +35,7 @@ describe('assumed assemblies', () => {
 describe('assumed assemblies, fix round 1 (rulings R19, R20)', () => {
   it('every assumed foundation computes within its below-grade level (spec 6.3, ruling R19)', () => {
     const options = categories.find(c => c.id === 'belowGradeWalls').options.map(o => o.value)
-    const steps = [2.98, ...options].sort((a, b) => a - b)
+    const steps = [...new Set([2.98, ...options])].sort((a, b) => a - b)
     expect(steps).toEqual([2.98, 3.09, 3.46, 3.9])
     steps.forEach((lvl, i) => {
       const rsi = Math.round(foundationAssemblyRsi(ASSUMED_FOUNDATIONS[lvl]) * 100) / 100

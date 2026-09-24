@@ -49,7 +49,9 @@ export function cardOptions(cardId) {
     ]
   }
   const min = CODE_MIN[cardId] ? [{ ...CODE_MIN[cardId], points: 0, pickCard: cardId }] : []
-  return [...min, ...cat(cardId).options.map(o => ({ value: o.value, label: LABEL[cardId](o.value), points: o.points, pickCard: cardId }))]
+  // The below-grade card has had a code-minimum option of its own since the below-grade builder (1.3.0): list it once.
+  const rest = cat(cardId).options.filter(o => !min.length || o.value !== min[0].value)
+  return [...min, ...rest.map(o => ({ value: o.value, label: LABEL[cardId](o.value), points: o.points, pickCard: cardId }))]
 }
 
 export function defaultConsider() {

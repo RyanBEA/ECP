@@ -1,5 +1,5 @@
 import React from 'react'
-import { categories, wallTypes, calculateWallRsi } from '../data/ecpData'
+import { categories, wallTypes, calculateWallRsi, foundationTypes, concreteThicknessOptions, blockOptions, finishOptions, calculateBelowGradeRsi, EMPTY_CAVITY } from '../data/ecpData'
 import { DISCLAIMER } from '../data/disclaimer'
 
 const PROJECT_FIELDS = [
@@ -8,13 +8,68 @@ const PROJECT_FIELDS = [
   { key: 'applicant', label: 'Applicant' },
 ]
 
-export default function PrintSummary({ selections, wallSelection, wallPoints, totalPoints, selectedTier, projectInfo = {} }) {
+// Which categories have their own builder rows (never rendered from `selections`)
+const BUILDER_CATEGORIES = new Set(['aboveGroundWalls', 'belowGradeWalls'])
+
+// Below-grade detail lines for the print summary (builder mode only)
+function belowGradeDetailLines(sel) {
+  const lines = []
+  const typeLabel = foundationTypes.find(f => f.id === sel.foundationType)?.label || sel.foundationType
+  lines.push(`Foundation Type: ${typeLabel}`)
+
+  if (sel.foundationType === 'concrete') {
+    const t = concreteThicknessOptions.find(o => o.id === sel.concreteThickness)
+    if (t) lines.push(`Wall Thickness: ${t.label}`)
+  } else if (sel.foundationType === 'block') {
+    const b = blockOptions.find(o => o.id === sel.blockType)
+    if (b) lines.push(`Block Type: ${b.label}`)
+  } else if (sel.foundationType === 'icf') {
+    if (sel.icfFormThickness) lines.push(`EPS Form Thickness: ${sel.icfFormThickness} per side`)
+  } else if (sel.foundationType === 'pwf') {
+    const parts = []
+    if (sel.pwfStud && sel.pwfSpacing) parts.push(`Studs: ${sel.pwfStud} @ ${sel.pwfSpacing}`)
+    const cavity = [sel.pwfCavityMaterial, sel.pwfCavityType].filter(Boolean).join(', ')
+    if (cavity) parts.push(`Cavity: ${cavity}`)
+    if (parts.length) lines.push(parts.join(' | '))
+  }
+
+  if (sel.extInsType && sel.extInsThickness && sel.extInsThickness !== 'None') {
+    lines.push(`Exterior Ins: ${sel.extInsType}, ${sel.extInsThickness}`)
+  }
+  const hasIntIns = sel.intInsType && sel.intInsThickness && sel.intInsThickness !== 'None'
+  if (hasIntIns) {
+    lines.push(`Interior Ins: ${sel.intInsType}, ${sel.intInsThickness}`)
+  }
+
+  if ((sel.foundationType === 'concrete' || sel.foundationType === 'block')) {
+    if (sel.hasStudWall === false) {
+      lines.push('Stud Wall: none')
+    } else if (sel.studSpacing) {
+      const parts = [`Stud Spacing: ${sel.studSpacing}`]
+      if (sel.cavityMaterial === EMPTY_CAVITY) {
+        parts.push(`Cavity: ${sel.studDepth ? `${sel.studDepth} ` : ''}empty`)
+      } else {
+        const cavity = [sel.cavityMaterial, sel.cavityType || sel.studDepth].filter(Boolean).join(', ')
+        if (cavity) parts.push(`Cavity: ${cavity}`)
+      }
+      if (sel.studOffset) parts.push('held off concrete')
+      lines.push(parts.join(' | '))
+    }
+  }
+
+  const finishId = (sel.foundationType === 'icf' || hasIntIns) ? 'gypsum' : (sel.finish || 'gypsum')
+  const finishLabel = finishOptions.find(f => f.id === finishId)?.label || finishId
+  lines.push(`Finish: ${finishLabel}`)
+  return lines
+}
+
+export default function PrintSummary({ selections, wallSelection, wallPoints, belowGradeSelection = {}, belowGradePoints = 0, totalPoints, selectedTier, projectInfo = {} }) {
   const today = new Date().toLocaleDateString('en-CA') // YYYY-MM-DD
 
   // Resolve selected standard categories into rows
   const rows = Object.entries(selections).map(([categoryId, optionIndex]) => {
     const category = categories.find(c => c.id === categoryId)
-    if (!category || optionIndex === null) return null
+    if (!category || optionIndex === null || BUILDER_CATEGORIES.has(categoryId)) return null
     const option = category.options[optionIndex]
     const dirSymbol = category.direction === 'higher' ? '≥' : '≤'
     const label = option.label
@@ -81,6 +136,28 @@ export default function PrintSummary({ selections, wallSelection, wallPoints, to
       const option = wallCat.options[wallSelection.simpleIndex]
       if (option) {
         wallLabel = `≥ RSI ${option.value}`
+      }
+    }
+  }
+
+  // Below-grade wall row
+  const bg = belowGradeSelection || {}
+  const hasBelowGrade = belowGradePoints > 0 || bg.foundationType || bg.simpleIndex !== undefined
+  const isBelowGradeBuilder = bg.foundationType && bg.simpleIndex === undefined
+  let belowGradeLabel = ''
+  let belowGradeDetails = null
+
+  if (hasBelowGrade) {
+    if (isBelowGradeBuilder) {
+      const rsi = calculateBelowGradeRsi(bg)
+      belowGradeLabel = rsi ? `RSI ${rsi.toFixed(2)}` : 'Incomplete'
+      belowGradeDetails = belowGradeDetailLines(bg)
+      if (rsi) belowGradeDetails.push(`Total Assembly RSI: ${rsi.toFixed(2)}`)
+    } else {
+      const bgCat = categories.find(c => c.id === 'belowGradeWalls')
+      const option = bgCat.options[bg.simpleIndex]
+      if (option) {
+        belowGradeLabel = `≥ RSI ${option.value.toFixed(2)}`
       }
     }
   }
@@ -152,6 +229,20 @@ export default function PrintSummary({ selections, wallSelection, wallPoints, to
                   )}
                 </>
               )}
+            </>
+          )}
+          {hasBelowGrade && (
+            <>
+              <tr className="print-row" data-category="belowGradeWalls">
+                <td>Below Grade Walls</td>
+                <td>{belowGradeLabel}</td>
+                <td className="print-pts">{belowGradePoints.toFixed(1)}</td>
+              </tr>
+              {belowGradeDetails && belowGradeDetails.map((line, i) => (
+                <tr key={i} className="print-wall-detail">
+                  <td colSpan="3">{line}</td>
+                </tr>
+              ))}
             </>
           )}
           {rows.map((row, i) => (

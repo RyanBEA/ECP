@@ -2,6 +2,7 @@ import { render, screen, fireEvent, within } from '@testing-library/react'
 import fs from 'node:fs'
 import path from 'node:path'
 import App from './App'
+import { categories } from './data/ecpData'
 import { STORAGE_KEY, DEFAULT_PERSISTED } from './costing/persist'
 
 const pickVentilation75 = () => {
@@ -325,5 +326,64 @@ describe('App on a phone: the usual-house editor is a page (iteration 3, Review 
     fireEvent.keyDown(document, { key: 'Escape' })
     expect(document.querySelector('.baseline-editor')).toBeNull()
     expect(document.activeElement).toBe(screen.getByRole('tab', { name: 'Cost' }))
+  })
+})
+
+describe('Points add across both wall builders', () => {
+  beforeEach(() => { localStorage.clear(); window.matchMedia = window.matchMedia || (() => ({ matches: false, addListener() {}, removeListener() {} })) })
+  const counter = () => document.querySelector('.points-counter .points-value').textContent
+  const pick = (id, value) => fireEvent.change(document.getElementById(id), { target: { value } })
+  const aboveSimple0 = categories.find(c => c.id === 'aboveGroundWalls').options[0].points
+
+  it('above-ground simple index 0 plus below-grade default concrete: 1.6 + 0.2 = 1.8', () => {
+    render(<App />)
+    expect(counter()).toBe('0.0')
+    // above-ground: Select RSI, first option
+    const above = screen.getByRole('heading', { name: 'Above Ground Walls' }).closest('.wall-builder')
+    fireEvent.click(within(above).getByRole('button', { name: 'Select RSI' }))
+    fireEvent.click(within(above).getAllByRole('button').filter(b => b.classList.contains('option-button'))[0])
+    expect(aboveSimple0).toBe(1.6)
+    expect(counter()).toBe('1.6')
+    // below-grade: builder, Poured Concrete defaults -> 3.12, +0.2
+    pick('bg-foundationType', 'concrete')
+    expect(counter()).toBe('1.8')
+    // clearing the below-grade builder drops it back
+    const below = screen.getByRole('heading', { name: 'Below Grade Walls' }).closest('.wall-builder')
+    fireEvent.click(within(below).getByRole('button', { name: 'Clear' }))
+    expect(counter()).toBe('1.6')
+  })
+
+  it('both in simple mode, both in builder mode, and one empty', () => {
+    render(<App />)
+    const above = screen.getByRole('heading', { name: 'Above Ground Walls' }).closest('.wall-builder')
+    const below = screen.getByRole('heading', { name: 'Below Grade Walls' }).closest('.wall-builder')
+    const optionButtons = card => within(card).getAllByRole('button').filter(b => b.classList.contains('option-button') && !b.classList.contains('clear-button'))
+
+    // both simple: above index 0 (1.6) + below index 3 (1.4)
+    fireEvent.click(within(above).getByRole('button', { name: 'Select RSI' }))
+    fireEvent.click(optionButtons(above)[0])
+    fireEvent.click(within(below).getByRole('button', { name: 'Select RSI' }))
+    expect(optionButtons(below)).toHaveLength(4)
+    fireEvent.click(optionButtons(below)[3])
+    expect(counter()).toBe('3.0')
+
+    // one empty: switching the below-grade mode clears it
+    fireEvent.click(within(below).getByRole('button', { name: 'Build Assembly' }))
+    expect(counter()).toBe('1.6')
+
+    // both builder: above-ground wood defaults (2x6 R20 at 16", vinyl, OSB) + PWF default (+1.4)
+    fireEvent.click(within(above).getByRole('button', { name: 'Build Assembly' }))
+    expect(counter()).toBe('0.0')
+    pick('wallType', 'wood')
+    const aboveOnly = parseFloat(counter())
+    pick('bg-foundationType', 'pwf')
+    expect(parseFloat(counter())).toBeCloseTo(aboveOnly + 1.4, 5)
+  })
+
+  it('the below-grade category renders as the builder card, not a plain option card', () => {
+    render(<App />)
+    const below = screen.getByRole('heading', { name: 'Below Grade Walls' }).closest('.wall-builder')
+    expect(below).not.toBeNull()
+    expect(screen.queryByText('Below Grade Walls', { selector: '.category-card:not(.wall-builder) *' })).toBeNull()
   })
 })

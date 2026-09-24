@@ -144,3 +144,92 @@ describe('PrintSummary', () => {
     expect(container.querySelector('.print-disclaimer').textContent).toMatch(/authority having jurisdiction/)
   })
 })
+
+describe('PrintSummary below-grade walls', () => {
+  const concrete = {
+    foundationType: 'concrete', concreteThickness: '200', extInsThickness: 'None', intInsThickness: 'None',
+    hasStudWall: true, studSpacing: '16"', cavityMaterial: 'Fiberglass Batt', cavityType: '2x6 R22', finish: 'gypsum',
+  }
+
+  it('renders no below-grade row when nothing is selected, and never from `selections`', () => {
+    const { container } = render(
+      <PrintSummary selections={{ belowGradeWalls: 1 }} wallSelection={{}} wallPoints={0} totalPoints={0} selectedTier={baseTier} />
+    )
+    expect(container.querySelectorAll('.print-row').length).toBe(0)
+    expect(screen.queryByText('Below Grade Walls')).toBeNull()
+  })
+
+  it('simple mode: row with the option value, no detail lines', () => {
+    const { container } = render(
+      <PrintSummary selections={{}} wallSelection={{}} wallPoints={0}
+        belowGradeSelection={{ simpleIndex: 0 }} belowGradePoints={0} totalPoints={0} selectedTier={baseTier} />
+    )
+    expect(screen.getByText('Below Grade Walls')).toBeTruthy()
+    expect(screen.getByText('≥ RSI 2.98')).toBeTruthy()
+    expect(container.querySelectorAll('.print-wall-detail').length).toBe(0)
+    expect(container.querySelector('[data-category="belowGradeWalls"] .print-pts').textContent).toBe('0.0')
+  })
+
+  it('builder mode: RSI label and the detail lines for concrete', () => {
+    const { container } = render(
+      <PrintSummary selections={{}} wallSelection={{}} wallPoints={0}
+        belowGradeSelection={{ ...concrete, extInsType: 'XPS', extInsThickness: '2"', cavityType: '2x6 R20', studOffset: true }}
+        belowGradePoints={1.4} totalPoints={1.4} selectedTier={baseTier} />
+    )
+    expect(screen.getByText('RSI 4.64')).toBeTruthy()
+    expect(screen.getByText('Foundation Type: Poured Concrete')).toBeTruthy()
+    expect(screen.getByText('Wall Thickness: 200 mm (8")')).toBeTruthy()
+    expect(screen.getByText('Exterior Ins: XPS, 2"')).toBeTruthy()
+    expect(screen.getByText('Stud Spacing: 16" | Cavity: Fiberglass Batt, 2x6 R20 | held off concrete')).toBeTruthy()
+    expect(screen.getByText('Finish: 1/2" gypsum board')).toBeTruthy()
+    expect(screen.getByText('Total Assembly RSI: 4.64')).toBeTruthy()
+    expect(container.querySelector('[data-category="belowGradeWalls"] .print-pts').textContent).toBe('1.4')
+  })
+
+  it('builder mode: block, ICF and PWF lines; interior foam forces the gypsum line', () => {
+    const { rerender } = render(
+      <PrintSummary selections={{}} wallSelection={{}} wallPoints={0}
+        belowGradeSelection={{ ...concrete, foundationType: 'block', blockType: 'light_empty', concreteThickness: undefined, hasStudWall: false, finish: 'none', intInsType: 'XPS', intInsThickness: '2"' }}
+        belowGradePoints={0} totalPoints={0} selectedTier={baseTier} />
+    )
+    expect(screen.getByText('Block Type: Light-weight, cores empty')).toBeTruthy()
+    expect(screen.getByText('Interior Ins: XPS, 2"')).toBeTruthy()
+    expect(screen.getByText('Stud Wall: none')).toBeTruthy()
+    expect(screen.getByText('Finish: 1/2" gypsum board')).toBeTruthy()
+
+    rerender(
+      <PrintSummary selections={{}} wallSelection={{}} wallPoints={0}
+        belowGradeSelection={{ foundationType: 'icf', icfFormThickness: '2-1/2"', finish: 'gypsum' }}
+        belowGradePoints={0.8} totalPoints={0.8} selectedTier={baseTier} />
+    )
+    expect(screen.getByText('RSI 3.56')).toBeTruthy()
+    expect(screen.getByText('EPS Form Thickness: 2-1/2" per side')).toBeTruthy()
+
+    rerender(
+      <PrintSummary selections={{}} wallSelection={{}} wallPoints={0}
+        belowGradeSelection={{ foundationType: 'pwf', pwfStud: '2x8', pwfSpacing: '16"', pwfCavityMaterial: 'Fiberglass Batt', pwfCavityType: '2x8 R28', finish: 'none' }}
+        belowGradePoints={1.4} totalPoints={1.4} selectedTier={baseTier} />
+    )
+    expect(screen.getByText('Foundation Type: Permanent Wood Foundation')).toBeTruthy()
+    expect(screen.getByText('Studs: 2x8 @ 16" | Cavity: Fiberglass Batt, 2x8 R28')).toBeTruthy()
+    expect(screen.getByText('Finish: None (unfinished)')).toBeTruthy()
+  })
+
+  it('incomplete builder selection prints "Incomplete"', () => {
+    render(
+      <PrintSummary selections={{}} wallSelection={{}} wallPoints={0}
+        belowGradeSelection={{ foundationType: 'icf', finish: 'gypsum' }}
+        belowGradePoints={0} totalPoints={0} selectedTier={baseTier} />
+    )
+    expect(screen.getByText('Incomplete')).toBeTruthy()
+  })
+
+  it('above-ground and below-grade rows both print', () => {
+    const { container } = render(
+      <PrintSummary selections={{ airTightness: 1 }} wallSelection={{ simpleIndex: 0 }} wallPoints={1.6}
+        belowGradeSelection={concrete} belowGradePoints={0.2} totalPoints={5.3} selectedTier={baseTier} />
+    )
+    const rows = [...container.querySelectorAll('.print-row')].map(r => r.querySelector('td').textContent)
+    expect(rows).toEqual(['Above Ground Walls', 'Below Grade Walls', 'Air Tightness'])
+  })
+})

@@ -221,7 +221,7 @@ export function basicViewText(line, ctx, sentences) {
       const t = v => `RSI ${v}, priced as ${ASSUMED_FOUNDATIONS[v]?.label ?? 'an assembly'}`
       return {
         designText: t(dp.cards.belowGradeWalls), baselineText: t(bp.cards.belowGradeWalls),
-        notice: { text: 'There is no foundation builder yet, so each RSI level is priced as a common assembly that reaches it. Your own foundation cannot be priced in this version.', goToPoints: false },
+        notice: { text: 'Each RSI level is priced as a common assembly that reaches it, including a foundation built in the below-grade wall builder. Your own foundation layers cannot be priced in this version.', goToPoints: false },
         quantity: { text: sentences.belowGrade, field: 'foundationHeightFt' },
       }
     }

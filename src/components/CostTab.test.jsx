@@ -129,9 +129,9 @@ describe('CostTab specifics and edit mode (R3 amended, R36)', () => {
     expect(Math.abs(diffs.reduce((a, b) => a + b, 0) - total)).toBeLessThanOrEqual(2)
   })
   it('below grade: the plain notice and the assembly rows', () => {
-    render(<Harness selections={{ belowGradeWalls: 0 }} />)
+    render(<Harness selections={{ belowGradeWalls: 1 }} />)
     openSpecifics('Below-grade walls', 'Assembly')
-    expect(detail().getByRole('note')).toHaveTextContent('There is no foundation builder yet')
+    expect(detail().getByRole('note')).toHaveTextContent('Each RSI level is priced as a common assembly that reaches it')
     expect(screen.getByRole('row', { name: 'Foam against the concrete' })).toHaveClass('differs')
   })
   it('water heating names its fuel and the gas note', () => {
@@ -158,7 +158,7 @@ describe('CostTab specifics and edit mode (R3 amended, R36)', () => {
 
 describe('CostTab open lines and order (R40)', () => {
   it('closes an open line that stops applying', () => {
-    render(<Harness selections={{ belowGradeWalls: 0, hrv: 2 }} />)
+    render(<Harness selections={{ belowGradeWalls: 1, hrv: 2 }} />)
     fireEvent.click(lineButton('Below-grade walls'))
     expect(document.querySelector('.line-detail')).not.toBeNull()
     fireEvent.change(screen.getByLabelText('Type'), { target: { value: 'miniHome' } })
@@ -189,7 +189,7 @@ describe('CostTab below 900 px (rev 3 3.4)', () => {
     expect(document.querySelector('.cost-sidebar')).toBeNull()
   })
   it('"change house" opens the House strip and focuses the field (Review Focus 4)', () => {
-    render(<Harness selections={{ belowGradeWalls: 0 }} narrow />)
+    render(<Harness selections={{ belowGradeWalls: 1 }} narrow />)
     fireEvent.click(lineButton('Below-grade walls'))
     fireEvent.click(screen.getByRole('button', { name: 'change house' }))
     expect(screen.getByRole('button', { name: /^House/ })).toHaveAttribute('aria-expanded', 'true')

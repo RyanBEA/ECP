@@ -129,7 +129,7 @@ describe('Compared with card', () => {
 
 describe('change house (R40)', () => {
   it('opens More about this house and focuses a field kept there', () => {
-    render(<Harness selections={{ belowGradeWalls: 0 }} />)
+    render(<Harness selections={{ belowGradeWalls: 1 }} />)
     expect(more()).toHaveAttribute('aria-expanded', 'false')
     fireEvent.click(screen.getByRole('button', { name: /^Below-grade walls/ }))
     fireEvent.click(screen.getByRole('button', { name: 'change house' }))

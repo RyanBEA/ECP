@@ -2,6 +2,7 @@ import React, { useState, useMemo, useEffect, useCallback, useRef } from 'react'
 import { categories, tiers } from './data/ecpData'
 import CategoryCard from './components/CategoryCard'
 import WallBuilder from './components/WallBuilder'
+import BelowGradeWallBuilder from './components/BelowGradeWallBuilder'
 import PointsCounter from './components/PointsCounter'
 import PrintSummary from './components/PrintSummary'
 import TabBar from './components/TabBar'
@@ -17,7 +18,7 @@ import { useHouseCost, resolveHouseFields } from './costing/useHouseCost'
 import { loadPersisted, savePersisted } from './costing/persist'
 import { getPresetPicks } from './costing/baselines'
 import { overrideKey, lineOverrideKey } from './costing/priceHouse'
-import { applySelect, isCategoryDisabled, totalCardPoints, wallPointsFor, picksToSelections } from './costing/usePicks'
+import { applySelect, isCategoryDisabled, totalCardPoints, wallPointsFor, picksToSelections, belowGradePointsFor, belowGradeIndexFor, withBelowGrade } from './costing/usePicks'
 import OptimizeTab from './components/OptimizeTab'
 import { useOptimize } from './optimize/useOptimize'
 import { defaultConsider, toggleConsider } from './optimize/candidates'
@@ -47,6 +48,9 @@ export default function App() {
   // Track wall builder selections separately
   const [wallSelection, setWallSelection] = useState({})
 
+  // Below-grade (foundation) wall builder selection, same shape rules as wallSelection
+  const [belowGradeSelection, setBelowGradeSelection] = useState({})
+
   // Optional project details — blank on screen, printed on the summary
   const [projectInfo, setProjectInfo] = useState({ project: '', permit: '', applicant: '' })
   const handleProjectChange = (field) => (e) =>
@@ -63,7 +67,10 @@ export default function App() {
   // main's handleSelect, wallPoints, totalPoints and isDisabled, so Points behaves exactly as on main.
   const handleSelect = (categoryId, optionIndex) => { setSavedPicks(null); setSelections(prev => applySelect(prev, categoryId, optionIndex)) }
   const wallPoints = useMemo(() => wallPointsFor(wallSelection), [wallSelection])
-  const totalPoints = useMemo(() => totalCardPoints(selections) + wallPoints, [selections, wallPoints])
+  const belowGradePoints = useMemo(() => belowGradePointsFor(belowGradeSelection), [belowGradeSelection])
+  const totalPoints = useMemo(() => totalCardPoints(selections) + wallPoints + belowGradePoints, [selections, wallPoints, belowGradePoints])
+  // What the cost and optimize code read: the card picks with the below-grade builder's pick as the belowGradeWalls card.
+  const pickSelections = useMemo(() => withBelowGrade(selections, belowGradeSelection), [selections, belowGradeSelection])
   const isDisabled = category => isCategoryDisabled(selections, category)
 
   const targetPoints = selectedTier.points
@@ -108,43 +115,51 @@ export default function App() {
 
   const { houseType, baselineChoice, usualHouse, overrides, fieldOverrides } = persisted
   const houseFields = useMemo(() => resolveHouseFields(houseType, fieldOverrides), [houseType, fieldOverrides])
-  const cost = useHouseCost({ selections, wallSelection, houseType, houseFields, baselineChoice, usualHouse, overrides, frozenOrder })
+  const cost = useHouseCost({ selections: pickSelections, wallSelection, houseType, houseFields, baselineChoice, usualHouse, overrides, frozenOrder })
 
   const optStale = optRequest !== null && (
-    optRequest.selections !== selections || optRequest.wallSelection !== wallSelection || optRequest.houseType !== houseType
+    optRequest.rawSelections !== selections || optRequest.belowGradeSelection !== belowGradeSelection || optRequest.wallSelection !== wallSelection || optRequest.houseType !== houseType
     || optRequest.houseFields !== houseFields || optRequest.baselineChoice !== baselineChoice || optRequest.usualHouse !== usualHouse
     || optRequest.overrides !== overrides || optRequest.tierPoints !== selectedTier.points || optRequest.consider !== consider)
   const optBlocked = houseFields.bedrooms === MORE_THAN_5 && !cost.quantities.airflow && consider.hrv.size > 0
     ? 'Enter the designed airflow on the Cost tab to include ventilation' : null
   const runOptimize = () => {
-    setOptRequest({ selections, wallSelection, houseType, houseFields, baselineChoice, usualHouse, overrides, tierPoints: selectedTier.points, tierLabel: selectedTier.label, consider })
+    setOptRequest({ selections: pickSelections, rawSelections: selections, belowGradeSelection, wallSelection, houseType, houseFields, baselineChoice, usualHouse, overrides, tierPoints: selectedTier.points, tierLabel: selectedTier.label, consider })
     setOptScreen('result')
   }
   // Spec 7: replace the Points-tab picks with the package's; cards the search left out keep their current pick.
   const applyPackage = shown => {
-    setSavedPicks({ selections, wallSelection })
+    setSavedPicks({ selections, wallSelection, belowGradeSelection })
     const { selections: ps, wallSelection: pw } = picksToSelections(shown.picks)
     const next = { ...selections }
+    let nextBelowGrade = belowGradeSelection
     for (const line of shown.lines) {
       if (line.state !== 'searched') continue
       if (line.cardId === 'aboveGroundWalls') continue
+      // The below-grade card is the builder: a searched level goes in as its simple-mode pick.
+      if (line.cardId === 'belowGradeWalls') {
+        nextBelowGrade = ps.belowGradeWalls !== undefined ? { simpleIndex: ps.belowGradeWalls } : {}
+        continue
+      }
       const pickCards = line.cardId === 'dhw' ? ['dhwElectric', 'dhwGas'] : [line.cardId]
       for (const pc of pickCards) { if (ps[pc] !== undefined) next[pc] = ps[pc]; else delete next[pc] }
     }
     setSelections(next)
+    setBelowGradeSelection(nextBelowGrade)
     if (shown.picks.wall) setWallSelection(pw)
     // Applying is the tool's own action, not a change to the builder's inputs: refresh the snapshot so the result is not stale.
-    setOptRequest(prev => (prev ? { ...prev, selections: next, wallSelection: shown.picks.wall ? pw : prev.wallSelection } : prev))
+    setOptRequest(prev => (prev ? { ...prev, selections: withBelowGrade(next, nextBelowGrade), rawSelections: next, belowGradeSelection: nextBelowGrade, wallSelection: shown.picks.wall ? pw : prev.wallSelection } : prev))
   }
   const restorePicks = () => {
     if (!savedPicks) return
-    setSelections(savedPicks.selections); setWallSelection(savedPicks.wallSelection); setSavedPicks(null)
-    setOptRequest(prev => (prev ? { ...prev, selections: savedPicks.selections, wallSelection: savedPicks.wallSelection } : prev))
+    setSelections(savedPicks.selections); setWallSelection(savedPicks.wallSelection); setBelowGradeSelection(savedPicks.belowGradeSelection); setSavedPicks(null)
+    setOptRequest(prev => (prev ? { ...prev, selections: withBelowGrade(savedPicks.selections, savedPicks.belowGradeSelection), rawSelections: savedPicks.selections, belowGradeSelection: savedPicks.belowGradeSelection, wallSelection: savedPicks.wallSelection } : prev))
   }
 
   // The footer button is enabled whenever any card has a pick (spec 2.2).
   const anyPick = Object.keys(selections).length > 0 || Boolean(wallSelection.wallType)
     || (wallSelection.simpleIndex !== undefined && wallSelection.simpleIndex !== null)
+    || Boolean(belowGradeSelection.foundationType) || belowGradeIndexFor(belowGradeSelection) !== undefined
 
   const openCost = () => {
     setActiveTab('cost')
@@ -322,6 +337,17 @@ export default function App() {
             )
           }
 
+          // Render the below-grade (foundation) wall builder for the below-grade category
+          if (category.type === 'belowGradeBuilder') {
+            return (
+              <BelowGradeWallBuilder
+                key={category.id}
+                selection={belowGradeSelection}
+                onSelect={bgs => { setSavedPicks(null); setBelowGradeSelection(bgs) }}
+              />
+            )
+          }
+
           // Render standard CategoryCard for other categories
           return (
             <CategoryCard
@@ -383,6 +409,8 @@ export default function App() {
                 selections,
                 wallSelection,
                 wallPoints,
+                belowGradeSelection,
+                belowGradePoints,
                 totalPoints,
                 selectedTier,
                 appVersion: APP_VERSION,
@@ -506,6 +534,8 @@ export default function App() {
         selections={selections}
         wallSelection={wallSelection}
         wallPoints={wallPoints}
+        belowGradeSelection={belowGradeSelection}
+        belowGradePoints={belowGradePoints}
         totalPoints={totalPoints}
         selectedTier={selectedTier}
         projectInfo={projectInfo}

@@ -1,5 +1,6 @@
-import { applySelect, isCategoryDisabled, totalCardPoints, picksToSelections, selectionsToPicks } from './usePicks'
-import { categories } from '../data/ecpData'
+import { applySelect, isCategoryDisabled, totalCardPoints, picksToSelections, selectionsToPicks, belowGradeIndexFor, belowGradePointsFor, withBelowGrade } from './usePicks'
+import { categories, calculateBelowGradeRsi } from '../data/ecpData'
+import { FOUNDATION_DEFAULTS } from '../components/BelowGradeWallBuilder'
 import { getPresetPicks } from './baselines'
 import { ARCHETYPES } from './archetypes'
 
@@ -16,7 +17,7 @@ describe('usePicks', () => {
   })
   it('converts preset picks to editor selections, keeping preset-only values aside', () => {
     const { selections, wallSelection, presetOnly } = picksToSelections(getPresetPicks('typicalTier2', 'singleDetached'))
-    expect(selections).toEqual({ belowGradeWalls: 1, hrv: 1 })          // 3.46 is index 1; 65 is index 1
+    expect(selections).toEqual({ belowGradeWalls: 2, hrv: 1 })          // 3.46 is index 2 (after the 2.98 code minimum); 65 is index 1
     expect(presetOnly).toEqual({ windowsDoors: 1.61, airTightness: 'untested', dhwElectric: 'electricStorage' })
     expect(wallSelection.cavityType).toBe('2x6 R24')
     const back = selectionsToPicks(selections, wallSelection, presetOnly)
@@ -47,5 +48,26 @@ describe('usePicks', () => {
       const { selections, wallSelection, presetOnly } = picksToSelections(p)
       expect(selectionsToPicks(selections, wallSelection, presetOnly)).toEqual(p)
     })
+  })
+})
+
+describe('below-grade builder as the belowGradeWalls card (cost-ui-2 + below-grade builder)', () => {
+  const opts = categories.find(c => c.id === 'belowGradeWalls').options
+  it('simple mode is its option index; no pick leaves selections as they are', () => {
+    expect(belowGradeIndexFor({ simpleIndex: 2 })).toBe(2)
+    expect(belowGradeIndexFor({})).toBeUndefined()
+    const sel = { hrv: 1 }
+    expect(withBelowGrade(sel, {})).toBe(sel)
+    expect(withBelowGrade(sel, { simpleIndex: 3 })).toEqual({ hrv: 1, belowGradeWalls: 3 })
+    expect(belowGradePointsFor({ simpleIndex: 3 })).toBe(opts[3].points)
+  })
+  it('builder mode is the highest level the 2-decimal RSI meets, matching its points', () => {
+    const concrete = FOUNDATION_DEFAULTS.concrete
+    const rsi = Math.round(calculateBelowGradeRsi(concrete) * 100) / 100
+    const idx = belowGradeIndexFor(concrete)
+    expect(opts[idx].value).toBeLessThanOrEqual(rsi)
+    if (idx + 1 < opts.length) expect(opts[idx + 1].value).toBeGreaterThan(rsi)
+    expect(opts[idx].points).toBe(belowGradePointsFor(concrete))
+    expect(withBelowGrade({}, concrete)).toEqual({ belowGradeWalls: idx })
   })
 })
