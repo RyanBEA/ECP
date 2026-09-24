@@ -13,7 +13,8 @@ import icfData from './generated/icf-data.json'
 import boundaryOptions from './generated/boundary-options.json'
 import thresholdsData from './generated/thresholds.json'
 import doubleStudData from './generated/double-stud-data.json'
-import { woodWallRsi, steelWallRsi, icfWallRsi, doubleStudWallRsi, parallelPath, boundarySum } from '@scripts/compute.js'
+import foundationData from './generated/foundation-data.json'
+import { woodWallRsi, steelWallRsi, icfWallRsi, doubleStudWallRsi, foundationWallRsi, parallelPath, boundarySum } from '@scripts/compute.js'
 
 // --- Exports matching existing API (backward compatible) ---
 
@@ -356,6 +357,204 @@ export function getWallPoints(rsi) {
   return threshold ? threshold.points : 0
 }
 
+// --- Below-grade (foundation) walls ---
+//
+// Layers counted (NBC 2020 Note A-9.36.2.8.(1), Table A-9.36.2.4.(1)-D): materials plus the
+// interior air film. No exterior air film, no soil. Continuous layers add in series; the
+// interior stud wall (or the PWF frame) is a parallel path using the below-grade framing
+// percentages from foundation.yaml. The arithmetic lives in foundationWallRsi (compute.js);
+// this section turns a selection object into its layer list.
+
+export const foundationTypes = [
+  { id: 'concrete', label: 'Poured Concrete' },
+  { id: 'block', label: 'Concrete Block' },
+  { id: 'icf', label: 'ICF' },
+  { id: 'pwf', label: 'Permanent Wood Foundation' },
+]
+
+export const concreteThicknessOptions = foundationData.concrete.thicknesses.map(
+  ({ id, label, mm, rsi }) => ({ id, label, mm, rsi })
+)
+export const blockOptions = foundationData.block.options.map(({ id, label, rsi }) => ({ id, label, rsi }))
+export const extInsTypes = [...foundationData.exterior_ins_types]
+export const intInsTypes = [...foundationData.interior_ins_types]
+export const insThicknesses = [...foundationData.ins_thicknesses]
+export const pwfStudOptions = [...foundationData.pwf.studs]
+export const pwfSpacingOptions = Object.keys(foundationData.pwf.cavity_pct).map(k => `${k}"`)
+export const basementStudOptions = [...foundationData.interior_stud_wall.studs]
+export const finishOptions = [
+  { id: 'gypsum', label: foundationData.finish.gypsum.label },
+  { id: 'none', label: 'None (unfinished)' },
+]
+export const EMPTY_CAVITY = 'None (empty)'
+
+export const belowGradePointsThresholds = thresholdsData.belowGrade
+export const MIN_BELOW_GRADE_RSI = thresholdsData.minBelowGradeRsi
+
+const SPRAY_FOAM = foundationData.spray_foam.label
+const CONCRETE_RSI_PER_MM = foundationData.concrete.rsi_per_mm
+// Cavity RSI does not depend on spacing, so the 16" wood table is the canonical lookup.
+const woodCavityEntries = wallData.wood.spacings['16'].materials
+
+// Cavity sizes for the basement interior stud wall: 2x4 and 2x6 batts only.
+// Blown-in materials (keys like '2x6', no R-value) return [] and take their stud from studDepth.
+export function getBasementCavityTypes(cavityMaterial) {
+  if (!cavityMaterial || cavityMaterial === EMPTY_CAVITY) return []
+  const allowed = basementStudOptions.map(s => `${s} `)
+  return (cavityTypesByMaterial[cavityMaterial] || []).filter(id => allowed.some(p => id.startsWith(p)))
+}
+
+// Cavity sizes for a PWF stud wall: the entries of that material whose stud matches pwfStud.
+// For blown-in materials that is the single entry named after the stud (e.g. '2x8').
+export function getPwfCavityTypes(cavityMaterial, pwfStud) {
+  const entries = woodCavityEntries[cavityMaterial]
+  if (!entries || !pwfStud) return []
+  return Object.keys(entries).filter(k => entries[k].stud === pwfStud)
+}
+
+// Interior continuous insulation: spray foam from foundation-data, the boards from continuous-ins.
+export function getInteriorInsRsi(type, thickness) {
+  if (!type || !thickness || thickness === 'None') return 0
+  if (type === SPRAY_FOAM) return foundationData.spray_foam.thicknesses[thickness] ?? 0
+  return getContinuousInsRsi(type, thickness)
+}
+
+const hasThickness = t => Boolean(t) && t !== 'None'
+
+// Blown-in materials are keyed by stud ('2x6') rather than cavity type ('2x6 R22').
+const isBlownIn = cavityMaterial =>
+  Object.keys(woodCavityEntries[cavityMaterial] || {}).every(k => !k.includes(' '))
+
+// Framed layer for the basement interior stud wall or the PWF wall. Returns null when any
+// lookup fails. `requiredStud` (PWF) pins the stud; `allowedStuds` (basement) limits it.
+function framedLayer({ spacing, cavityPctByKey, cavityMaterial, cavityType, studDepth, studOffset, allowedStuds, requiredStud }) {
+  const cavityPct = cavityPctByKey[spacing?.replace('"', '')]
+  if (!cavityPct) return null
+
+  let stud, cavityRsi, cavityLabel
+  if (cavityMaterial === EMPTY_CAVITY) {
+    stud = studDepth
+    cavityRsi = foundationData.interior_stud_wall.empty_cavity_rsi
+    cavityLabel = 'empty cavity'
+  } else {
+    const entries = woodCavityEntries[cavityMaterial]
+    if (!entries) return null
+    const key = isBlownIn(cavityMaterial) ? (requiredStud || studDepth) : cavityType
+    const entry = entries[key]
+    if (!entry) return null
+    stud = entry.stud
+    cavityRsi = entry.cavityRsi
+    cavityLabel = `${cavityMaterial} ${key}`
+    const offsetRsi = foundationData.interior_stud_wall.offset_cavity_rsi[key]
+    if (studOffset && offsetRsi) {
+      cavityRsi = offsetRsi
+      cavityLabel += ', held off the wall'
+    }
+  }
+  if (!stud || !allowedStuds.includes(stud)) return null
+  if (requiredStud && stud !== requiredStud) return null
+  const studDepthMm = wallData.wood.studs[stud]?.depth_mm
+  if (!studDepthMm || !cavityRsi) return null
+
+  return {
+    id: 'frame',
+    label: `${stud} @ ${spacing} ${cavityLabel}`,
+    frame: { studDepthMm, cavityRsi, cavityPct },
+  }
+}
+
+// Turn a below-grade selection into { total, layers } (outside to inside), or null when a
+// required field is missing or a lookup fails. Finish defaults to gypsum; it is forced to
+// gypsum for ICF and whenever interior continuous insulation is present (9.10.17.10).
+export function calculateBelowGradeAssembly(selection = {}) {
+  const {
+    foundationType, concreteThickness, blockType, icfFormThickness,
+    pwfStud, pwfSpacing, pwfCavityMaterial, pwfCavityType,
+    extInsType, extInsThickness, intInsType, intInsThickness,
+    hasStudWall = true, studSpacing, cavityMaterial, cavityType, studDepth, studOffset = false,
+    finish,
+  } = selection || {}
+
+  const layers = []
+  let forceGypsum = false
+
+  if (foundationType === 'pwf') {
+    const sh = foundationData.pwf.sheathing
+    layers.push({ id: 'pwf_sheathing', label: sh.label, rsi: sh.rsi })
+    const frame = framedLayer({
+      spacing: pwfSpacing, cavityPctByKey: foundationData.pwf.cavity_pct,
+      cavityMaterial: pwfCavityMaterial, cavityType: pwfCavityType,
+      allowedStuds: pwfStudOptions, requiredStud: pwfStud,
+    })
+    if (!frame) return null
+    layers.push(frame)
+  } else if (foundationType === 'icf') {
+    const form = icfData.forms.find(f => f.label === icfFormThickness)
+    if (!form) return null
+    layers.push({ id: 'icf_forms', label: `${form.label} EPS forms (both sides)`, rsi: 2 * form.thickness_mm * icfData.eps_rsi_per_mm })
+    layers.push({ id: 'icf_core', label: `${Math.round(icfData.concrete_core_mm)} mm concrete core`, rsi: icfData.concrete_core_mm * icfData.concrete_rsi_per_mm })
+    forceGypsum = true
+  } else if (foundationType === 'concrete' || foundationType === 'block') {
+    if (hasThickness(extInsThickness)) {
+      const rsi = getContinuousInsRsi(extInsType, extInsThickness)
+      if (!rsi) return null
+      layers.push({ id: 'ext_ins', label: `${extInsThickness} ${extInsType} (exterior)`, rsi })
+    }
+
+    if (foundationType === 'concrete') {
+      const c = foundationData.concrete.thicknesses.find(t => t.id === concreteThickness)
+      if (!c) return null
+      layers.push({ id: 'concrete', label: `${c.label} concrete`, rsi: c.mm * CONCRETE_RSI_PER_MM })
+    } else {
+      const b = foundationData.block.options.find(o => o.id === blockType)
+      if (!b) return null
+      layers.push({ id: 'block', label: b.label.replace(/^(\S+-weight),/, '$1 block,'), rsi: b.rsi })
+    }
+
+    if (hasThickness(intInsThickness)) {
+      const rsi = getInteriorInsRsi(intInsType, intInsThickness)
+      if (!rsi) return null
+      layers.push({ id: 'int_ins', label: `${intInsThickness} ${intInsType} (interior)`, rsi })
+      forceGypsum = true
+    }
+
+    if (hasStudWall) {
+      const frame = framedLayer({
+        spacing: studSpacing, cavityPctByKey: foundationData.interior_stud_wall.cavity_pct,
+        cavityMaterial, cavityType, studDepth, studOffset,
+        allowedStuds: basementStudOptions,
+      })
+      if (!frame) return null
+      layers.push(frame)
+    }
+  } else {
+    return null
+  }
+
+  const finishId = forceGypsum ? 'gypsum' : (finish || 'gypsum')
+  if (finishId === 'gypsum') {
+    const g = foundationData.finish.gypsum
+    layers.push({ id: 'finish', label: g.label, rsi: g.rsi })
+  } else if (finishId !== 'none') {
+    return null
+  }
+
+  return foundationWallRsi({ layers, insideAirFilm: foundationData.inside_air_film })
+}
+
+export function calculateBelowGradeRsi(selection) {
+  return calculateBelowGradeAssembly(selection)?.total ?? null
+}
+
+// Same rounding rule as getWallPoints: 2 decimals first, then the highest level met.
+export function getBelowGradePoints(rsi) {
+  if (!rsi) return 0
+  const roundedRsi = Math.round(rsi * 100) / 100
+  const sorted = [...belowGradePointsThresholds].sort((a, b) => b.minRsi - a.minRsi)
+  const threshold = sorted.find(t => roundedRsi >= t.minRsi)
+  return threshold ? threshold.points : 0
+}
+
 // Categories and tiers
 export const categories = [
   {
@@ -392,10 +591,11 @@ export const categories = [
     imperial: { unit: 'R-value', factor: 5.678, decimals: 1, prefix: 'R-', replaceUnit: true },
     description: 'Thermal resistance of below-grade wall assemblies',
     direction: 'higher',
+    type: 'belowGradeBuilder',
+    // First option is the code-minimum floor (Table 9.36.2.8.-B): meets code, earns no points.
     options: [
-      { value: 3.09, points: 0.2 },
-      { value: 3.46, points: 0.8 },
-      { value: 3.9, points: 1.4 },
+      { value: thresholdsData.minBelowGradeRsi, points: 0 },
+      ...thresholdsData.belowGrade.map(t => ({ value: t.minRsi, points: t.points })),
     ],
   },
   {

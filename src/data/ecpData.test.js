@@ -348,3 +348,104 @@ describe('getInteriorLayerRsi', () => {
     expect(getInteriorLayerRsi('nonexistent')).toBe(0)
   })
 })
+
+// --- Below-grade (foundation) wall builder ---
+
+import {
+  calculateBelowGradeRsi, calculateBelowGradeAssembly, getBelowGradePoints, MIN_BELOW_GRADE_RSI,
+  belowGradePointsThresholds, foundationTypes, getBasementCavityTypes, getPwfCavityTypes,
+  getInteriorInsRsi, EMPTY_CAVITY, concreteThicknessOptions, blockOptions, extInsTypes, intInsTypes,
+  insThicknesses, pwfStudOptions, pwfSpacingOptions, basementStudOptions, finishOptions,
+} from './ecpData'
+
+describe('below-grade', () => {
+  const base = { foundationType: 'concrete', concreteThickness: '200', extInsThickness: 'None', intInsThickness: 'None',
+    hasStudWall: true, studSpacing: '16"', cavityMaterial: 'Fiberglass Batt', cavityType: '2x6 R22', finish: 'gypsum' }
+  it.each([
+    [{}, 3.12], [{ cavityType: '2x6 R20' }, 2.87], [{ cavityType: '2x6 R20', studOffset: true }, 2.96],
+    [{ cavityType: '2x6 R20', studSpacing: '24"' }, 2.98], [{ cavityType: '2x6 R24', studSpacing: '24"' }, 3.46],
+    [{ finish: 'none' }, 3.04], [{ cavityMaterial: 'Fiberglass Batt', cavityType: '2x4 R14', intInsType: 'XPS', intInsThickness: '1-1/2"' }, 3.37],
+    [{ cavityType: '2x4 R14', intInsType: 'Closed-Cell Spray Foam', intInsThickness: '2"' }, 3.92],
+    [{ hasStudWall: false, extInsType: 'XPS', extInsThickness: '3"', finish: 'none' }, 2.76],
+    [{ hasStudWall: false, extInsType: 'XPS', extInsThickness: '4"', finish: 'none' }, 3.61],
+    // empty 2x4 cavity: design section 4 gives the frame as 0.205 (NBC Table A-9.36.2.8.(1)-C rounds it to 0.20)
+    [{ cavityMaterial: EMPTY_CAVITY, studDepth: '2x4' }, 0.205 + 0.08 + 0.08 + 0.12],
+    [{ concreteThickness: '250' }, 3.14],
+  ])('concrete %o -> %s', (over, expected) => {
+    expect(calculateBelowGradeRsi({ ...base, ...over })).toBeCloseTo(expected, 2)
+  })
+  it('block swaps the structural layer', () => {
+    expect(calculateBelowGradeRsi({ ...base, foundationType: 'block', blockType: 'light_empty', concreteThickness: undefined })).toBeCloseTo(3.12 - 0.08 + 0.32, 2)
+  })
+  it('icf', () => {
+    expect(calculateBelowGradeRsi({ foundationType: 'icf', icfFormThickness: '2-1/2"', finish: 'gypsum' })).toBeCloseTo(3.56, 2)
+    expect(calculateBelowGradeRsi({ foundationType: 'icf', icfFormThickness: '2-1/2"', finish: 'none' })).toBeCloseTo(3.56, 2) // finish forced to gypsum
+    expect(calculateBelowGradeRsi({ foundationType: 'icf' })).toBeNull()
+  })
+  it('pwf: 2x8 @ 16" R28 + plywood + gypsum + film', () => {
+    // frame 3.67 (Table B) + 0.109 + 0.08 + 0.12
+    expect(calculateBelowGradeRsi({ foundationType: 'pwf', pwfStud: '2x8', pwfSpacing: '16"', pwfCavityMaterial: 'Fiberglass Batt', pwfCavityType: '2x8 R28', finish: 'gypsum' })).toBeCloseTo(3.98, 2)
+  })
+  it('pwf layers: sheathing outside the frame, no concrete', () => {
+    const a = calculateBelowGradeAssembly({ foundationType: 'pwf', pwfStud: '2x8', pwfSpacing: '16"', pwfCavityMaterial: 'Fiberglass Batt', pwfCavityType: '2x8 R28', finish: 'gypsum' })
+    expect(a.layers.map(l => l.id)).toEqual(['pwf_sheathing', 'frame', 'finish', 'inside_air'])
+    expect(calculateBelowGradeRsi({ foundationType: 'pwf', pwfStud: '2x8', pwfSpacing: '16"', pwfCavityMaterial: 'Fiberglass Batt' })).toBeNull()
+  })
+  it('returns null when the stud wall is on but incomplete', () => {
+    expect(calculateBelowGradeRsi({ ...base, cavityType: undefined })).toBeNull()
+    expect(calculateBelowGradeRsi({ ...base, cavityMaterial: undefined })).toBeNull()
+    expect(calculateBelowGradeRsi({ ...base, studSpacing: undefined })).toBeNull()
+    expect(calculateBelowGradeRsi({ ...base, cavityMaterial: EMPTY_CAVITY, studDepth: undefined })).toBeNull()
+    expect(calculateBelowGradeRsi({})).toBeNull()
+    expect(calculateBelowGradeRsi()).toBeNull()
+  })
+  it('interior foam with finish "none" computes as gypsum and keeps the finish layer', () => {
+    const withGypsum = calculateBelowGradeAssembly({ ...base, cavityType: '2x4 R14', intInsType: 'XPS', intInsThickness: '1-1/2"', finish: 'gypsum' })
+    const noFinish = calculateBelowGradeAssembly({ ...base, cavityType: '2x4 R14', intInsType: 'XPS', intInsThickness: '1-1/2"', finish: 'none' })
+    expect(noFinish.total).toBeCloseTo(withGypsum.total, 6)
+    expect(noFinish.layers.map(l => l.id)).toContain('finish')
+    // and without interior foam, "none" really drops the finish
+    const bare = calculateBelowGradeAssembly({ ...base, finish: 'none' })
+    expect(bare.layers.map(l => l.id)).not.toContain('finish')
+  })
+  it('layers list has ids outside to inside', () => {
+    const a = calculateBelowGradeAssembly({ ...base, extInsType: 'XPS', extInsThickness: '2"', intInsType: 'EPS', intInsThickness: '1"' })
+    expect(a.layers.map(l => l.id)).toEqual(['ext_ins', 'concrete', 'int_ins', 'frame', 'finish', 'inside_air'])
+    expect(a.layers.every(l => typeof l.label === 'string' && Number.isFinite(l.rsi))).toBe(true)
+    expect(a.total).toBeCloseTo(a.layers.reduce((s, l) => s + l.rsi, 0), 6)
+  })
+  it('points', () => {
+    expect(MIN_BELOW_GRADE_RSI).toBe(2.98)
+    expect(belowGradePointsThresholds.map(t => t.minRsi)).toEqual([3.09, 3.46, 3.9])
+    expect(getBelowGradePoints(2.97)).toBe(0); expect(getBelowGradePoints(3.085)).toBe(0.2)
+    expect(getBelowGradePoints(3.4554)).toBe(0.8); expect(getBelowGradePoints(3.9)).toBe(1.4); expect(getBelowGradePoints(null)).toBe(0)
+  })
+  it('category', () => {
+    const c = categories.find(c => c.id === 'belowGradeWalls')
+    expect(c.type).toBe('belowGradeBuilder')
+    expect(c.options[0]).toEqual({ value: 2.98, points: 0 })
+    expect(c.options.length).toBe(4)
+    expect(foundationTypes.map(f => f.id)).toEqual(['concrete', 'block', 'icf', 'pwf'])
+    expect(getBasementCavityTypes('Fiberglass Batt')).toEqual(['2x4 R12', '2x4 R14', '2x6 R20', '2x6 R22', '2x6 R24'])
+  })
+  it('option lists', () => {
+    expect(concreteThicknessOptions.map(o => o.id)).toEqual(['200', '250'])
+    expect(blockOptions.map(o => o.id)).toContain('light_empty')
+    expect(blockOptions.every(o => o.id && o.label && o.rsi > 0)).toBe(true)
+    expect(extInsTypes).toEqual(['XPS', 'EPS', 'Mineral Wool (Rock Wool)', 'Mineral Wool (Glass Fibre)'])
+    expect(intInsTypes).toEqual(['XPS', 'EPS', 'Polyiso', 'Closed-Cell Spray Foam'])
+    expect(insThicknesses).toEqual(['None', '1"', '1-1/2"', '2"', '2-1/2"', '3"', '3-1/2"', '4"'])
+    expect(pwfStudOptions).toEqual(['2x6', '2x8', '2x10'])
+    expect(pwfSpacingOptions).toEqual(['8"', '12"', '16"'])
+    expect(basementStudOptions).toEqual(['2x4', '2x6'])
+    expect(finishOptions.map(f => f.id)).toEqual(['gypsum', 'none'])
+    expect(getBasementCavityTypes(EMPTY_CAVITY)).toEqual([])
+    expect(getBasementCavityTypes('Loose Fill Cellulose')).toEqual([])
+    expect(getPwfCavityTypes('Fiberglass Batt', '2x8')).toEqual(['2x8 R28'])
+    expect(getPwfCavityTypes('Fiberglass Batt', '2x6')).toEqual(['2x6 R20', '2x6 R22', '2x6 R24'])
+    expect(getPwfCavityTypes('Loose Fill Cellulose', '2x10')).toEqual(['2x10'])
+    expect(getInteriorInsRsi('Closed-Cell Spray Foam', '2"')).toBeCloseTo(1.8288, 4)
+    expect(getInteriorInsRsi('XPS', '1-1/2"')).toBeCloseTo(1.28, 4)
+    expect(getInteriorInsRsi('XPS', 'None')).toBe(0)
+  })
+})
