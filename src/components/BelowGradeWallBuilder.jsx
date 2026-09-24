@@ -17,6 +17,7 @@ import {
   EMPTY_CAVITY,
   getBasementCavityTypes,
   getPwfCavityTypes,
+  isBlownInMaterial,
   calculateBelowGradeAssembly,
   getBelowGradePoints,
   MIN_BELOW_GRADE_RSI,
@@ -49,7 +50,7 @@ const STUD_WALL_FIELDS = ['studSpacing', 'cavityMaterial', 'cavityType', 'studDe
 
 // Materials keyed by stud size ('2x6') instead of cavity type ('2x6 R22'): the UI asks for a
 // stud size and the data layer reads `studDepth`.
-const isBlownIn = material => material && material !== EMPTY_CAVITY && getBasementCavityTypes(material).length === 0
+const isBlownIn = material => Boolean(material) && material !== EMPTY_CAVITY && isBlownInMaterial(material)
 const usesStudDepth = material => material === EMPTY_CAVITY || isBlownIn(material)
 
 const hasThickness = t => Boolean(t) && t !== 'None'
