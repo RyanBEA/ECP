@@ -71,9 +71,9 @@ function buildBelowGrade(selection, points) {
     const option = category?.options?.[selection.simpleIndex]
     return {
       mode: 'simple',
-      simpleIndex: selection.simpleIndex,
+      simpleIndex: scalarOrNull(selection.simpleIndex),
       rsi: round2(option?.value),
-      points,
+      points: scalarOrNull(points),
     }
   }
 
@@ -89,7 +89,7 @@ function buildBelowGrade(selection, points) {
     belowGrade[key] = scalarOrNull(selection[key])
   })
   belowGrade.rsi = rsi
-  belowGrade.points = points
+  belowGrade.points = scalarOrNull(points)
   return belowGrade
 }
 

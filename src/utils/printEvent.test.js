@@ -276,3 +276,12 @@ describe('buildPrintEvent belowGrade', () => {
     expect(buildPrintEvent(baseArgs({ belowGradeSelection: { simpleIndex: 0 } })).v).toBe(1)
   })
 })
+
+describe('buildPrintEvent belowGrade coerces simpleIndex and points', () => {
+  it('nulls a non-scalar simpleIndex and NaN points instead of sending them', () => {
+    const e = buildPrintEvent(baseArgs({ belowGradeSelection: { simpleIndex: { a: 1 } }, belowGradePoints: NaN }))
+    expect(e.belowGrade.mode).toBe('simple')
+    expect(e.belowGrade.simpleIndex).toBeNull()
+    expect(e.belowGrade.points).toBeNull()
+  })
+})

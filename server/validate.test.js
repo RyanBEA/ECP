@@ -196,3 +196,16 @@ describe('validateEvent belowGrade', () => {
     expect(result.event.belowGrade).toEqual(builder)
   })
 })
+
+describe('validateEvent belowGrade key cap', () => {
+  it('rejects a belowGrade object with more than 30 keys', () => {
+    const big = {}
+    for (let i = 0; i < 31; i++) big[`k${i}`] = 1
+    expect(validateEvent(validBody({ belowGrade: big })).error).toMatch(/too many belowGrade keys/)
+  })
+  it('accepts a belowGrade object at 30 keys', () => {
+    const ok = {}
+    for (let i = 0; i < 30; i++) ok[`k${i}`] = 1
+    expect(validateEvent(validBody({ belowGrade: ok })).error).toBeUndefined()
+  })
+})

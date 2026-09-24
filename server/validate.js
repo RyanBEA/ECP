@@ -4,6 +4,7 @@ const ID_RE = /^[A-Za-z0-9_-]+$/
 const MAX_SELECTIONS = 40
 const MAX_SELECTION_KEY_LEN = 40
 const MAX_WALL_KEYS = 25
+const MAX_BELOW_GRADE_KEYS = 30   // 23 whitelisted keys plus slack
 const MAX_WALL_STRING_LEN = 60
 const MAX_APP_VERSION_LEN = 20
 const MAX_SESSION_ID_LEN = 64
@@ -86,7 +87,9 @@ function validateWall(wall) {
 function validateBelowGrade(belowGrade) {
   if (belowGrade === null) return null
   if (!isPlainObject(belowGrade)) return 'belowGrade must be null or an object'
-  for (const key of Object.keys(belowGrade)) {
+  const keys = Object.keys(belowGrade)
+  if (keys.length > MAX_BELOW_GRADE_KEYS) return 'too many belowGrade keys'
+  for (const key of keys) {
     if (!isValidScalar(belowGrade[key])) return `invalid belowGrade value for ${key}`
   }
   return null
@@ -96,7 +99,7 @@ function pickBelowGrade(belowGrade) {
   if (belowGrade === null) return null
   const picked = {}
   for (const key of BELOW_GRADE_KEYS) {
-    if (key in belowGrade) picked[key] = belowGrade[key]
+    if (Object.hasOwn(belowGrade, key)) picked[key] = belowGrade[key]
   }
   return picked
 }
