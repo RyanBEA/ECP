@@ -163,7 +163,9 @@
   "finish": {
     "gypsum": {
       "label": "1/2\" gypsum board",
-      "rsi": 0.08
+      "thickness_mm": 12.7,
+      "rsi_per_mm": 0.0061,
+      "rsi": 0.0775
     }
   }
 }

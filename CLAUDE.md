@@ -75,9 +75,9 @@ The below-grade wall builder (`BelowGradeWallBuilder.jsx`) supports four foundat
 - **Poured Concrete** - 200 mm or 250 mm wall (0.0004 RSI/mm); optional exterior insulation (XPS, EPS, mineral wool; no polyiso in ground contact), optional interior continuous insulation (XPS, EPS, Polyiso, closed-cell spray foam), optional interior 2x4/2x6 stud wall, gypsum or no finish
 - **Concrete Block** - 190 mm block with the 14 core options of Table A-9.36.2.4.(1)-D (normal-weight: empty, perlite or vermiculite cores; medium- and light-weight: those three plus EPS beads or EPS inserts; limestone aggregate with perlite), then the same optional layers as poured concrete
 - **ICF** - the `icf.yaml` forms (2-1/2" to 4-1/4" per side) with the 152.4 mm core, plastic ties only; finish locked to gypsum
-- **Permanent Wood Foundation** - 12.5 mm plywood sheathing (0.109) plus a 2x6 / 2x8 / 2x10 stud wall at 8", 12" or 16"; the cavity % reproduces Table A-9.36.2.8.(1)-B
+- **Permanent Wood Foundation** - 12.5 mm plywood sheathing (0.109) plus a 2x6 / 2x8 / 2x10 stud wall at 8", 12" or 16"; the cavity % is derived (2x8 and 2x10 reproduce Table A-9.36.2.8.(1)-B; 2x6 reproduces the 38 x 140 rows of Table A-9.36.2.8.(1)-A)
 
-Gypsum is on by default and is forced on for ICF and whenever interior continuous insulation is present (9.10.17.10). A "Stud wall held off the concrete" checkbox appears only for the 2x6 R20 batt and swaps its 3.34 for 3.52 (Table A-9.36.2.8.(1)-A Note (3)).
+Gypsum (1/2", counted as 0.0775, the Note A-9.36.2.8.(1) value; the above-ground builder uses 0.08) is on by default and is forced on for ICF and whenever interior continuous insulation is present (9.10.17.10.(1)). A "Stud wall held off the concrete" checkbox appears only for the 2x6 R20 batt and swaps its 3.34 for 3.52 (Table A-9.36.2.8.(1)-A Note (3)).
 
 Cavity percentages (the cavity share of the framed layer, from `framing.yaml` and `foundation.yaml`):
 

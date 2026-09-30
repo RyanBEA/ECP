@@ -20,7 +20,7 @@ const ROUNDED_FORMAT = '0.00'
 
 const TABLE_D = 'NBC 2020 Table A-9.36.2.4.(1)-D'
 const BASEMENT_FRAMING_SOURCE = 'NBC 2020 Table A-9.36.2.4.(1)-A (basement wall row)'
-const PWF_FRAMING_SOURCE = 'NBC 2020 Table A-9.36.2.8.(1)-B'
+const PWF_FRAMING_SOURCE = 'Derived: reproduces NBC 2020 Table A-9.36.2.8.(1)-B'
 const NOTE_A_SOURCE = 'NBC 2020 Note A-9.36.2.8.(1)'
 const MIN_SOURCE = 'NBC 2020 Table 9.36.2.8.-B (Zone 6)'
 const POINTS_SOURCE = 'NBC 2020 Table 9.36.8.7 (Zone 6)'
@@ -171,6 +171,14 @@ function writeLayerRow(sheet, row, layer, data) {
       rsiCell(sheet, `D${row}`, layer.rsi)
       sourceCell(sheet, row, TABLE_D)
       break
+    case 'finish': {
+      // The value Note A-9.36.2.8.(1) states (12.7 mm x 0.0061 = 0.07747), shown to 4 decimals
+      const { thicknessMm, rsiPerMm } = data.gypsum
+      sheet.getCell(`C${row}`).value = `${thicknessMm} mm × ${rsiPerMm}`
+      rsiCell(sheet, `D${row}`, layer.rsi, '0.0000')
+      sourceCell(sheet, row, `${TABLE_D} (gypsum board 0.0061 RSI/mm); ${NOTE_A_SOURCE}`)
+      break
+    }
     case 'inside_air':
       rsiCell(sheet, `D${row}`, layer.rsi)
       sourceCell(sheet, row, `${TABLE_D}; ${NOTE_A_SOURCE}`)
@@ -209,7 +217,7 @@ function buildNotes(data) {
       break
     case 'pwf':
       notes.push(
-        'PWF framing: 24% at 8", 19% at 12", 16% at 16". These reproduce NBC 2020 Table A-9.36.2.8.(1)-B with actual stud depths (2x6 140 mm, 2x8 184 mm, 2x10 235 mm).',
+        'PWF framing: 24% at 8", 19% at 12", 16% at 16". These are derived, not tabulated: with actual stud depths (2x8 184 mm, 2x10 235 mm) they reproduce NBC 2020 Table A-9.36.2.8.(1)-B, and for 2x6 (140 mm, not in Table B) the 38 x 140 pressure-treated rows of Table A-9.36.2.8.(1)-A.',
         `PWF sheathing: 12.5 mm plywood, RSI 0.109 (${TABLE_D}).`,
       )
       break
@@ -217,8 +225,11 @@ function buildNotes(data) {
   if (data.frame?.offset) {
     notes.push('Stud wall held off the concrete: the R20 batt expands to RSI 3.52 (NBC 2020 Table A-9.36.2.8.(1)-A Note (3)). The air gap itself is not counted.')
   }
+  if (data.gypsum) {
+    notes.push(`1/2" gypsum board: ${data.gypsum.thicknessMm} mm at ${data.gypsum.rsiPerMm} RSI/mm (${TABLE_D}), counted as ${data.gypsum.rsi}, the value ${NOTE_A_SOURCE} gives. Not rounded to 0.08.`)
+  }
   if (data.finishForced) {
-    notes.push('Interior foam plastic insulation and ICF must be covered by a thermal barrier such as gypsum board (NBC 2020 9.10.17.10). The finish is counted as 1/2" gypsum.')
+    notes.push('Foamed plastic insulation on the interior (including ICF forms) must be protected from the room by an interior finish such as gypsum board (NBC 2020 9.10.17.10.(1)), so the finish is counted as 1/2" gypsum.')
   }
   notes.push(
     'Where a house has more than one below-grade wall assembly, the lowest effective RSI governs (NBC 2020 9.36.8.7.(4)).',

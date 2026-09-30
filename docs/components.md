@@ -343,22 +343,22 @@ Group numbers are dynamic (no gaps). Groups 2 to 4 appear only for poured concre
 2. **Exterior Insulation** -- Type (XPS, EPS, two mineral wools; no polyiso) and Thickness (None to 4").
 3. **Interior Insulation** -- Type (XPS, EPS, Polyiso, Closed-Cell Spray Foam) and Thickness (None to 4").
 4. **Interior Stud Wall** -- checkbox (on by default). When on: Stud Spacing, Cavity Insulation (the cavity materials plus "None (empty)"), then Cavity Size for batts or Stud Size for blown-in and empty cavities. A "Stud wall held off the concrete" checkbox appears only when the cavity is `2x6 R20`.
-5. **Interior Finish** -- Finish select (1/2" gypsum board, None (unfinished)) with no blank option. Disabled and shown as gypsum for ICF and whenever interior insulation has a thickness, with the line "Gypsum board required over foam, 9.10.17.10".
-6. **Assumptions** (footnote variant) -- lines for the chosen type only, from the exported `foundationAssumptions(foundationType)`. All types: interior air film 0.12; exterior air film and soil not counted. Concrete: 0.0004 RSI/mm and basement framing 16% / 14.5% / 13% at 16" / 19" (19.2" o.c.) / 24". Block: 190 mm block RSI from Table A-9.36.2.4.(1)-D and the same basement framing. ICF: EPS 0.026 RSI/mm per form, 152 mm core at 0.0004 RSI/mm, plastic ties. PWF: framing 24% / 19% / 16% at 8" / 12" / 16" (Table A-9.36.2.8.(1)-B) and 12.5 mm plywood 0.109.
+5. **Interior Finish** -- Finish select (1/2" gypsum board, None (unfinished)) with no blank option. Disabled and shown as gypsum for ICF and whenever interior insulation has a thickness, with the line "Foam must be covered by an interior finish such as gypsum board (9.10.17.10.(1))".
+6. **Assumptions** (footnote variant) -- lines for the chosen type only, from the exported `foundationAssumptions(foundationType)`. All types: 1/2" gypsum 0.0775 when installed (`BELOW_GRADE_GYPSUM_RSI`, Note A-9.36.2.8.(1); the above-ground builder uses 0.08); interior air film 0.12; exterior air film and soil not counted. Concrete: 0.0004 RSI/mm and basement framing 16% / 14.5% / 13% at 16" / 19" (19.2" o.c.) / 24". Block: 190 mm block RSI from Table A-9.36.2.4.(1)-D and the same basement framing. ICF: EPS 0.026 RSI/mm per form, 152 mm core at 0.0004 RSI/mm, plastic ties. PWF: framing 24% / 19% / 16% at 8" / 12" / 16", derived to reproduce Table A-9.36.2.8.(1)-B, and 12.5 mm plywood 0.109.
 
-Below the groups, a `.wall-disclaimer` block repeats the moisture disclaimer and LEEP link from WallBuilder and adds three code notes as a bulleted list (`data-testid="bg-code-notes"`): the lowest foundation wall assembly sets the points (9.36.8.7.(4)), insulation covers the full wall height (9.25.2.3.(4)), and a wall whose top is 600 mm or more above grade must meet the above-ground wall RSI over that portion (9.36.8.5.(4)).
+Below the groups, a `.wall-disclaimer` block repeats the moisture disclaimer and LEEP link from WallBuilder and adds three code notes as a bulleted list (`data-testid="bg-code-notes"`): the lowest foundation wall assembly sets the points (9.36.8.7.(4)), insulation covers the full wall height (9.25.2.3.(4)), and a wall whose top is on average 600 mm or more above the adjoining ground must meet the above-ground wall RSI over that portion (9.36.8.5.(4)).
 
 ### Result Box
 
 When `calculateBelowGradeAssembly(selection)` returns an assembly:
 
 - Effective RSI with the R-value, then either **Points** (`getBelowGradePoints`) or, when the RSI rounded to 2 decimals is under `MIN_BELOW_GRADE_RSI` (2.98), the minimum and a red "Does not meet code" warning giving the shortfall against 2.98, worded and marked like the WallBuilder warning (a warning sign and an em dash).
-- **Hint** (`data-testid="bg-hint"`): shown only when the wall is below the minimum and is concrete or block with a stud wall at `16"` and cavity `2x6 R20` (exterior or interior foam can carry R20 @ 16" past the minimum, and then the hint stays hidden): "R20 at 16" o.c. does not reach the 2.98 minimum on its own; R22, 24" spacing, or exterior insulation does."
-- **How it adds up** (`data-testid="bg-layers"`): one line per layer of the assembly, outside to inside, with its RSI to 2 decimals. This is the same layer list the export prices.
+- **Hint** (`data-testid="bg-hint"`): shown only when the wall is below the minimum and is concrete or block with a stud wall at `16"` and cavity `2x6 R20` (exterior or interior foam can carry R20 @ 16" past the minimum, and then the hint stays hidden): "R20 at 16" o.c. does not reach the 2.98 minimum here; ... would meet it." The list names only the single changes that pass for this wall, each tried through `calculateBelowGradeAssembly`: R22 batts, 24" spacing, 1" of exterior XPS. An unfinished poured-concrete wall at 24" is 2.90, so 24" spacing is left out there.
+- **How it adds up** (`data-testid="bg-layers"`): one line per layer of the assembly, outside to inside, with its RSI to 3 decimals (rounded half up) so the lines add up to the 2-decimal total. This is the same layer list the export prices.
 
 When the assembly is `null` the box shows a prompt instead: "Select a foundation type to begin", "Select a wall thickness" (concrete), "Select a block type" (block), "Select a form thickness" (ICF), "Select stud wall options to calculate RSI" (stud wall or PWF fields missing), "Select an insulation type" (an exterior or interior thickness chosen before its type), else "No data for this combination".
 
-Default poured concrete shows 3.12 and +0.2; ICF 2-1/2" shows 3.56 and +0.8; PWF default shows 3.98 and +1.4.
+Default poured concrete shows 3.12 and +0.2; ICF 2-1/2" shows 3.56 and +0.8; PWF default shows 3.97 and +1.4.
 
 ### Cross-Section and Export
 

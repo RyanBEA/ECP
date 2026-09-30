@@ -49,12 +49,31 @@ describe('BelowGradeWallBuilder', () => {
     pick('bg-cavityType', '2x6 R20')
     expect(screen.getByText(/^2\.87 \(R-/)).toBeInTheDocument()
     expect(screen.getByText('⚠ Does not meet code — 0.11 RSI below minimum 2.98')).toBeInTheDocument()
-    expect(screen.getByTestId('bg-hint')).toHaveTextContent(/R20 at 16" o\.c\. does not reach the 2\.98 minimum/)
+    expect(screen.getByTestId('bg-hint')).toHaveTextContent('R20 at 16" o.c. does not reach the 2.98 minimum here; R22 batts, 24" spacing or exterior insulation would meet it.')
     expect(screen.getByLabelText(/held off the concrete/)).toBeInTheDocument()
     pick('bg-studSpacing', '24"')
     expect(screen.getByText(/^2\.98 \(R-/)).toBeInTheDocument()
     expect(screen.getByText('+0')).toBeInTheDocument()
     expect(screen.queryByTestId('bg-hint')).toBeNull()
+  })
+
+  it('unfinished R20 at 16": the hint leaves out 24" spacing, which is 2.90 and still fails', () => {
+    render(<Harness />)
+    pick('bg-foundationType', 'concrete')
+    pick('bg-cavityType', '2x6 R20')
+    pick('bg-finish', 'none')
+    expect(screen.getByTestId('bg-hint')).toHaveTextContent('R20 at 16" o.c. does not reach the 2.98 minimum here; R22 batts or exterior insulation would meet it.')
+    pick('bg-studSpacing', '24"')
+    expect(screen.getByText(/^2\.90 \(R-/)).toBeInTheDocument()
+    expect(screen.getByText(/Does not meet code/)).toBeInTheDocument()
+  })
+
+  it('R20 at 16" held off the concrete: 24" spacing is named, because it passes at 3.08', () => {
+    render(<Harness />)
+    pick('bg-foundationType', 'concrete')
+    pick('bg-cavityType', '2x6 R20')
+    fireEvent.click(screen.getByLabelText(/held off the concrete/))
+    expect(screen.getByTestId('bg-hint')).toHaveTextContent('24" spacing')
   })
 
   it('R20 at 16" with 2" XPS outside passes, so the R20 hint stays hidden', () => {
@@ -119,7 +138,7 @@ describe('BelowGradeWallBuilder', () => {
     expect(screen.getByText('+0.8')).toBeInTheDocument()
     expect(document.getElementById('bg-finish')).toBeDisabled()
     expect(document.getElementById('bg-finish')).toHaveValue('gypsum')
-    expect(screen.getByText(/required over foam, 9\.10\.17\.10/)).toBeInTheDocument()
+    expect(screen.getByText(/interior finish such as gypsum board \(9\.10\.17\.10\.\(1\)\)/)).toBeInTheDocument()
   })
 
   it('interior foam disables the finish select and forces gypsum in the selection', () => {
@@ -155,7 +174,7 @@ describe('BelowGradeWallBuilder', () => {
     expect(document.getElementById('bg-studDepth')).toHaveValue('2x6')
     expect(document.getElementById('bg-cavityType')).toBeNull()
     pick('bg-studDepth', '2x4')
-    // 0.205 frame + 0.08 concrete + 0.08 gypsum + 0.12 film, far below code
+    // 0.205 frame + 0.08 concrete + 0.0775 gypsum + 0.12 film, far below code
     const expected = calculateBelowGradeRsi(lastCall(spy)).toFixed(2)
     expect(screen.getByText(new RegExp(`^${expected.replace('.', '\\.')} \\(R-`))).toBeInTheDocument()
     expect(screen.getByText(/Does not meet code/)).toBeInTheDocument()
@@ -203,12 +222,12 @@ describe('BelowGradeWallBuilder', () => {
     expect(screen.getByText('+0.2')).toBeInTheDocument()
   })
 
-  it('PWF default shows 3.98 and +1.4; changing the stud clears the cavity size', () => {
+  it('PWF default shows 3.97 and +1.4; changing the stud clears the cavity size', () => {
     const spy = vi.fn()
     render(<Harness spy={spy} />)
     pick('bg-foundationType', 'pwf')
     expect(lastCall(spy)).toEqual(FOUNDATION_DEFAULTS.pwf)
-    expect(screen.getByText(/^3\.98 \(R-/)).toBeInTheDocument()
+    expect(screen.getByText(/^3\.97 \(R-/)).toBeInTheDocument()
     expect(screen.getByText('+1.4')).toBeInTheDocument()
     expect(document.getElementById('bg-extInsType')).toBeNull()
     expect(document.getElementById('bg-studSpacing')).toBeNull()
@@ -225,11 +244,23 @@ describe('BelowGradeWallBuilder', () => {
     const list = screen.getByTestId('bg-layers')
     expect(list).toHaveTextContent('200 mm (8") concrete')
     expect(list).toHaveTextContent('Interior air film')
-    expect(list).toHaveTextContent('0.12')
+    expect(list).toHaveTextContent('Interior air film ... 0.120')
+    expect(list).toHaveTextContent('1/2" gypsum board ... 0.078')
     expect(list.querySelectorAll('li')).toHaveLength(4)
     // The stud is named once in the frame line.
     expect(list).toHaveTextContent('2x6 @ 16" Fiberglass Batt R22 ... ')
     expect(list).not.toHaveTextContent('Batt 2x6')
+  })
+
+  it('"How it adds up" sums to the shown total where 2-decimal lines would not (2x6 @ 24" R24: 3.45)', () => {
+    render(<Harness />)
+    pick('bg-foundationType', 'concrete')
+    pick('bg-studSpacing', '24"')
+    pick('bg-cavityType', '2x6 R24')
+    expect(screen.getByText(/^3\.45 \(R-/)).toBeInTheDocument()
+    expect(screen.getByText('+0.2')).toBeInTheDocument()
+    const values = [...screen.getByTestId('bg-layers').querySelectorAll('li')].map(li => parseFloat(li.textContent.split('... ')[1]))
+    expect((Math.round(values.reduce((a, v) => a + v, 0) * 100) / 100).toFixed(2)).toBe('3.45')
   })
 
   it('layer labels: blown-in names the material only, block names its thickness', () => {
@@ -275,6 +306,7 @@ describe('BelowGradeWallBuilder', () => {
     render(<Harness />)
     const footnote = () => screen.getByTestId('bg-assumptions').textContent
     pick('bg-foundationType', 'pwf')
+    expect(footnote()).toContain('0.0775')
     expect(footnote()).not.toContain('16% / 14.5%')
     expect(footnote()).toContain('24% / 19% / 16%')
     expect(footnote()).toContain('0.109')
@@ -330,7 +362,7 @@ describe('BelowGradeWallBuilder', () => {
     pick('bg-foundationType', 'concrete')
     expect(screen.getByText(/lowest effective RSI sets the points \(9\.36\.8\.7\.\(4\)\)/)).toBeInTheDocument()
     expect(screen.getByText(/full height of the foundation wall \(9\.25\.2\.3\.\(4\)\)/)).toBeInTheDocument()
-    expect(screen.getByText(/600 mm or more above grade/)).toBeInTheDocument()
+    expect(screen.getByText(/on average 600 mm or more above the adjoining ground/)).toBeInTheDocument()
     expect(screen.getByRole('link', { name: /LEEP/ })).toBeInTheDocument()
     // The three code sentences are their own list under the disclaimer, one item each.
     expect(screen.getByTestId('bg-code-notes').querySelectorAll('li')).toHaveLength(3)

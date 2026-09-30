@@ -363,19 +363,19 @@ describe('below-grade', () => {
     hasStudWall: true, studSpacing: '16"', cavityMaterial: 'Fiberglass Batt', cavityType: '2x6 R22', finish: 'gypsum' }
   it.each([
     [{}, 3.12], [{ cavityType: '2x6 R20' }, 2.87], [{ cavityType: '2x6 R20', studOffset: true }, 2.96],
-    [{ cavityType: '2x6 R20', studSpacing: '24"' }, 2.98], [{ cavityType: '2x6 R24', studSpacing: '24"' }, 3.46],
+    [{ cavityType: '2x6 R20', studSpacing: '24"' }, 2.98], [{ cavityType: '2x6 R24', studSpacing: '24"' }, 3.45],
     [{ finish: 'none' }, 3.04], [{ cavityMaterial: 'Fiberglass Batt', cavityType: '2x4 R14', intInsType: 'XPS', intInsThickness: '1-1/2"' }, 3.37],
-    [{ cavityType: '2x4 R14', intInsType: 'Closed-Cell Spray Foam', intInsThickness: '2"' }, 3.92],
+    [{ cavityType: '2x4 R14', intInsType: 'Closed-Cell Spray Foam', intInsThickness: '2"' }, 3.91],
     [{ hasStudWall: false, extInsType: 'XPS', extInsThickness: '3"', finish: 'none' }, 2.76],
     [{ hasStudWall: false, extInsType: 'XPS', extInsThickness: '4"', finish: 'none' }, 3.61],
     // empty 2x4 cavity: design section 4 gives the frame as 0.205 (NBC Table A-9.36.2.8.(1)-C rounds it to 0.20)
-    [{ cavityMaterial: EMPTY_CAVITY, studDepth: '2x4' }, 0.205 + 0.08 + 0.08 + 0.12],
+    [{ cavityMaterial: EMPTY_CAVITY, studDepth: '2x4' }, 0.205 + 0.08 + 0.0775 + 0.12],
     [{ concreteThickness: '250' }, 3.14],
   ])('concrete %o -> %s', (over, expected) => {
     expect(calculateBelowGradeRsi({ ...base, ...over })).toBeCloseTo(expected, 2)
   })
   it('block swaps the structural layer', () => {
-    expect(calculateBelowGradeRsi({ ...base, foundationType: 'block', blockType: 'light_empty', concreteThickness: undefined })).toBeCloseTo(3.12 - 0.08 + 0.32, 2)
+    expect(calculateBelowGradeRsi({ ...base, foundationType: 'block', blockType: 'light_empty', concreteThickness: undefined })).toBeCloseTo(3.1224 - 0.08 + 0.32, 2)
   })
   it('icf', () => {
     expect(calculateBelowGradeRsi({ foundationType: 'icf', icfFormThickness: '2-1/2"', finish: 'gypsum' })).toBeCloseTo(3.56, 2)
@@ -383,8 +383,8 @@ describe('below-grade', () => {
     expect(calculateBelowGradeRsi({ foundationType: 'icf' })).toBeNull()
   })
   it('pwf: 2x8 @ 16" R28 + plywood + gypsum + film', () => {
-    // frame 3.67 (Table B) + 0.109 + 0.08 + 0.12
-    expect(calculateBelowGradeRsi({ foundationType: 'pwf', pwfStud: '2x8', pwfSpacing: '16"', pwfCavityMaterial: 'Fiberglass Batt', pwfCavityType: '2x8 R28', finish: 'gypsum' })).toBeCloseTo(3.98, 2)
+    // frame 3.67 (Table B) + 0.109 + 0.0775 + 0.12
+    expect(calculateBelowGradeRsi({ foundationType: 'pwf', pwfStud: '2x8', pwfSpacing: '16"', pwfCavityMaterial: 'Fiberglass Batt', pwfCavityType: '2x8 R28', finish: 'gypsum' })).toBeCloseTo(3.97, 2)
   })
   it('pwf layers: sheathing outside the frame, no concrete', () => {
     const a = calculateBelowGradeAssembly({ foundationType: 'pwf', pwfStud: '2x8', pwfSpacing: '16"', pwfCavityMaterial: 'Fiberglass Batt', pwfCavityType: '2x8 R28', finish: 'gypsum' })
@@ -407,6 +407,11 @@ describe('below-grade', () => {
     // and without interior foam, "none" really drops the finish
     const bare = calculateBelowGradeAssembly({ ...base, finish: 'none' })
     expect(bare.layers.map(l => l.id)).not.toContain('finish')
+  })
+  it('1/2" gypsum counts 0.0775 (12.7 mm x 0.0061, Note A-9.36.2.8.(1)), not 0.08', () => {
+    const a = calculateBelowGradeAssembly(base)
+    expect(a.layers.find(l => l.id === 'finish').rsi).toBe(0.0775)
+    expect(a.total).toBeCloseTo(3.1224, 4)
   })
   it('layers list has ids outside to inside', () => {
     const a = calculateBelowGradeAssembly({ ...base, extInsType: 'XPS', extInsThickness: '2"', intInsType: 'EPS', intInsThickness: '1"' })
@@ -473,7 +478,9 @@ describe('below-grade input checks (insulation lists, blown-in keys, block label
   it('two-decimal rounding matches the points rule for the near-edge cases', () => {
     const r2 = x => Math.round(x * 100) / 100
     expect(r2(calculateBelowGradeRsi({ ...base, cavityType: '2x6 R20', studSpacing: '24"' }))).toBe(2.98)
-    expect(r2(calculateBelowGradeRsi({ ...base, cavityType: '2x6 R24', studSpacing: '24"' }))).toBe(3.46)
+    // 3.4529 with gypsum at 0.0775 (it was 3.4554, 0.8 pts, at 0.08)
+    expect(r2(calculateBelowGradeRsi({ ...base, cavityType: '2x6 R24', studSpacing: '24"' }))).toBe(3.45)
+    expect(getBelowGradePoints(calculateBelowGradeRsi({ ...base, cavityType: '2x6 R24', studSpacing: '24"' }))).toBe(0.2)
     expect(r2(calculateBelowGradeRsi({ ...base, concreteThickness: '250' }))).toBe(3.14)
     expect(r2(calculateBelowGradeRsi({ ...base, foundationType: 'block', blockType: 'light_empty', concreteThickness: undefined }))).toBe(3.36)
   })

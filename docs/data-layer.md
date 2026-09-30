@@ -135,6 +135,7 @@ Used by `BelowGradeWallBuilder`, `PrintSummary`, the print telemetry and the fou
 | `EMPTY_CAVITY` | string | `'None (empty)'`, the extra cavity choice for the basement stud wall (RSI 0.18) |
 | `belowGradePointsThresholds` | Array | `thresholds.json` `belowGrade`: 3.09 -> 0.2, 3.46 -> 0.8, 3.90 -> 1.4 |
 | `MIN_BELOW_GRADE_RSI` | number | 2.98 (Table 9.36.2.8.-B), from `minBelowGradeRsi` |
+| `BELOW_GRADE_GYPSUM_RSI` | number | 0.0775, the 1/2" gypsum finish from `foundation.yaml` (12.7 mm at 0.0061 RSI/mm, the value Note A-9.36.2.8.(1) gives; the above-ground builder's drywall is 0.08) |
 | `getBasementCavityTypes(material)` | Function | Batt cavity ids of that material for 2x4 and 2x6 (e.g. `'2x6 R22'`). `[]` for no material, `EMPTY_CAVITY`, or a blown-in material (those take their stud from `studDepth`) |
 | `getPwfCavityTypes(material, pwfStud)` | Function | Keys of that material's wood cavity entries whose stud is `pwfStud` (e.g. `'2x8 R28'`; for blown-in, the stud name itself, e.g. `'2x8'`). `[]` when either argument is missing or the material is unknown |
 | `getInteriorInsRsi(type, thickness)` | Function | Spray foam from `foundation-data.json` (0.036 RSI/mm), boards via `getContinuousInsRsi()`. `0` for no type, no thickness or `'None'` |

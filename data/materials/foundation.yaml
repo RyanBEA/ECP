@@ -62,4 +62,7 @@ interior_ins_types: ["XPS", "EPS", "Polyiso", "Closed-Cell Spray Foam"]
 ins_thicknesses: ["None", '1"', '1-1/2"', '2"', '2-1/2"', '3"', '3-1/2"', '4"']
 
 finish:
-  gypsum: { label: '1/2" gypsum board', rsi: 0.08 }
+  # Table D, gypsum board (interior finish) 0.0061 /mm x 12.7 mm; RSI 0.0775 is the value Note
+  # A-9.36.2.8.(1) gives for below-grade walls. Not rounded to 0.08: Note A-9.36.2.4.(1) says
+  # Table D values are used unrounded. (The above-ground builder uses 0.08; Mark 2026-09-30.)
+  gypsum: { label: '1/2" gypsum board', thickness_mm: 12.7, rsi_per_mm: 0.0061, rsi: 0.0775 }

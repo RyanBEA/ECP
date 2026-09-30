@@ -126,6 +126,8 @@ export function resolveFoundationData(selection) {
   const finishForced = foundationType === 'icf' || hasIntIns
   const hasFinish = layerIds.includes('finish')
   const finishLabel = hasFinish ? foundationData.finish.gypsum.label : 'None'
+  const g = foundationData.finish.gypsum
+  const gypsum = hasFinish ? { thicknessMm: g.thickness_mm, rsiPerMm: g.rsi_per_mm, rsi: g.rsi } : null
 
   const totalRsi = assembly.total
   const roundedRsi = Math.round(totalRsi * 100) / 100
@@ -145,6 +147,7 @@ export function resolveFoundationData(selection) {
     concrete,
     block,
     icf,
+    gypsum,
     frame,
     totalRsi,
     roundedRsi,

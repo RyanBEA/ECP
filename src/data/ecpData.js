@@ -390,6 +390,8 @@ export const EMPTY_CAVITY = 'None (empty)'
 
 export const belowGradePointsThresholds = thresholdsData.belowGrade
 export const MIN_BELOW_GRADE_RSI = thresholdsData.minBelowGradeRsi
+// 1/2" gypsum below grade: 0.0775 (Note A-9.36.2.8.(1)); the above-ground builder uses 0.08
+export const BELOW_GRADE_GYPSUM_RSI = foundationData.finish.gypsum.rsi
 
 const SPRAY_FOAM = foundationData.spray_foam.label
 const CONCRETE_RSI_PER_MM = foundationData.concrete.rsi_per_mm

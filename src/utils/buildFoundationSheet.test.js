@@ -95,7 +95,10 @@ describe('buildFoundationSheet', () => {
 
     it('writes finish and interior air film as numbers', () => {
       expect(sheet.getCell('A15').value).toBe('Interior Finish')
-      expect(sheet.getCell('D15').value).toBe(0.08)
+      expect(sheet.getCell('C15').value).toBe('12.7 mm × 0.0061')
+      expect(sheet.getCell('D15').value).toBe(0.0775)
+      expect(sheet.getCell('D15').numFmt).toBe('0.0000')
+      expect(sheet.getCell('E15').value).toContain('Note A-9.36.2.8.(1)')
       expect(sheet.getCell('A16').value).toBe('Interior Air Film')
       expect(sheet.getCell('D16').value).toBe(0.12)
       expect(sheet.getCell('D16').numFmt).toBe('0.000')
@@ -105,7 +108,7 @@ describe('buildFoundationSheet', () => {
       const total = sheet.getCell('D18')
       expect(sheet.getCell('A18').value).toBe('Total Effective RSI')
       expect(total.value.formula).toBe('D8+D9+D15+D16')
-      expect(total.value.result).toBeCloseTo(3.1249, 3)
+      expect(total.value.result).toBeCloseTo(3.1224, 3)
       const rounded = sheet.getCell('D19')
       expect(rounded.value.formula).toBe('ROUND(D18,2)')
       expect(rounded.value.result).toBe(3.12)
@@ -226,8 +229,8 @@ describe('buildFoundationSheet', () => {
       expect(sheet.getCell(`D${findRow(sheet, 'Cavity Insulation RSI')}`).value).toBe(4.93)
     })
 
-    it('scores 3.98 and 1.4 points, and notes the PWF framing table', () => {
-      expect(sheet.getCell(`D${findRow(sheet, 'Rounded to 2 decimals')}`).value.result).toBe(3.98)
+    it('scores 3.97 and 1.4 points, and notes the PWF framing table', () => {
+      expect(sheet.getCell(`D${findRow(sheet, 'Rounded to 2 decimals')}`).value.result).toBe(3.97)
       expect(sheet.getCell(`D${findRow(sheet, 'ECP Points')}`).value.result).toBe(1.4)
       const text = columnA(sheet).join('\n')
       expect(text).toMatch(/24% at 8", 19% at 12", 16% at 16"/)

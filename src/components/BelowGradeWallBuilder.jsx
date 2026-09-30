@@ -22,6 +22,7 @@ import {
   calculateBelowGradeAssembly,
   getBelowGradePoints,
   MIN_BELOW_GRADE_RSI,
+  BELOW_GRADE_GYPSUM_RSI,
 } from '../data/ecpData'
 import OptionButton from './OptionButton'
 import FieldGroup from './FieldGroup'
@@ -66,6 +67,14 @@ const inchesFromLabel = (thickness) => {
   }
   return parseFloat(cleaned)
 }
+
+// Same test as the points: the 2-decimal value against the minimum
+const meetsBelowGradeMinimum = rsi => rsi != null && Math.round(rsi * 100) / 100 >= MIN_BELOW_GRADE_RSI
+// 'a', 'a or b', 'a, b or c'
+const joinOr = items => items.length < 2 ? items.join('') : `${items.slice(0, -1).join(', ')} or ${items[items.length - 1]}`
+// Layer RSIs to 3 decimals, rounded half up, so the list adds up to the 2-decimal total
+// (at 2 decimals the 0.0775 gypsum reads 0.08 and the sum can come out 0.01 high)
+const formatLayerRsi = rsi => (Math.round(rsi * 1000 + 1e-9) / 1000).toFixed(3)
 
 const STUD_INCHES = { '2x4': 3.5, '2x6': 5.5, '2x8': 7.25, '2x10': 9.25 }
 const spacingNum = spacing => (spacing ? parseInt(spacing.replace('"', ''), 10) : 16)
@@ -137,6 +146,7 @@ export function buildFoundationLayers(selection = {}, assembly) {
 const BASEMENT_FRAMING = ['Basement framing', '16% / 14.5% / 13% at 16" / 19" (19.2" o.c.) / 24"']
 export function foundationAssumptions(foundationType) {
   const common = [
+    ['Gypsum board', `1/2", ${BELOW_GRADE_GYPSUM_RSI} RSI when installed (12.7 mm at 0.0061 RSI/mm)`],
     ['Interior air film', '0.12 RSI'],
     ['Exterior air film / soil', 'not counted'],
   ]
@@ -153,7 +163,7 @@ export function foundationAssumptions(foundationType) {
       ]
     case 'pwf':
       return [...common,
-        ['PWF framing', '24% / 19% / 16% at 8" / 12" / 16" (Table A-9.36.2.8.(1)-B)'],
+        ['PWF framing', '24% / 19% / 16% at 8" / 12" / 16", derived to reproduce Table A-9.36.2.8.(1)-B'],
         ['Plywood sheathing', '12.5 mm, 0.109 RSI'],
       ]
     default:
@@ -201,6 +211,13 @@ export default function BelowGradeWallBuilder({ selection, onSelect }) {
   const belowCode = rsi !== null && Math.round(rsi * 100) / 100 < MIN_BELOW_GRADE_RSI
   // Only when it explains a failure: exterior or interior foam can already carry R20 @ 16" past the minimum.
   const showR20Hint = belowCode && isConcreteOrBlock && hasStudWall && cavityType === '2x6 R20' && studSpacing === '16"'
+  // Name only the single changes that reach the minimum for this wall (24" spacing does not
+  // when the wall is unfinished or held off, for example).
+  const r20Fixes = showR20Hint ? [
+    ['R22 batts', { ...sel, cavityType: '2x6 R22', studOffset: undefined }],
+    ['24" spacing', { ...sel, studSpacing: '24"' }],
+    ['exterior insulation', { ...sel, extInsType: 'XPS', extInsThickness: '1"' }],
+  ].filter(([, alt]) => meetsBelowGradeMinimum(calculateBelowGradeAssembly(alt)?.total)).map(([label]) => label) : []
 
   const foundationLayers = buildFoundationLayers(sel, assembly)
 
@@ -442,7 +459,7 @@ export default function BelowGradeWallBuilder({ selection, onSelect }) {
               </div>
               {finishLocked && (
                 <div className="assumption-item" style={{ marginTop: '0.35rem' }}>
-                  Gypsum board required over foam, 9.10.17.10
+                  Foam must be covered by an interior finish such as gypsum board (9.10.17.10.(1))
                 </div>
               )}
             </FieldGroup>
@@ -475,7 +492,7 @@ export default function BelowGradeWallBuilder({ selection, onSelect }) {
               <ul data-testid="bg-code-notes" style={{ margin: '0.4rem 0 0', paddingLeft: '1.1rem' }}>
                 <li>Where foundation walls have more than one assembly, the lowest effective RSI sets the points (9.36.8.7.(4)); build the weakest wall here.</li>
                 <li>Insulation must cover the full height of the foundation wall (9.25.2.3.(4)).</li>
-                <li>Where the top of a foundation wall is 600 mm or more above grade on average, the above-ground portion must meet the above-ground wall RSI (9.36.8.5.(4)).</li>
+                <li>Where the top of a foundation wall is on average 600 mm or more above the adjoining ground, the above-ground portion must meet the above-ground wall RSI (9.36.8.5.(4)).</li>
               </ul>
             </div>
           )}
@@ -506,7 +523,7 @@ export default function BelowGradeWallBuilder({ selection, onSelect }) {
                 )}
                 {showR20Hint && (
                   <div className="wall-prompt" data-testid="bg-hint" style={{ width: '100%' }}>
-                    R20 at 16" o.c. does not reach the 2.98 minimum on its own; R22, 24" spacing, or exterior insulation does.
+                    R20 at 16" o.c. does not reach the {MIN_BELOW_GRADE_RSI} minimum here{r20Fixes.length > 0 && `; ${joinOr(r20Fixes)} would meet it`}.
                   </div>
                 )}
                 <div className="assumptions-list" style={{ width: '100%', flexDirection: 'column', gap: '0.15rem' }}>
@@ -514,7 +531,7 @@ export default function BelowGradeWallBuilder({ selection, onSelect }) {
                   <ul data-testid="bg-layers" style={{ margin: 0, paddingLeft: '1.1rem' }}>
                     {assembly.layers.map(layer => (
                       <li key={layer.id} className="assumption-item">
-                        {layer.label} ... {layer.rsi.toFixed(2)}
+                        {layer.label} ... {formatLayerRsi(layer.rsi)}
                       </li>
                     ))}
                   </ul>

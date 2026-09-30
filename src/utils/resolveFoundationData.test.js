@@ -27,6 +27,7 @@ describe('resolveFoundationData', () => {
       expect(result.spacing).toBe('16"')
       expect(result.finishLabel).toBe('1/2" gypsum board')
       expect(result.finishForced).toBe(false)
+      expect(result.gypsum).toEqual({ thicknessMm: 12.7, rsiPerMm: 0.0061, rsi: 0.0775 })
     })
 
     it('lists the layers outside to inside, same as the data layer', () => {
@@ -63,7 +64,7 @@ describe('resolveFoundationData', () => {
     })
 
     it('calculates total 3.12, 0.2 points, meets the 2.98 minimum', () => {
-      expect(result.totalRsi).toBeCloseTo(3.1249, 3)
+      expect(result.totalRsi).toBeCloseTo(3.1224, 3)
       expect(result.roundedRsi).toBe(3.12)
       expect(result.points).toBe(0.2)
       expect(result.minRsi).toBe(2.98)
@@ -183,8 +184,8 @@ describe('resolveFoundationData', () => {
       expect(r.icf).toBeNull()
     })
 
-    it('scores 3.98 / 1.4', () => {
-      expect(r.roundedRsi).toBe(3.98)
+    it('scores 3.97 / 1.4', () => {
+      expect(r.roundedRsi).toBe(3.97)
       expect(r.points).toBe(1.4)
     })
   })
