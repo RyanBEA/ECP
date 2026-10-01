@@ -1,4 +1,5 @@
 import { defineConfig } from 'vite'
+import { configDefaults } from 'vitest/config'
 import react from '@vitejs/plugin-react'
 import path from 'path'
 
@@ -17,6 +18,7 @@ export default defineConfig({
     environment: 'jsdom',
     globals: true,
     setupFiles: ['./src/test-setup.js'],
-    exclude: ['**/node_modules/**', '**/dist/**', '.worktrees/**'],
+    // vitest 4's configDefaults.exclude is node_modules + .git only, so dist is kept explicitly.
+    exclude: [...configDefaults.exclude, '**/dist/**', '.worktrees/**'],
   },
 })

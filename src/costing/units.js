@@ -13,8 +13,11 @@ export const perM2ToPerSqFt = x => x / SQFT_PER_M2
 // Display rounding (spec 7.1). 500 while stand-in prices are in use; 100 with real data.
 export const ROUNDING_UNIT = 500
 
+// Sign-symmetric: half a unit rounds away from zero both ways (250 -> 500, -250 -> -500).
+// -0 is normalised to 0.
 export function roundDisplay(dollars) {
-  return Math.round(dollars / ROUNDING_UNIT) * ROUNDING_UNIT
+  const r = Math.sign(dollars) * Math.round(Math.abs(dollars) / ROUNDING_UNIT) * ROUNDING_UNIT
+  return r === 0 ? 0 : r
 }
 
 const money = n => n.toLocaleString('en-CA', { style: 'currency', currency: 'CAD', maximumFractionDigits: 0 })

@@ -1,5 +1,5 @@
 // House fields -> quantities (spec 4.3). Inputs in feet, outputs in metric, sentences in imperial.
-import { ftToM, m2ToSqFt } from './units'
+import { ftToM, mToFt, m2ToSqFt } from './units'
 
 export const DOOR_AREA_M2 = 1.9   // placeholder per exterior door
 export const MORE_THAN_5 = 'moreThan5'
@@ -15,7 +15,8 @@ export function computeQuantities(f) {
   const storeyHeightM = ftToM(f.storeyHeightFt)
   const foundationM = ftToM(f.foundationHeightFt || 0)
   const perimeterM = 2 * (lengthM + widthM)
-  const exposedLengthM = perimeterM - (f.partyWalls || 0) * lengthM
+  // Party walls are the long sides (spec 4.3), whichever field the long dimension was typed in.
+  const exposedLengthM = perimeterM - (f.partyWalls || 0) * Math.max(lengthM, widthM)
   const exteriorGrossM2 = exposedLengthM * f.storeys * storeyHeightM
   const openingsM2 = exteriorGrossM2 * f.glazingRatio
   const doorAreaM2 = (f.doors || 0) * DOOR_AREA_M2
@@ -37,19 +38,22 @@ export function computeQuantities(f) {
 }
 
 const sqft = m2 => Math.round(m2ToSqFt(m2)).toLocaleString('en-CA')
-const ft = m => Math.round(m * 3.280839895)
+const ft = m => Math.round(mToFt(m))
+const plural = (n, word) => `${n} ${word}${n === 1 ? '' : 's'}`
 
 export function quantitySentences(q, f) {
   const pct = Math.round(f.glazingRatio * 100)
-  const party = f.partyWalls ? ` (${f.partyWalls} party wall${f.partyWalls > 1 ? 's' : ''} excluded)` : ''
+  const party = f.partyWalls ? ` (${plural(f.partyWalls, 'party wall')} excluded)` : ''
+  // Spec 4.3: the half-storey simplification is stated at level 2.
+  const halfStorey = Number.isInteger(f.storeys) ? '' : ' (a half storey counts as half a storey height; a simplification)'
   return {
-    opaqueWall: `${f.storeys} storeys x ${f.storeyHeightFt} ft x ${ft(q.exposedLengthM)} ft exposed perimeter${party}, less ${pct}% openings = ${sqft(q.opaqueWallM2)} sq ft opaque wall, from your house fields.`,
-    windows: `${pct}% of ${sqft(q.exteriorGrossM2)} sq ft exterior wall is openings, less ${q.doors} door${q.doors === 1 ? '' : 's'} = ${sqft(q.windowAreaM2)} sq ft of windows.`,
+    opaqueWall: `${plural(f.storeys, 'storey')} x ${f.storeyHeightFt} ft x ${ft(q.exposedLengthM)} ft exposed perimeter${party}, less ${pct}% openings = ${sqft(q.opaqueWallM2)} sq ft opaque wall, from your house fields${halfStorey}.`,
+    windows: `${pct}% of ${sqft(q.exteriorGrossM2)} sq ft exterior wall is openings, less ${plural(q.doors, 'door')} = ${sqft(q.windowAreaM2)} sq ft of windows.`,
     belowGrade: q.belowGradeApplicable
       ? `${ft(q.exposedLengthM)} ft exposed perimeter x ${f.foundationHeightFt} ft foundation wall = ${sqft(q.belowGradeM2)} sq ft, priced wholly as foundation wall (above-grade exposure not separated).`
       : 'No foundation wall; below-grade walls do not apply.',
     airflow: q.airflow
-      ? `${f.bedrooms === MORE_THAN_5 ? 'Designed airflow' : `${f.bedrooms} bedrooms`}: ${q.airflow.min}-${q.airflow.max} L/s (NBC Table 9.32.3.3).`
+      ? `${f.bedrooms === MORE_THAN_5 ? 'Designed airflow' : plural(f.bedrooms, 'bedroom')}: ${q.airflow.min}-${q.airflow.max} L/s (NBC Table 9.32.3.3).`
       : 'More than 5 bedrooms: enter the designed airflow to price the HRV.',
   }
 }

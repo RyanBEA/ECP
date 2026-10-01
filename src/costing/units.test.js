@@ -15,6 +15,11 @@ describe('units', () => {
     expect(roundDisplay(-740)).toBe(-500)
     expect(roundDisplay(0)).toBe(0)
   })
+  it('rounds half-units away from zero symmetrically and never returns -0', () => {
+    expect(roundDisplay(250)).toBe(500)
+    expect(roundDisplay(-250)).toBe(-500)
+    expect(Object.is(roundDisplay(-100), 0)).toBe(true)
+  })
   it('formats deltas with sign, under-unit marker and zero', () => {
     expect(formatDelta(8300)).toBe('+$8,500')
     expect(formatDelta(-740)).toBe('-$500')
