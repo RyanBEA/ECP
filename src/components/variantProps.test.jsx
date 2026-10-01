@@ -58,3 +58,12 @@ describe('WallBuilder variant props', () => {
     opts.forEach(b => expect(b).toHaveClass('baseline'))
   })
 })
+
+describe('R34: preset row with readable preset text', () => {
+  const dhwElectric = categories.find(c => c.id === 'dhwElectric')
+  it('shows the presetText prop instead of the raw value', () => {
+    render(<CategoryCard category={dhwElectric} selectedOption={null} onSelect={() => {}} variant="baseline" presetValue="electricStorage" presetName="Typical Tier 2" presetText="electric storage tank" />)
+    expect(screen.getByRole('button', { name: 'Typical Tier 2: electric storage tank (0 pts)' })).toHaveAttribute('aria-pressed', 'true')
+    expect(screen.queryByText(/electricStorage/)).toBeNull()
+  })
+})

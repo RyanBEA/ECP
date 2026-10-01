@@ -50,3 +50,16 @@ export function presetPoints(picks) {
   const cards = Object.entries(picks.cards).reduce((s, [id, v]) => s + cardPoints(id, v), 0)
   return cards + wallPoints(picks.wall)
 }
+
+// Readable text for a preset value on the baseline editor's preset row (R34, spec 5.1).
+// Non-numeric preset ids get words; numeric values read as '<metric> <value>'.
+const PRESET_WORDS = {
+  dhwElectric: { electricStorage: 'electric storage tank' },
+  airTightness: { untested: 'untested, prescriptive air-barrier detailing' },
+}
+export function presetText(categoryId, value) {
+  const words = PRESET_WORDS[categoryId]?.[value]
+  if (words) return words
+  const metric = categories.find(c => c.id === categoryId)?.metric
+  return metric ? `${metric} ${value}` : `${value}`
+}

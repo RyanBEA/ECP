@@ -1,7 +1,7 @@
 import React from 'react'
 import OptionButton from './OptionButton'
 
-export default function CategoryCard({ category, selectedOption, onSelect, disabled, variant = 'design', presetValue, presetName }) {
+export default function CategoryCard({ category, selectedOption, onSelect, disabled, variant = 'design', presetValue, presetName, presetText }) {
   const isBaseline = variant === 'baseline'
   // Baseline editor only (spec 5.1): a preset value that is not one of the options gets a
   // read-only 0-pt row, pressed while no option is picked and the card is not disabled (R33).
@@ -22,7 +22,9 @@ export default function CategoryCard({ category, selectedOption, onSelect, disab
             onClick={() => !disabled && onSelect(category.id, null)}
             type="button"
           >
-            {`${presetName}: ${category.metric ? `${category.metric} ` : ''}${presetValue} (0 pts)`}
+            {presetText !== undefined
+              ? `${presetName}: ${presetText} (0 pts)`
+              : `${presetName}: ${category.metric ? `${category.metric} ` : ''}${presetValue} (0 pts)`}
           </button>
         )}
         {category.options.map((option, index) => (
