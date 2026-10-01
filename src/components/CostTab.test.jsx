@@ -1,6 +1,8 @@
 import React, { useState } from 'react'
 import { render, screen, fireEvent, within } from '@testing-library/react'
 import CostTab from './CostTab'
+import BaselinePicker from './BaselinePicker'
+import { houseNoun } from './CategoryLine'
 import { useHouseCost, resolveHouseFields } from '../costing/useHouseCost'
 
 function Harness({ selections = {}, wallSelection = {} }) {
@@ -38,6 +40,7 @@ describe('CostTab', () => {
     // query mechanics (standing rule 2): /assumed assembly/ matches the small print, the table and the list item;
     // scope to the open level 2 and accept several matches
     expect(within(document.querySelector('.line-detail')).getAllByText(/assumed assembly/).length).toBeGreaterThan(0)
+    expect(within(document.querySelector('.line-detail')).getByText(/Build the assembly on Points to price your own/)).toBeInTheDocument()
     expect(screen.getByText(/from your house fields/)).toBeInTheDocument()
     fireEvent.click(screen.getByRole('button', { name: 'see layers' }))
     expect(screen.getByTestId('layer-table-aboveGroundWalls')).toBeInTheDocument()
@@ -140,7 +143,7 @@ describe('CostTab per-card count and level-2 sentences (R36, R39, R4)', () => {
   it('states the house type and footprint, and what cancels', () => {
     render(<SpyHarness selections={{ windowsDoors: 1 }} />)
     fireEvent.click(screen.getByRole('button', { name: /^Windows and doors/ }))
-    expect(screen.getByText('Based on a Single detached of 33 x 30 ft; other shapes will differ.')).toBeInTheDocument()
+    expect(screen.getByText('Based on a single detached house, 33 x 30 ft (10.1 x 9.1 m); other shapes will differ.')).toBeInTheDocument()
     expect(screen.getByText('Items identical on both sides are priced and cancel in the difference.')).toBeInTheDocument()
   })
   it('says a below-grade assembly of your own cannot be priced', () => {
@@ -153,5 +156,98 @@ describe('CostTab per-card count and level-2 sentences (R36, R39, R4)', () => {
     expect(screen.getByText('(10.1 x 9.1 m)')).toBeInTheDocument()
     expect(screen.getByText(/BEA's assumption/)).toHaveClass('current')
     expect(screen.getByText(/Start from Typical Tier 2 and change/)).not.toHaveClass('current')
+  })
+})
+
+// Fix round 1 (ruling R40)
+const headline = () => screen.getByRole('heading', { level: 2 }).textContent
+const lineOrder = () => screen.getAllByRole('button', { name: /^(Above-ground walls|Windows and doors|Airtightness|Ventilation|Water heating|Below-grade walls|Heated volume)/ })
+  .map(b => b.querySelector('.line-name').firstChild.textContent)
+
+describe('HouseFields never stores a cleared or invalid value (R40)', () => {
+  it('clearing Length keeps the headline and does not mark the field changed', () => {
+    render(<Harness selections={{ windowsDoors: 1 }} />)
+    const before = headline()
+    const length = screen.getByLabelText('Length (ft)')
+    fireEvent.change(length, { target: { value: '' } })
+    expect(length).toHaveValue(null)
+    expect(headline()).toBe(before)
+    expect(screen.queryByText('changed')).toBeNull()
+    fireEvent.blur(length)
+    expect(length).toHaveValue(33)
+  })
+  it('rejects a negative length', () => {
+    render(<Harness selections={{ windowsDoors: 1 }} />)
+    const before = headline()
+    fireEvent.change(screen.getByLabelText('Length (ft)'), { target: { value: '-40' } })
+    expect(headline()).toBe(before)
+    expect(screen.queryByText('changed')).toBeNull()
+  })
+  it('rejects a glazing ratio above 60%', () => {
+    render(<Harness selections={{ windowsDoors: 1 }} />)
+    const before = headline()
+    fireEvent.change(screen.getByLabelText('Glazing ratio (%)'), { target: { value: '75' } })
+    expect(headline()).toBe(before)
+    expect(screen.queryByText('changed')).toBeNull()
+  })
+  it('stores a valid change', () => {
+    render(<Harness selections={{ windowsDoors: 1 }} />)
+    const before = headline()
+    fireEvent.change(screen.getByLabelText('Length (ft)'), { target: { value: '60' } })
+    expect(screen.getByText('changed')).toBeInTheDocument()
+    expect(headline()).not.toBe(before)
+    expect(screen.getByText('(18.3 x 9.1 m)')).toBeInTheDocument()
+  })
+})
+
+describe('BaselinePicker usual house (R40)', () => {
+  it('selects an existing usual house; only "My usual house..." opens the editor', () => {
+    const onChoice = vi.fn(), onEdit = vi.fn()
+    const { rerender } = render(<BaselinePicker choice="typicalTier2" onChoice={onChoice} onEdit={onEdit} onResetUsual={() => {}} hasUsual={true} baselinePicks={null} />)
+    expect(screen.getByRole('button', { name: 'reset to Typical Tier 2' })).toBeInTheDocument()
+    fireEvent.change(screen.getByLabelText('Compared with'), { target: { value: 'usualHouse' } })
+    expect(onChoice).toHaveBeenCalledWith('usualHouse')
+    expect(onEdit).not.toHaveBeenCalled()
+    rerender(<BaselinePicker choice="typicalTier2" onChoice={onChoice} onEdit={onEdit} onResetUsual={() => {}} hasUsual={false} baselinePicks={null} />)
+    fireEvent.change(screen.getByLabelText('Compared with'), { target: { value: 'usualHouse' } })
+    expect(onEdit).toHaveBeenCalledTimes(1)
+    expect(onChoice).toHaveBeenCalledTimes(1)
+  })
+})
+
+describe('CostTab open lines and order (R40)', () => {
+  it('closes an open line that stops applying', () => {
+    // a second pick keeps the statement out of the empty state after the switch
+    render(<Harness selections={{ belowGradeWalls: 0, hrv: 2 }} />)
+    fireEvent.click(screen.getByRole('button', { name: /^Below-grade walls/ }))
+    expect(document.querySelector('.line-detail')).not.toBeNull()
+    fireEvent.change(screen.getByLabelText('Type'), { target: { value: 'miniHome' } })
+    expect(document.querySelector('.line-detail')).toBeNull()
+    expect(screen.getByRole('button', { name: /^Below-grade walls/ })).toHaveAttribute('aria-expanded', 'false')
+    // the order was released: the not-applicable line sorts last again
+    expect(lineOrder().at(-1)).toBe('Below-grade walls')
+  })
+  it('keeps the order while a line is open and re-sorts when it closes', () => {
+    render(<Harness selections={{ windowsDoors: 1, airTightness: 2 }} />)
+    expect(lineOrder().slice(0, 2)).toEqual(['Windows and doors', 'Airtightness'])
+    fireEvent.click(screen.getByRole('button', { name: /^Airtightness/ }))
+    fireEvent.change(screen.getByLabelText('Glazing ratio (%)'), { target: { value: '5' } })
+    expect(lineOrder().slice(0, 2)).toEqual(['Windows and doors', 'Airtightness'])
+    fireEvent.click(screen.getByRole('button', { name: /^Airtightness/ }))
+    expect(lineOrder().slice(0, 2)).toEqual(['Airtightness', 'Windows and doors'])
+  })
+  it('"change house" opens More about this house and focuses a field kept there', () => {
+    render(<Harness selections={{ belowGradeWalls: 0 }} />)
+    const group = document.querySelector('details.more-house')
+    expect(group.open).toBe(false)
+    fireEvent.click(screen.getByRole('button', { name: /^Below-grade walls/ }))
+    fireEvent.click(screen.getByRole('button', { name: 'change house' }))
+    expect(group.open).toBe(true)
+    expect(document.activeElement).toBe(screen.getByLabelText('Foundation wall height (ft, 0 = none)'))
+  })
+  it('names the house type in lower case, adding "house" only where the name does not end in home', () => {
+    expect(houseNoun('Single detached')).toBe('single detached house')
+    expect(houseNoun('Row home')).toBe('row home')
+    expect(houseNoun('Mini-home')).toBe('mini-home')
   })
 })

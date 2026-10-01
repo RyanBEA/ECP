@@ -3,6 +3,7 @@ import { BASELINE_PRESETS, BASELINE_NAMES } from '../costing/baselines'
 import { describeWall } from '../costing/assumedAssemblies'
 
 // "Compared with" (spec 3.1): three choices, each with its one-line description (all three shown, ruling R4).
+// "My usual house..." (none saved for this type) opens the editor; an existing usual house is chosen like the others (R40).
 const CHOICES = ['codeMinimum', 'typicalTier2', 'usualHouse']
 const DESCRIBE = { codeMinimum: BASELINE_PRESETS.codeMinimum.describe, typicalTier2: BASELINE_PRESETS.typicalTier2.describe, usualHouse: 'Start from Typical Tier 2 and change what you do differently.' }
 
@@ -25,14 +26,14 @@ export default function BaselinePicker({ choice, onChoice, onEdit, onResetUsual,
   return (
     <div className="baseline-picker">
       <h3>Compared with</h3>
-      <select id="baseline-choice" aria-label="Compared with" value={effective} onChange={e => { const v = e.target.value; if (v === 'usualHouse') onEdit(); else onChoice(v) }}>
+      <select id="baseline-choice" aria-label="Compared with" value={effective} onChange={e => { const v = e.target.value; if (v === 'usualHouse' && !hasUsual) onEdit(); else onChoice(v) }}>
         {CHOICES.map(id => <option key={id} value={id}>{label(id)}</option>)}
       </select>
       <ul className="baseline-choices">
         {CHOICES.map(id => (
           <li key={id} className={`costing-note baseline-choice ${id === effective ? 'current' : ''}`}>
             <strong>{label(id)}</strong> - <span className={`baseline-describe ${id === effective ? 'current' : ''}`}>{DESCRIBE[id]}</span>
-            {id === 'usualHouse' && hasUsual && <> <button type="button" className="link-button" onClick={onEdit}>edit</button> . <button type="button" className="link-button" onClick={onResetUsual}>reset to typical</button></>}
+            {id === 'usualHouse' && hasUsual && <> <button type="button" className="link-button" onClick={onEdit}>edit</button> . <button type="button" className="link-button" onClick={onResetUsual}>reset to {BASELINE_NAMES.typicalTier2}</button></>}
           </li>
         ))}
       </ul>

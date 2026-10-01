@@ -1,4 +1,4 @@
-import React from 'react'
+import React, { useState } from 'react'
 import { ARCHETYPES, VISIBLE_FIELD_KEYS, HOUSE_FIELD_KEYS } from '../costing/archetypes'
 import { MORE_THAN_5 } from '../costing/quantities'
 import { ftToM } from '../costing/units'
@@ -9,6 +9,27 @@ const LABELS = { storeys: 'Storeys', lengthFt: 'Length (ft)', widthFt: 'Width (f
 const HIDDEN_KEYS = HOUSE_FIELD_KEYS.slice(5)
 const metres = ft => ftToM(Number(ft) || 0).toFixed(1)
 
+// Accepted ranges for the typed fields (ruling R40). A value outside them is never stored.
+const VALID = {
+  lengthFt: n => n > 0, widthFt: n => n > 0, storeyHeightFt: n => n > 0,
+  doors: n => n >= 0, foundationHeightFt: n => n >= 0, partyWalls: n => n >= 0,
+  glazingRatio: n => n >= 0 && n <= 60,   // typed as a percentage
+  designedAirflowLs: n => n > 0,
+}
+
+// A number input with a local draft (R40): an empty or invalid draft calls nothing and is shown as typed; the
+// stored value stays as it was. On blur the field shows the stored value again.
+function NumberInput({ id, k, stored, toStored = n => n, onCommit, ...attrs }) {
+  const [draft, setDraft] = useState(null)   // null = show the stored value
+  const onChange = e => {
+    const s = e.target.value
+    setDraft(s)
+    const n = Number(s)
+    if (s.trim() !== '' && Number.isFinite(n) && VALID[k](n)) onCommit(k, toStored(n))
+  }
+  return <input id={id} type="number" {...attrs} value={draft ?? stored ?? ''} onChange={onChange} onBlur={() => setDraft(null)} />
+}
+
 function Field({ k, value, changed, onChange }) {
   const id = `hf-${k}`
   let input
@@ -16,8 +37,8 @@ function Field({ k, value, changed, onChange }) {
   else if (k === 'bedrooms') input = <select id={id} value={value} onChange={e => onChange(k, e.target.value === MORE_THAN_5 ? MORE_THAN_5 : Number(e.target.value))}>{[1, 2, 3, 4, 5].map(v => <option key={v} value={v}>{v}</option>)}<option value={MORE_THAN_5}>more than 5</option></select>
   else if (k === 'partyWalls') input = <select id={id} value={value} onChange={e => onChange(k, Number(e.target.value))}>{[0, 1, 2].map(v => <option key={v} value={v}>{v}</option>)}</select>
   else if (k === 'waterHeaterGal') input = <select id={id} value={value} onChange={e => onChange(k, Number(e.target.value))}>{[40, 50, 60, 80].map(v => <option key={v} value={v}>{v}</option>)}</select>
-  else if (k === 'glazingRatio') input = <input id={id} type="number" min="0" max="60" step="1" value={Math.round(value * 100)} onChange={e => onChange(k, Number(e.target.value) / 100)} />
-  else input = <input id={id} type="number" min="0" step="any" value={value} onChange={e => onChange(k, Number(e.target.value))} />
+  else if (k === 'glazingRatio') input = <NumberInput id={id} k={k} min="0" max="60" step="1" stored={Math.round(value * 100)} toStored={n => n / 100} onCommit={onChange} />
+  else input = <NumberInput id={id} k={k} min="0" step="any" stored={value} onCommit={onChange} />
   return (
     <div className={`house-field ${changed ? 'changed' : ''}`}>
       <label htmlFor={id}>{LABELS[k]}</label>
@@ -44,7 +65,7 @@ export default function HouseFields({ houseType, fields, overriddenKeys, onTypeC
       ))}
       {fields.bedrooms === MORE_THAN_5 && (
         <div className="house-field"><label htmlFor="hf-airflow">Designed airflow (L/s)</label>
-          <input id="hf-airflow" type="number" min="1" value={fields.designedAirflowLs ?? ''} onChange={e => onFieldChange('designedAirflowLs', e.target.value === '' ? undefined : Number(e.target.value))} /></div>
+          <NumberInput id="hf-airflow" k="designedAirflowLs" min="1" stored={fields.designedAirflowLs} onCommit={onFieldChange} /></div>
       )}
       <details className="more-house"><summary>More about this house</summary>
         {HIDDEN_KEYS.map(k => <Field key={k} k={k} value={fields[k]} changed={changed(k)} onChange={onFieldChange} />)}

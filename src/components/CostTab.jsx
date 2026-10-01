@@ -1,4 +1,4 @@
-import React, { useState } from 'react'
+import React, { useEffect, useState } from 'react'
 import HouseFields from './HouseFields'
 import BaselinePicker, { picksSmallPrint } from './BaselinePicker'
 import CategoryLine, { unitLabelFor, qtyText } from './CategoryLine'
@@ -20,6 +20,21 @@ function componentUnit(line, side, component) {
 }
 const lineUnit = (line, side) => line[side]?.unit ?? line.design.unit
 
+const UNCOSTED = ['notApplicable', 'notCosted']
+
+// "change house" (R40): a field inside "More about this house" opens that group and takes focus; any other
+// field scrolls the sidebar into view.
+function changeHouse(fieldKey) {
+  const el = fieldKey ? document.getElementById(`hf-${fieldKey}`) : null
+  const group = el?.closest('details')
+  if (group) {
+    group.open = true
+    el.focus()
+    return
+  }
+  document.querySelector('.cost-sidebar')?.scrollIntoView?.({ behavior: 'smooth' })
+}
+
 // Applied override keys on this card, both houses, counted once (R36).
 function changedCountFor(line) {
   const id = line.categoryId
@@ -34,6 +49,15 @@ export default function CostTab(props) {
   const { delta, sentences, baselineName } = cost
   const hasUsual = Boolean(usualHouse?.[houseType])
   const typeName = getArchetype(houseType)?.name ?? houseType
+  // An open line that stops applying (e.g. Type -> Mini-home with Below-grade open) closes and releases the order (R40).
+  const openState = openLine ? delta.lines.find(l => l.categoryId === openLine)?.state : null
+  // Also when every pick is cleared: the empty state shows no lines.
+  const openGone = openLine !== null && openLine !== undefined && (!delta.hasPicks || openState === undefined || UNCOSTED.includes(openState))
+  useEffect(() => {
+    if (!openGone) return
+    onOpenLine(null); setLevel3(null)
+    onFreezeOrder(null)
+  }, [openGone])   // runs once per closing; the callbacks are not dependencies
   const toggle = id => {
     const next = openLine === id ? null : id
     onOpenLine(next); setLevel3(null)
@@ -67,9 +91,9 @@ export default function CostTab(props) {
         <div className="category-lines">
           {delta.lines.map(line => (
             <CategoryLine key={line.categoryId} line={line} baselineName={baselineName} sentences={sentences}
-              typeName={typeName} lengthFt={houseFields.lengthFt} widthFt={houseFields.widthFt} open={openLine === line.categoryId}
+              typeName={typeName} lengthFt={houseFields.lengthFt} widthFt={houseFields.widthFt} open={!openGone && openLine === line.categoryId}
               onToggle={() => toggle(line.categoryId)} level3={level3 === line.categoryId} onOpenLayers={() => setLevel3(line.categoryId)}
-              onChangeHouse={() => document.querySelector('.cost-sidebar')?.scrollIntoView?.({ behavior: 'smooth' })}>
+              onChangeHouse={changeHouse}>
               <LayerTable categoryId={line.categoryId} line={line} baselineName={baselineName} unitLabel={unitLabelFor(line.design)} quantityDisplay={qtyText(line.design)}
                 onOverride={(side, comp, opt, field, v) => onOverride(side, line.categoryId, comp, opt, field, toStored(v, componentUnit(line, side, comp)))}
                 onLineOverride={(side, v) => onLineOverride(side, line.categoryId, toStored(v, lineUnit(line, side)))}
