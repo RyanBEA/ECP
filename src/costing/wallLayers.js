@@ -3,6 +3,7 @@
 // single-stud value main's wall builder offers maps to a priced id.
 import { getBoundaryOptions } from '../data/ecpData'
 import wallData from '../data/generated/wall-data.json'
+import { ciOptionId } from './optionMap'
 
 const boundary = getBoundaryOptions()
 
@@ -25,9 +26,6 @@ const CAVITY_WORD = {
   'Fiberglass Batt': 'fiberglass batt', 'Mineral Wool Batt': 'mineral wool batt',
   'Loose Fill Cellulose': 'loose-fill cellulose', 'Dense Pack Cellulose': 'dense-pack cellulose', 'Loose Fill Fiberglass': 'loose-fill fiberglass',
 }
-
-const THICKNESS = { '1"': '1in', '1-1/2"': '1_5in', '2"': '2in', '2-1/2"': '2_5in', '3"': '3in' }
-const CI_PREFIX = { EPS: 'eps_i', XPS: 'xps_iv', Polyiso: 'isocyanurate', PIC: 'isocyanurate', 'Mineral Wool (Rock Wool)': 'mineral_wool_rock', 'Mineral Wool (Glass Fibre)': 'mineral_wool_glass' }
 
 const SHEATHING = { osb_11: 'waferboard_osb_7_16in', osb_9_5: 'waferboard_osb_3_8in', plywood_sw_12_5: 'plywood_particle_board_1_2in', plywood_sw_9_5: 'plywood_particle_board_3_8in', gypsum_12_7: 'gypsum_sheathing_1_2in' }
 const CLADDING = { vinyl_siding: 'vinyl_siding', vinyl_insulated: 'insulated_vinyl_siding', wood_bevel_200: 'wood_bevel', wood_bevel_250: 'wood_bevel', fiber_cement: 'fiber_cement', metal_siding: 'metal_siding', brick_veneer: 'brick_veneer', stucco_19: 'stucco' }
@@ -65,11 +63,10 @@ export function wallLayers(sel) {
   // Without a type, continuous insulation adds no RSI (calculateWallRsi), so it adds no layer either.
   const ciIn = s.contInsType ? inches(s.contInsThickness) : 0
   if (ciIn > 0) {
-    const prefix = CI_PREFIX[s.contInsType]
-    const t = THICKNESS[s.contInsThickness]
-    if (!prefix || !t) return notPriced(`${s.contInsType} is not priced in this version`)
+    const ci = ciOptionId(s.contInsType, s.contInsThickness)
+    if (!ci) return notPriced(`${s.contInsType} is not priced in this version`)
     const type = s.contInsType === 'PIC' ? 'Polyiso' : s.contInsType
-    layers.push({ component: 'continuous_insulation', option: `${prefix}_${t}`, label: `${ascii(s.contInsThickness)} ${type}` })
+    layers.push({ component: 'continuous_insulation', option: ci, label: `${ascii(s.contInsThickness)} ${type}` })
   }
   const shId = s.sheathingId || boundary.sheathing.defaults.wood
   const sh = SHEATHING[shId]

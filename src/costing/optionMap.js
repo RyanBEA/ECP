@@ -55,8 +55,17 @@ const spacings = FRAMING_SPACINGS
 const batts = ['r12_batt_2x4', 'r14_batt_2x4', 'r20_batt_2x6', 'r22_batt_2x6', 'r24_batt_2x6', 'r28_batt_2x8', 'r31_batt_2x10', 'r40_batt_2x12']
 const fills = ['loose_fill_cellulose', 'dense_pack_cellulose', 'loose_fill_fiberglass']
 const cavity = [...batts, ...fills.flatMap(f => studs.map(s => `${f}_${s}`))]
-export const CI_MATERIALS = ['eps_i', 'xps_iv', 'isocyanurate', 'mineral_wool_rock', 'mineral_wool_glass']
-export const CI_THICKNESSES = ['1in', '1_5in', '2in', '2_5in', '3in']
+// Builder continuous insulation type / thickness (continuous-ins.json, continuousInsThicknesses) -> id parts
+export const CI_TYPE_IDS = { EPS: 'eps_i', XPS: 'xps_iv', Polyiso: 'isocyanurate', 'Mineral Wool (Rock Wool)': 'mineral_wool_rock', 'Mineral Wool (Glass Fibre)': 'mineral_wool_glass' }
+export const CI_THICKNESS_IDS = { '1"': '1in', '1-1/2"': '1_5in', '2"': '2in', '2-1/2"': '2_5in', '3"': '3in' }
+export const CI_MATERIALS = Object.values(CI_TYPE_IDS)
+export const CI_THICKNESSES = Object.values(CI_THICKNESS_IDS)
+// Price id for a builder CI pick, or null when the type or thickness has none ('PIC' is ecpData's old name for Polyiso)
+export function ciOptionId(type, thickness) {
+  const m = CI_TYPE_IDS[type === 'PIC' ? 'Polyiso' : type]
+  const t = CI_THICKNESS_IDS[thickness]
+  return m && t ? `${m}_${t}` : null
+}
 const ci = CI_MATERIALS.flatMap(m => CI_THICKNESSES.map(t => `${m}_${t}`))
 const sheathing = ['waferboard_osb_7_16in', 'waferboard_osb_3_8in', 'plywood_particle_board_1_2in', 'plywood_particle_board_3_8in', 'gypsum_sheathing_1_2in']
 const cladding = ['vinyl_siding', 'insulated_vinyl_siding', 'wood_bevel', 'fiber_cement', 'metal_siding', 'brick_veneer', 'stucco']
