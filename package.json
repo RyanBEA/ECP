@@ -12,7 +12,8 @@
     "test:watch": "vitest",
     "generate": "node scripts/generate.js",
     "generate:audit": "node scripts/generate.js --audit",
-    "generate:validate": "node scripts/generate.js --validate"
+    "generate:validate": "node scripts/generate.js --validate",
+    "build:costs": "node scripts/build-stand-in-costs.js"
   },
   "engines": {
     "node": ">=20"
