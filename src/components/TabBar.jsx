@@ -18,7 +18,7 @@ export default function TabBar({ active, onChange, disabled = false }) {
     <div className="tab-bar" role="tablist" aria-label="Points and Cost">
       {TABS.map(([id, label], index) => (
         <button key={id} id={`tab-${id}`} ref={el => { refs.current[id] = el }} type="button" role="tab"
-          aria-selected={active === id} tabIndex={active === id ? 0 : -1} className={`tab ${active === id ? 'active' : ''}`}
+          aria-selected={active === id} aria-controls={`panel-${id}`} tabIndex={active === id ? 0 : -1} className={`tab ${active === id ? 'active' : ''}`}
           onClick={() => !disabled && onChange(id)} onKeyDown={e => handleKeyDown(e, index)} aria-disabled={disabled}>{label}</button>
       ))}
     </div>

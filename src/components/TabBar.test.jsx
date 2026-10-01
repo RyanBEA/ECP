@@ -42,3 +42,11 @@ describe('TabBar keyboard and ids (R35)', () => {
     expect(onChange).toHaveBeenCalledTimes(3)
   })
 })
+
+describe('TabBar panel links (Task 15 notes)', () => {
+  it('points each tab at its panel with aria-controls', () => {
+    render(<TabBar active="points" onChange={() => {}} />)
+    expect(screen.getByRole('tab', { name: 'Points' })).toHaveAttribute('aria-controls', 'panel-points')
+    expect(screen.getByRole('tab', { name: 'Cost' })).toHaveAttribute('aria-controls', 'panel-cost')
+  })
+})

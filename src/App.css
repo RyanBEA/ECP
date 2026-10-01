@@ -28,6 +28,10 @@
   --text-primary: var(--gray-900);
   --text-secondary: var(--gray-500);
   --border-color: var(--gray-200);
+  /* Baseline editor (amber) and its text on a filled button */
+  --baseline: #7a5b00;
+  --baseline-light: #fbf5e4;
+  --baseline-contrast: white;
 }
 
 .dark {
@@ -51,6 +55,9 @@
   --text-primary: #f9fafb;
   --text-secondary: #9ca3af;
   --border-color: #374151;
+  --baseline: #e0b84a;
+  --baseline-light: #3a2f10;
+  --baseline-contrast: #111827;
 }
 
 body {
@@ -752,6 +759,640 @@ h1, h2, h3, h4, h5, h6 {
   cursor: not-allowed;
 }
 
+/* ===== Cost layer (spec 2-5): tabs, header chip, Cost tab, baseline editor ===== */
+
+/* Tabs: two indicators on the selected tab, colour and an underline (spec 2.1) */
+.tab-bar {
+  display: flex;
+  gap: 0.25rem;
+  margin: 0 0 1rem;
+  border-bottom: 1px solid var(--border-color);
+}
+
+.tab-bar .tab {
+  padding: 0.5rem 1.25rem;
+  border: 1px solid transparent;
+  border-bottom: none;
+  border-radius: var(--radius) var(--radius) 0 0;
+  background: transparent;
+  color: var(--text-secondary);
+  cursor: pointer;
+  font: inherit;
+  font-weight: 600;
+}
+
+.tab-bar .tab.active {
+  color: var(--primary);
+  font-weight: 800;
+  background: var(--card-bg);
+  border-color: var(--border-color);
+  border-bottom: 3px solid var(--primary);
+  margin-bottom: -1px;
+}
+
+.tab-bar .tab[aria-disabled="true"] {
+  opacity: 0.5;
+  cursor: not-allowed;
+}
+
+.tab-bar .tab:focus-visible {
+  outline: 2px solid var(--primary);
+  outline-offset: 2px;
+}
+
+.tab-panel {
+  display: flex;
+  flex-direction: column;
+  flex-grow: 1;
+}
+
+.tab-panel[hidden] {
+  display: none !important;
+}
+
+/* Header cost chip (spec 2.3) */
+.cost-chip-wrap {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.35rem;
+  margin-left: auto;
+}
+
+.cost-chip {
+  border: 2px solid var(--primary);
+  color: var(--primary);
+  background: var(--card-bg);
+  border-radius: var(--radius);
+  padding: 0.25rem 0.6rem;
+  text-align: left;
+  cursor: pointer;
+  font: inherit;
+}
+
+.cost-chip:hover {
+  background: var(--gray-50);
+}
+
+.cost-chip-value {
+  display: block;
+  font-weight: 800;
+  font-size: 1.05rem;
+}
+
+.cost-chip-sub {
+  display: block;
+  font-size: 0.7rem;
+  font-weight: 400;
+  color: var(--text-secondary);
+}
+
+.cost-chip-hide,
+.link-button {
+  background: none;
+  border: none;
+  color: var(--primary);
+  text-decoration: underline;
+  cursor: pointer;
+  font: inherit;
+  font-size: 0.8rem;
+  padding: 0;
+}
+
+/* Cost tab layout: sidebar from 900 px up, one column below (spec 2.4; the collapsed strip waits, R38) */
+.cost-tab {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr);
+  gap: 1rem;
+}
+
+@media (min-width: 900px) {
+  .cost-tab {
+    grid-template-columns: 250px minmax(0, 1fr);
+    align-items: start;
+  }
+
+  .cost-sidebar {
+    position: sticky;
+    top: 0.5rem;
+  }
+}
+
+.cost-sidebar,
+.cost-statement {
+  background: var(--card-bg);
+  border-radius: var(--radius);
+  box-shadow: 0 1px 3px rgba(0,0,0,0.1);
+  padding: 1rem;
+}
+
+.cost-sidebar h3 {
+  font-size: 0.75rem;
+  text-transform: uppercase;
+  letter-spacing: 0.03em;
+  margin: 0.75rem 0 0.35rem;
+  color: var(--text-secondary);
+}
+
+.cost-sidebar h3:first-child {
+  margin-top: 0;
+}
+
+.cost-sidebar select,
+.cost-sidebar input[type="number"] {
+  padding: 0.3rem 0.4rem;
+  border: 1px solid var(--gray-300);
+  border-radius: var(--radius);
+  background: var(--card-bg);
+  color: var(--text-primary);
+  font: inherit;
+  font-size: 0.85rem;
+  min-width: 0;
+}
+
+.cost-sidebar input[type="number"] {
+  width: 5.5rem;
+}
+
+.house-field {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) auto;
+  gap: 0.15rem 0.5rem;
+  align-items: center;
+  margin-bottom: 0.45rem;
+  font-size: 0.85rem;
+}
+
+.house-field label {
+  grid-column: 1 / -1;
+  font-weight: 600;
+}
+
+/* A changed field: a thicker border and the word "changed" (never colour alone) */
+.house-field.changed select,
+.house-field.changed input {
+  border: 2px solid var(--primary);
+}
+
+.field-state {
+  font-size: 0.7rem;
+  color: var(--text-secondary);
+}
+
+.house-field.changed .field-state {
+  font-weight: 700;
+  color: var(--text-primary);
+}
+
+.more-house {
+  margin-top: 0.5rem;
+  font-size: 0.85rem;
+}
+
+.more-house summary {
+  cursor: pointer;
+  font-weight: 600;
+  margin-bottom: 0.4rem;
+}
+
+.costing-note {
+  font-size: 0.8rem;
+  color: var(--text-secondary);
+  margin: 0.25rem 0;
+}
+
+.costing-notice {
+  font-size: 0.8rem;
+  color: var(--text-primary);
+  border-left: 3px solid var(--baseline);
+  padding-left: 0.5rem;
+  margin: 0.25rem 0 0.5rem;
+}
+
+.baseline-picker select {
+  width: 100%;
+}
+
+.baseline-choices {
+  list-style: none;
+  margin: 0.4rem 0;
+}
+
+.baseline-choice {
+  line-height: 1.4;
+}
+
+.baseline-choice.current strong {
+  color: var(--text-primary);
+}
+
+.small-print {
+  font-size: 0.75rem;
+}
+
+.price-source label {
+  display: flex;
+  align-items: center;
+  gap: 0.4rem;
+  cursor: pointer;
+}
+
+/* Statement */
+.headline {
+  font-size: 1.6rem;
+  line-height: 1.25;
+  margin: 0 0 0.35rem;
+  color: var(--primary);
+}
+
+.category-lines {
+  margin-top: 0.75rem;
+}
+
+.category-line {
+  border-bottom: 1px solid var(--border-color);
+}
+
+.category-line .line-row {
+  width: 100%;
+  display: flex;
+  justify-content: space-between;
+  align-items: baseline;
+  gap: 0.75rem;
+  background: none;
+  border: none;
+  padding: 0.6rem 0.25rem;
+  text-align: left;
+  cursor: pointer;
+  font: inherit;
+  color: var(--text-primary);
+}
+
+.category-line .line-row:hover:not(:disabled) {
+  background: var(--gray-50);
+}
+
+.category-line .line-row:disabled {
+  cursor: default;
+  opacity: 0.7;
+}
+
+.line-name {
+  font-weight: 600;
+}
+
+.line-name small {
+  display: block;
+  font-weight: 400;
+  color: var(--text-secondary);
+  font-size: 0.75rem;
+}
+
+.line-delta {
+  font-weight: 800;
+  color: var(--primary);
+  white-space: nowrap;
+}
+
+/* Negative deltas: the word "less" plus a neutral second colour, never red or green (spec 3.2) */
+.line-delta.neg {
+  color: var(--gray-600);
+}
+
+.line-delta.z {
+  color: var(--gray-400);
+  font-weight: 600;
+}
+
+.category-line.open {
+  border-left: 3px solid var(--primary);
+  padding-left: 0.5rem;
+}
+
+.line-detail {
+  padding: 0.25rem 0.25rem 0.75rem;
+  font-size: 0.85rem;
+}
+
+.comparison {
+  width: 100%;
+  border-collapse: collapse;
+  margin-bottom: 0.5rem;
+}
+
+.comparison th,
+.comparison td {
+  text-align: left;
+  padding: 0.25rem 0.4rem;
+  border-bottom: 1px solid var(--border-color);
+  vertical-align: top;
+}
+
+.comparison th {
+  font-weight: 700;
+}
+
+.comparison td:first-child {
+  color: var(--text-secondary);
+}
+
+.assumptions {
+  padding-left: 1.1rem;
+  margin: 0.25rem 0;
+}
+
+.assumptions li {
+  margin-bottom: 0.2rem;
+}
+
+.total-line {
+  display: flex;
+  justify-content: space-between;
+  font-weight: 800;
+  border-top: 2px solid var(--text-primary);
+  margin-top: 0.5rem;
+  padding: 0.4rem 0.25rem 0;
+}
+
+/* Level 3: LayerTable (spec 4.2) */
+.layer-table {
+  margin-top: 0.75rem;
+  overflow-x: auto;
+}
+
+.layer-table-head {
+  display: flex;
+  justify-content: space-between;
+  gap: 1rem;
+  font-weight: 600;
+  margin-bottom: 0.35rem;
+}
+
+.changed-count {
+  font-size: 0.8rem;
+  font-weight: 700;
+  margin: 0.25rem 0;
+}
+
+.layer-table table {
+  width: 100%;
+  border-collapse: collapse;
+  font-size: 0.8rem;
+}
+
+.layer-table th {
+  position: sticky;
+  top: 0;
+  background: var(--card-bg);
+  font-size: 0.65rem;
+  text-transform: uppercase;
+  letter-spacing: 0.03em;
+  color: var(--text-secondary);
+  padding: 0.2rem 0.3rem;
+  border-bottom: 1px solid var(--border-color);
+  text-align: left;
+}
+
+.layer-table td {
+  padding: 0.2rem 0.3rem;
+  border-bottom: 1px solid var(--border-color);
+  white-space: nowrap;
+}
+
+.layer-table td:first-child {
+  white-space: normal;
+}
+
+.layer-table td:first-child small {
+  display: block;
+  color: var(--text-secondary);
+}
+
+.layer-table td:first-child .link-button {
+  display: block;
+  font-size: 0.7rem;
+}
+
+.layer-table .r {
+  text-align: right;
+}
+
+/* Rows that differ: a bar and bold text; identical rows muted */
+.layer-table tr.differs td:first-child {
+  border-left: 3px solid var(--primary);
+  font-weight: 700;
+}
+
+.layer-table tr.same td {
+  color: var(--text-secondary);
+}
+
+.layer-table tr.tot td {
+  font-weight: 800;
+  border-top: 2px solid var(--text-primary);
+}
+
+/* An overridden price: bold and underlined, plus its own "reset" link (not colour alone) */
+.price-cell.overridden {
+  font-weight: 800;
+  text-decoration: underline;
+  text-decoration-style: dotted;
+  color: var(--primary);
+}
+
+.price-cell.dormant {
+  text-decoration: line-through;
+  color: var(--text-secondary);
+}
+
+.pencil-button {
+  background: none;
+  border: none;
+  color: var(--primary);
+  cursor: pointer;
+  font-size: 0.8rem;
+  margin-left: 0.2rem;
+  padding: 0 0.15rem;
+}
+
+.price-cell .link-button {
+  margin-left: 0.25rem;
+  font-size: 0.7rem;
+}
+
+.price-input,
+.line-override input {
+  width: 5.5rem;
+  padding: 0.15rem 0.3rem;
+  border: 1px solid var(--gray-300);
+  border-radius: 4px;
+  background: var(--card-bg);
+  color: var(--text-primary);
+  font: inherit;
+}
+
+.line-overrides {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.5rem 1.5rem;
+  font-size: 0.8rem;
+  margin-bottom: 0.5rem;
+}
+
+.line-override {
+  display: inline-flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 0.4rem;
+}
+
+.muted {
+  color: var(--text-secondary);
+}
+
+/* Baseline variant: amber instead of the design's purple (spec 5) */
+.option-button.baseline.selected {
+  border-color: var(--baseline);
+  background: var(--baseline-light);
+  color: var(--text-primary);
+  font-weight: 700;
+}
+
+.option-button.baseline:hover {
+  border-color: var(--baseline);
+}
+
+.option-button.preset-row {
+  border-style: dashed;
+}
+
+.option-button.preset-row.selected {
+  border-style: solid;
+  border-color: var(--baseline);
+  background: var(--baseline-light);
+  color: var(--text-primary);
+  font-weight: 700;
+}
+
+.wall-builder.baseline .mode-btn.active {
+  border-color: var(--baseline);
+}
+
+.points-counter.baseline {
+  background: var(--baseline-light);
+  color: var(--text-primary);
+  border: 2px solid var(--baseline);
+  flex-wrap: wrap;
+}
+
+.points-sublabel {
+  flex-basis: 100%;
+  font-size: 0.7rem;
+  font-weight: 400;
+}
+
+.baseline-editor .crumb {
+  font-size: 0.85rem;
+  font-weight: 600;
+  color: var(--text-secondary);
+  margin: 0 0 0.5rem;
+}
+
+.baseline-editor .editor-header {
+  display: flex;
+  justify-content: flex-end;
+  margin-bottom: 0.5rem;
+}
+
+.baseline-editor .banner {
+  background: var(--baseline-light);
+  border: 1px solid var(--baseline);
+  border-radius: var(--radius);
+  padding: 0.6rem 0.8rem;
+  margin: 0 0 1rem;
+  font-size: 0.9rem;
+}
+
+.baseline-editor .banner p {
+  margin: 0.25rem 0 0;
+}
+
+.editor-card > .costing-note {
+  padding: 0.35rem 1rem 0;
+  color: var(--text-primary);
+}
+
+.editor-footer {
+  display: flex;
+  flex-wrap: wrap;
+  justify-content: space-between;
+  align-items: center;
+  gap: 1rem;
+  margin: 1rem 0;
+  padding: 1rem;
+  background: var(--card-bg);
+  border-radius: var(--radius);
+  box-shadow: 0 1px 3px rgba(0,0,0,0.1);
+}
+
+.btn {
+  font: inherit;
+  font-weight: 600;
+  padding: 0.4rem 0.9rem;
+  border-radius: var(--radius);
+  border: 1px solid var(--gray-300);
+  background: var(--card-bg);
+  color: var(--text-primary);
+  cursor: pointer;
+}
+
+.btn.primary {
+  background: var(--primary);
+  border-color: var(--primary);
+  color: white;
+}
+
+.btn.primary.baseline {
+  background: var(--baseline);
+  border-color: var(--baseline);
+  color: var(--baseline-contrast);
+}
+
+/* Tap targets of at least 44 px below 900 px (spec 2.4) */
+@media (max-width: 899px) {
+  .tab-bar .tab,
+  .cost-chip,
+  .cost-chip-hide,
+  .cost-tab button,
+  .cost-tab select,
+  .cost-tab input[type="number"],
+  .cost-tab .price-source label,
+  .baseline-editor .btn,
+  .baseline-editor .link-button {
+    min-height: 44px;
+  }
+
+  .cost-chip-hide,
+  .cost-tab .link-button,
+  .cost-tab .pencil-button,
+  .baseline-editor .link-button {
+    min-width: 44px;
+  }
+
+  .cost-tab .link-button,
+  .baseline-editor .link-button {
+    padding: 0 0.25rem;
+  }
+
+  .cost-tab .price-source input[type="checkbox"] {
+    width: 22px;
+    height: 22px;
+  }
+
+  .cost-chip-wrap {
+    margin-left: 0;
+  }
+}
+
 /* Print summary — hidden on screen */
 .print-summary {
   display: none;
@@ -764,7 +1405,12 @@ h1, h2, h3, h4, h5, h6 {
   .app-intro,
   .categories-container,
   .app-footer,
-  .app-version {
+  .app-version,
+  .tab-bar,
+  .cost-tab,
+  .baseline-editor,
+  .cost-chip-wrap,
+  .cost-button {
     display: none !important;
   }
 

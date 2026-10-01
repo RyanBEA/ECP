@@ -1,11 +1,20 @@
-import React, { useState, useMemo, useEffect } from 'react'
+import React, { useState, useMemo, useEffect, useCallback } from 'react'
 import { categories, tiers, calculateWallRsi, getWallPoints } from './data/ecpData'
 import CategoryCard from './components/CategoryCard'
 import WallBuilder from './components/WallBuilder'
 import PointsCounter from './components/PointsCounter'
 import PrintSummary from './components/PrintSummary'
+import TabBar from './components/TabBar'
+import HeaderCostChip from './components/HeaderCostChip'
+import CostTab from './components/CostTab'
+import BaselineEditor from './components/BaselineEditor'
 import { DISCLAIMER, USAGE_NOTICE } from './data/disclaimer'
 import { buildPrintEvent, sendPrintEvent } from './utils/printEvent'
+import { useHouseCost, resolveHouseFields } from './costing/useHouseCost'
+import { loadPersisted, savePersisted } from './costing/persist'
+import { chipText, chipSecondLine } from './costing/delta'
+import { getPresetPicks } from './costing/baselines'
+import { overrideKey, lineOverrideKey } from './costing/priceHouse'
 
 const APP_VERSION = '1.2.0'
 const APP_UPDATED = '2026-09-11'
@@ -101,6 +110,95 @@ export default function App() {
 
   const targetPoints = selectedTier.points
 
+  // --- Cost tab state (spec 2, 3, 5, 7.3, 8.4). Design picks stay as above and are never persisted. ---
+  const [activeTab, setActiveTab] = useState('points')
+  const [persisted, setPersisted] = useState(() => loadPersisted())
+  useEffect(() => { savePersisted(persisted) }, [persisted])
+  // Merge a partial blob, or a function of the previous blob returning one, into the persisted state.
+  const patch = useCallback(p => setPersisted(prev => ({ ...prev, ...(typeof p === 'function' ? p(prev) : p) })), [])
+  const [editing, setEditing] = useState(null)   // null | { initialPicks } while the baseline editor is open
+  const [editorDirty, setEditorDirty] = useState(false)
+  const [openLine, setOpenLine] = useState(null)
+  const [frozenOrder, setFrozenOrder] = useState(null)
+  const [notice, setNotice] = useState('')
+
+  const { houseType, baselineChoice, usualHouse, overrides, fieldOverrides } = persisted
+  const houseFields = useMemo(() => resolveHouseFields(houseType, fieldOverrides), [houseType, fieldOverrides])
+  const cost = useHouseCost({ selections, wallSelection, houseType, houseFields, baselineChoice, usualHouse, overrides, frozenOrder })
+
+  // The footer button is enabled whenever any card has a pick (spec 2.2).
+  const anyPick = Object.keys(selections).length > 0 || Boolean(wallSelection.wallType)
+    || (wallSelection.simpleIndex !== undefined && wallSelection.simpleIndex !== null)
+  const showChip = persisted.hasOpenedCost && !persisted.chipHidden
+
+  const openCost = () => {
+    setActiveTab('cost')
+    if (!persisted.hasOpenedCost) patch({ hasOpenedCost: true })
+  }
+  // The tab bar is inert while the baseline editor is open (spec 2.1, M5).
+  const changeTab = id => {
+    if (editing) return
+    if (id === 'cost') openCost()
+    else setActiveTab(id)
+  }
+
+  // Changing Type clears that type's field overrides, with a one-line notice (spec 3.1, M6). A usual house is
+  // per type: with none saved for the new type, compare with Typical Tier 2.
+  const onTypeChange = type => {
+    const hadOverrides = Object.keys(fieldOverrides[houseType] || {}).length > 0
+    patch(prev => ({
+      houseType: type,
+      fieldOverrides: { ...prev.fieldOverrides, [type]: {} },
+      baselineChoice: prev.baselineChoice === 'usualHouse' && !prev.usualHouse[type] ? 'typicalTier2' : prev.baselineChoice,
+    }))
+    setNotice(hadOverrides ? 'House type changed; your changed fields were reset to the new type.' : '')
+  }
+  // undefined is a reset: the key is deleted so the field reads "assumed" again.
+  const onFieldChange = (key, value) => patch(prev => {
+    const forType = { ...(prev.fieldOverrides[houseType] || {}) }
+    if (value === undefined) delete forType[key]
+    else forType[key] = value
+    return { fieldOverrides: { ...prev.fieldOverrides, [houseType]: forType } }
+  })
+
+  const onEditUsual = () => setEditing({ initialPicks: usualHouse[houseType] || getPresetPicks('typicalTier2', houseType) })
+  const closeEditor = () => { setEditing(null); setEditorDirty(false) }
+  const onEditorDone = picks => {
+    patch(prev => ({ usualHouse: { ...prev.usualHouse, [houseType]: picks }, baselineChoice: 'usualHouse' }))
+    closeEditor()
+  }
+  const onEditorCancel = () => {
+    if (editorDirty && !window.confirm('Discard changes to your usual house?')) return
+    closeEditor()
+  }
+  const onResetUsual = () => patch(prev => {
+    const next = { ...prev.usualHouse }
+    delete next[houseType]
+    return { usualHouse: next, baselineChoice: 'typicalTier2' }
+  })
+
+  // Price overrides (spec 7.2). CostTab hands over values already in stored units ($/m2 where priced in m2).
+  const onOverride = (side, categoryId, component, priceId, field, value) => patch(prev => {
+    const key = overrideKey(side, categoryId, component, priceId)
+    const next = { ...prev.overrides, [key]: { ...(prev.overrides[key] || {}) } }
+    if (value === undefined) {
+      delete next[key][field]
+      if (!Object.keys(next[key]).length) delete next[key]
+    } else next[key][field] = value
+    return { overrides: next }
+  })
+  const onLineOverride = (side, categoryId, value) => patch(prev => {
+    const key = lineOverrideKey(side, categoryId)
+    const next = { ...prev.overrides }
+    if (value === undefined) delete next[key]
+    else next[key] = { line: value }
+    return { overrides: next }
+  })
+  // A card's "reset all" (R36): every override whose category segment is this card's.
+  const onResetCategoryOverrides = categoryId => patch(prev => ({
+    overrides: Object.fromEntries(Object.entries(prev.overrides).filter(([k]) => k.split('/')[1] !== categoryId)),
+  }))
+
   return (
     <div className={`app ${darkMode ? 'dark' : ''}`}>
       <header className="app-header">
@@ -141,9 +239,21 @@ export default function App() {
         >
           {darkMode ? 'Light' : 'Dark'}
         </button>
+        {showChip && activeTab === 'points' && (
+          <HeaderCostChip
+            text={chipText(cost.delta.headline.exact)}
+            secondLine={chipSecondLine(cost.delta.headline.exact, cost.baselineName, cost.overrideCount > 0)}
+            onOpen={openCost}
+            onHide={() => patch({ chipHidden: true })}
+          />
+        )}
         <PointsCounter total={totalPoints} target={targetPoints} />
       </header>
 
+      <TabBar active={activeTab} onChange={changeTab} disabled={Boolean(editing)} />
+
+      {/* Points stays mounted while Cost is shown, so WallBuilder keeps its state (spec 2.1). */}
+      <div className="tab-panel" id="panel-points" role="tabpanel" aria-labelledby="tab-points" hidden={activeTab !== 'points'}>
       <section className="app-intro">
         <strong>Prescriptive Tier 2 Compliance Calculator</strong>
         <p>
@@ -239,9 +349,56 @@ export default function App() {
           >
             Save / Print
           </button>
+          <button
+            className="print-button cost-button"
+            onClick={openCost}
+            disabled={!anyPick}
+          >
+            {persisted.hasOpenedCost ? 'Cost details ->' : 'What does this cost? ->'}
+          </button>
         </div>
         <p className="usage-notice">{USAGE_NOTICE}</p>
       </footer>
+      </div>
+
+      <div className="tab-panel" id="panel-cost" role="tabpanel" aria-labelledby="tab-cost" hidden={activeTab !== 'cost'}>
+        {activeTab === 'cost' && (editing
+          ? (
+            <BaselineEditor
+              initialPicks={editing.initialPicks}
+              houseType={houseType}
+              fillMissing
+              onDone={onEditorDone}
+              onCancel={onEditorCancel}
+              onDirtyChange={setEditorDirty}
+            />
+          ) : (
+            <CostTab
+              cost={cost}
+              houseType={houseType}
+              houseFields={houseFields}
+              overriddenKeys={Object.keys(fieldOverrides[houseType] || {})}
+              baselineChoice={baselineChoice}
+              usualHouse={usualHouse}
+              overrideCount={cost.overrideCount}
+              onTypeChange={onTypeChange}
+              onFieldChange={onFieldChange}
+              onBaselineChoice={v => patch({ baselineChoice: v })}
+              onEditUsual={onEditUsual}
+              onResetUsual={onResetUsual}
+              onOverride={onOverride}
+              onLineOverride={onLineOverride}
+              onResetAllOverrides={() => patch({ overrides: {} })}
+              onResetCategoryOverrides={onResetCategoryOverrides}
+              chipHidden={persisted.chipHidden}
+              onToggleChip={() => patch(prev => ({ chipHidden: !prev.chipHidden }))}
+              openLine={openLine}
+              onOpenLine={setOpenLine}
+              onFreezeOrder={setFrozenOrder}
+              notice={notice}
+            />
+          ))}
+      </div>
 
       <p className="app-version">v{APP_VERSION} — Updated {APP_UPDATED}</p>
 
