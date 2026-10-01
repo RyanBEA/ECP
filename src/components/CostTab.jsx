@@ -45,7 +45,12 @@ function changedCountFor(line) {
 export default function CostTab(props) {
   const { cost, houseType, houseFields, overriddenKeys, baselineChoice, usualHouse, overrideCount, onTypeChange, onFieldChange, onBaselineChoice, onEditUsual, onResetUsual,
     onOverride, onLineOverride, onResetAllOverrides, onResetCategoryOverrides = () => {}, chipHidden, onToggleChip, openLine, onOpenLine, onFreezeOrder, notice } = props
-  const [level3, setLevel3] = useState(null)
+  // Level 3 is App state beside openLine (ruling R45), so it survives the baseline editor; without the props
+  // (component tests) CostTab keeps it itself.
+  const [ownLevel3, setOwnLevel3] = useState(null)
+  const controlled = props.onLevel3 !== undefined
+  const level3 = controlled ? props.level3 ?? null : ownLevel3
+  const setLevel3 = controlled ? props.onLevel3 : setOwnLevel3
   const { delta, sentences, baselineName } = cost
   const hasUsual = Boolean(usualHouse?.[houseType])
   const typeName = getArchetype(houseType)?.name ?? houseType
@@ -66,7 +71,7 @@ export default function CostTab(props) {
   const sidebar = (
     <aside className="cost-sidebar">
       <HouseFields houseType={houseType} fields={houseFields} overriddenKeys={overriddenKeys} onTypeChange={onTypeChange} onFieldChange={onFieldChange} notice={notice} />
-      <BaselinePicker choice={baselineChoice} onChoice={onBaselineChoice} onEdit={onEditUsual} onResetUsual={onResetUsual} hasUsual={hasUsual} baselinePicks={cost.baselinePicks} />
+      <BaselinePicker choice={baselineChoice} onChoice={onBaselineChoice} onEdit={onEditUsual} onResetUsual={onResetUsual} hasUsual={hasUsual} baselinePicks={cost.baselinePicks} belowGradeApplicable={cost.quantities.belowGradeApplicable} />
       <div className="price-source"><h3>Prices</h3>
         <p className="costing-note">Prices: {PRICE_SOURCE_LABEL}, saved on this device{overrideCount > 0 && <> . you've changed {overrideCount} price{overrideCount === 1 ? '' : 's'} . <button type="button" className="link-button" onClick={onResetAllOverrides}>reset all</button></>}</p>
         <label className="costing-note"><input type="checkbox" checked={!chipHidden} onChange={onToggleChip} /> Show cost on Points</label></div>
@@ -78,7 +83,7 @@ export default function CostTab(props) {
         <section className="cost-statement">
           <h2 className="headline">$0</h2>
           <p>Pick options on the Points tab to see what they add.</p>
-          <p className="costing-note">{baselineName} means: {picksSmallPrint(cost.baselinePicks)}.</p>
+          <p className="costing-note">{baselineName} means: {picksSmallPrint(cost.baselinePicks, { belowGradeApplicable: cost.quantities.belowGradeApplicable })}.</p>
         </section></div>
     )
   }

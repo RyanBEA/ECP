@@ -1,5 +1,5 @@
 import React, { useState, useMemo, useEffect, useCallback, useRef } from 'react'
-import { categories, tiers, calculateWallRsi, getWallPoints } from './data/ecpData'
+import { categories, tiers } from './data/ecpData'
 import CategoryCard from './components/CategoryCard'
 import WallBuilder from './components/WallBuilder'
 import PointsCounter from './components/PointsCounter'
@@ -15,6 +15,7 @@ import { loadPersisted, savePersisted } from './costing/persist'
 import { chipText, chipSecondLine } from './costing/delta'
 import { getPresetPicks } from './costing/baselines'
 import { overrideKey, lineOverrideKey } from './costing/priceHouse'
+import { applySelect, isCategoryDisabled, totalCardPoints, wallPointsFor } from './costing/usePicks'
 
 const APP_VERSION = '1.4.0-cost-ui'
 const APP_UPDATED = '2026-10-01'
@@ -45,68 +46,12 @@ export default function App() {
   const handleProjectChange = (field) => (e) =>
     setProjectInfo(prev => ({ ...prev, [field]: e.target.value }))
 
-  // Handle option selection for standard categories
-  const handleSelect = (categoryId, optionIndex) => {
-    const category = categories.find(c => c.id === categoryId)
-
-    setSelections(prev => {
-      const next = { ...prev }
-
-      // If this category is in an exclusive group, clear other members
-      if (category.exclusiveGroup) {
-        categories
-          .filter(c => c.exclusiveGroup === category.exclusiveGroup && c.id !== categoryId)
-          .forEach(c => delete next[c.id])
-      }
-
-      // Set or clear the selection
-      if (optionIndex === null) {
-        delete next[categoryId]
-      } else {
-        next[categoryId] = optionIndex
-      }
-
-      return next
-    })
-  }
-
-  // Calculate wall points from wall selection (either simple or builder mode)
-  const wallPoints = useMemo(() => {
-    const { simpleIndex } = wallSelection
-
-    // Simple mode - direct option selection
-    if (simpleIndex !== undefined && simpleIndex !== null) {
-      const wallCategory = categories.find(c => c.id === 'aboveGroundWalls')
-      return wallCategory.options[simpleIndex].points
-    }
-
-    // Builder mode - lookup from assembly
-    const rsi = calculateWallRsi(wallSelection)
-    return getWallPoints(rsi)
-  }, [wallSelection])
-
-  // Calculate total points
-  const totalPoints = useMemo(() => {
-    const categoryPoints = Object.entries(selections).reduce((sum, [categoryId, optionIndex]) => {
-      const category = categories.find(c => c.id === categoryId)
-      if (category && category.options && optionIndex !== null) {
-        return sum + category.options[optionIndex].points
-      }
-      return sum
-    }, 0)
-
-    return categoryPoints + wallPoints
-  }, [selections, wallPoints])
-
-  // Check if a category is disabled (due to exclusive group)
-  const isDisabled = (category) => {
-    if (!category.exclusiveGroup) return false
-
-    // Check if another category in the same group is selected
-    return categories
-      .filter(c => c.exclusiveGroup === category.exclusiveGroup && c.id !== category.id)
-      .some(c => selections[c.id] !== undefined)
-  }
+  // Points selection logic is shared with the baseline editor through usePicks (spec 5): the same functions as
+  // main's handleSelect, wallPoints, totalPoints and isDisabled, so Points behaves exactly as on main.
+  const handleSelect = (categoryId, optionIndex) => setSelections(prev => applySelect(prev, categoryId, optionIndex))
+  const wallPoints = useMemo(() => wallPointsFor(wallSelection), [wallSelection])
+  const totalPoints = useMemo(() => totalCardPoints(selections) + wallPoints, [selections, wallPoints])
+  const isDisabled = category => isCategoryDisabled(selections, category)
 
   const targetPoints = selectedTier.points
 
@@ -119,6 +64,7 @@ export default function App() {
   const [editing, setEditing] = useState(null)   // null | { initialPicks } while the baseline editor is open
   const [editorDirty, setEditorDirty] = useState(false)
   const [openLine, setOpenLine] = useState(null)
+  const [level3, setLevel3] = useState(null)   // the line whose level 3 is open; kept here so it survives the editor (R45)
   const [frozenOrder, setFrozenOrder] = useState(null)
   const [notice, setNotice] = useState('')
 
@@ -152,24 +98,25 @@ export default function App() {
     else setActiveTab(id)
   }
 
-  // Changing Type clears that type's field overrides, with a one-line notice (spec 3.1, M6). A usual house is
-  // per type: with none saved for the new type, compare with Typical Tier 2.
+  // Changing Type clears that type's field overrides, with a one-line notice (spec 3.1, M6). baselineChoice is
+  // left as it is: with no usual house for the new type, resolveBaselinePicks and BaselinePicker fall back to
+  // Typical Tier 2, and switching back to a type with one shows it again (ruling R45).
   const onTypeChange = type => {
     const hadOverrides = Object.keys(fieldOverrides[houseType] || {}).length > 0
-    patch(prev => ({
-      houseType: type,
-      fieldOverrides: { ...prev.fieldOverrides, [type]: {} },
-      baselineChoice: prev.baselineChoice === 'usualHouse' && !prev.usualHouse[type] ? 'typicalTier2' : prev.baselineChoice,
-    }))
+    patch(prev => ({ houseType: type, fieldOverrides: { ...prev.fieldOverrides, [type]: {} } }))
     setNotice(hadOverrides ? 'House type changed; your changed fields were reset to the new type.' : '')
   }
-  // undefined is a reset: the key is deleted so the field reads "assumed" again.
-  const onFieldChange = (key, value) => patch(prev => {
-    const forType = { ...(prev.fieldOverrides[houseType] || {}) }
-    if (value === undefined) delete forType[key]
-    else forType[key] = value
-    return { fieldOverrides: { ...prev.fieldOverrides, [houseType]: forType } }
-  })
+  // undefined is a reset: the key is deleted so the field reads "assumed" again. Any field change clears the
+  // Type-change notice (R45).
+  const onFieldChange = (key, value) => {
+    setNotice('')
+    patch(prev => {
+      const forType = { ...(prev.fieldOverrides[houseType] || {}) }
+      if (value === undefined) delete forType[key]
+      else forType[key] = value
+      return { fieldOverrides: { ...prev.fieldOverrides, [houseType]: forType } }
+    })
+  }
 
   const onEditUsual = () => setEditing({ initialPicks: usualHouse[houseType] || getPresetPicks('typicalTier2', houseType) })
   const closeEditor = () => { setEditing(null); setEditorDirty(false) }
@@ -404,6 +351,8 @@ export default function App() {
               onToggleChip={() => patch(prev => ({ chipHidden: !prev.chipHidden }))}
               openLine={openLine}
               onOpenLine={setOpenLine}
+              level3={level3}
+              onLevel3={setLevel3}
               onFreezeOrder={setFrozenOrder}
               notice={notice}
             />

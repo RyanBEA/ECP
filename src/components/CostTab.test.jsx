@@ -251,3 +251,73 @@ describe('CostTab open lines and order (R40)', () => {
     expect(houseNoun('Mini-home')).toBe('mini-home')
   })
 })
+
+// Final fix wave (rulings R44, R45)
+const detail = () => within(document.querySelector('.line-detail'))
+const OVERHEAD = 'Installed prices are assumed to include contractor overhead, profit and waste.'
+
+describe('CostTab level 2: per-line price source (R44)', () => {
+  it('a windows line, all placeholder prices, gets the placeholder sentence', () => {
+    render(<SpyHarness selections={{ windowsDoors: 1 }} />)
+    fireEvent.click(screen.getByRole('button', { name: /^Windows and doors/ }))
+    expect(detail().getByText(`Prices: placeholders (no LEEP data for this item), supplied and installed, before HST. ${OVERHEAD}`)).toBeInTheDocument()
+    expect(detail().queryByText(/LEEP [A-Z]{2}/)).toBeNull()
+  })
+  it('the walls line gets a LEEP mixed sentence', () => {
+    render(<SpyHarness wallSelection={{ simpleIndex: 5 }} />)
+    fireEvent.click(screen.getByRole('button', { name: /^Above-ground walls/ }))
+    const li = detail().getByText(/^Prices: LEEP /)
+    expect(li.textContent).toMatch(/^Prices: LEEP (ON|MB|BC)(\/(ON|MB|BC))* rows for (\d+) of (\d+) layers, placeholders for the rest, supplied and installed, before HST\. /)
+    const { n, m } = li.textContent.match(/ rows for (?<n>\d+) of (?<m>\d+) layers/).groups
+    expect(Number(n)).toBeGreaterThan(0)
+    expect(Number(n)).toBeLessThan(Number(m))
+    expect(li.textContent.endsWith(OVERHEAD)).toBe(true)
+  })
+})
+
+describe('CostTab level 2: wall RSI, doors row and notes (R45)', () => {
+  it('an assembly wall reads "RSI x.xx (...)" in level 2 and the small print; a level keeps "assumed assembly"', () => {
+    render(<SpyHarness wallSelection={{ simpleIndex: 5 }} />)
+    const row = screen.getByRole('button', { name: /^Above-ground walls/ })
+    expect(row).toHaveTextContent('Typical Tier 2: RSI 3.99 (2x6 R24 batt + 1 in XPS, OSB, vinyl)')
+    fireEvent.click(row)
+    const table = document.querySelector('.comparison')
+    expect(within(table).getByText('RSI 3.99 (2x6 R24 batt + 1 in XPS, OSB, vinyl)')).toBeInTheDocument()
+    expect(within(table).getByText(/^RSI 4\.4, assumed assembly: /)).toBeInTheDocument()
+  })
+  it('windows level 2 has a doors row, and per unit x quantity + doors = cost', () => {
+    render(<SpyHarness selections={{ windowsDoors: 1 }} />)
+    fireEvent.click(screen.getByRole('button', { name: /^Windows and doors/ }))
+    const rows = [...document.querySelectorAll('.comparison tbody tr')].map(tr => [...tr.cells].map(td => td.textContent))
+    const doors = rows.find(r => r[0] === 'doors')
+    expect(doors).toBeDefined()
+    expect(doors[1]).toMatch(/^2 each x \$[\d,]+$/)
+    expect(doors[2]).toMatch(/^2 each x \$[\d,]+$/)
+    expect(rows.map(r => r[0])).toEqual(['option', 'installed', 'quantity', 'doors', 'cost'])
+    const num = t => Number(t.replace(/[^\d.]/g, ''))
+    for (const col of [1, 2]) {
+      const per = num(rows[1][col]), qty = num(rows[2][col])
+      const [, count, each] = rows[3][col].match(/^(\d+) each x (.+)$/)
+      // display rounding: per unit to the cent, quantity to the sq ft, cost to the dollar
+      expect(Math.abs(per * qty + Number(count) * num(each) - num(rows[4][col]))).toBeLessThan(qty * 0.005 + per * 0.5 + 1)
+    }
+  })
+  it('the DHW line says gas heaters are priced as natural gas', () => {
+    render(<SpyHarness selections={{ dhwGas: 1 }} />)
+    fireEvent.click(screen.getByRole('button', { name: /^Water heating/ }))
+    expect(detail().getByText('Gas heaters are priced as natural gas.')).toBeInTheDocument()
+  })
+  it('the above-ground walls line notes rim joists', () => {
+    render(<SpyHarness wallSelection={{ simpleIndex: 5 }} />)
+    fireEvent.click(screen.getByRole('button', { name: /^Above-ground walls/ }))
+    expect(detail().getByText('Rim joists are the same in both houses and are not priced.')).toBeInTheDocument()
+  })
+  it('the baseline small print leaves out below grade when there is no foundation wall', () => {
+    render(<Harness selections={{ hrv: 2 }} />)
+    const smallPrint = () => document.querySelector('.baseline-picker .small-print').textContent
+    expect(smallPrint()).toMatch(/below grade RSI 3\.46/)
+    expect(smallPrint()).toMatch(/^walls RSI 3\.99 \(2x6 R24 batt/)
+    fireEvent.change(screen.getByLabelText('Foundation wall height (ft, 0 = none)'), { target: { value: '0' } })
+    expect(smallPrint()).not.toMatch(/below grade/)
+  })
+})

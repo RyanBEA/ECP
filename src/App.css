@@ -1059,7 +1059,7 @@ h1, h2, h3, h4, h5, h6 {
 }
 
 .line-delta.z {
-  color: var(--gray-400);
+  color: var(--text-secondary);
   font-weight: 600;
 }
 

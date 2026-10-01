@@ -2,7 +2,7 @@
 // Computed RSI (calculateWallRsi, 2 decimals) is noted per level. Levels changed from the drafted table because
 // they computed outside their step: 2.97, 3.08, 4.4, 4.57, 4.73, 4.84, 5.01, 5.45. 3.69 and 4.29 moved to polyiso
 // so they sit clear of their step edges (ruling R20).
-import { getBoundaryOptions, getContinuousInsRsi } from '../data/ecpData'
+import { getBoundaryOptions, getContinuousInsRsi, categories, calculateWallRsi } from '../data/ecpData'
 import wallData from '../data/generated/wall-data.json'
 import { parallelPath } from '@scripts/compute.js'
 const b = getBoundaryOptions()
@@ -38,6 +38,17 @@ export function describeWall(s) {
   const shId = s.sheathingId || b.sheathing.defaults.wood
   const clId = s.claddingId || b.cladding.defaults.wood
   return `${s.cavityType} ${cavity}${oc}${ci}, ${SHEATH_WORD[shId] || shId}, ${CLAD_WORD[clId] || clId}`
+}
+
+// A wall in words (rulings R43, R45): a Select RSI pick is 'RSI <level>'; an assembly is its computed RSI to
+// 2 decimals with its description, e.g. 'RSI 3.99 (2x6 R24 batt + 1 in XPS, OSB, vinyl)'. Shared by the baseline
+// editor's change notes, priceHouse's assembly descriptions and the baseline small print.
+export function wallText(ws) {
+  if (ws?.simpleIndex !== undefined && ws?.simpleIndex !== null) return `RSI ${categories.find(c => c.id === 'aboveGroundWalls').options[ws.simpleIndex].value}`
+  const rsi = calculateWallRsi(ws || {})
+  if (rsi === null || rsi === undefined) return 'an incomplete wall'
+  const d = describeWall(ws)
+  return d === 'wall' ? `RSI ${rsi.toFixed(2)}` : `RSI ${rsi.toFixed(2)} (${d})`
 }
 
 // Below-grade: no builder on main; every level is an assumed assembly priced as one item (spec 4.5).

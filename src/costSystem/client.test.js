@@ -1,4 +1,4 @@
-import { lookupCost, requestCosts, PRICE_SOURCE_LABEL, STAND_IN_ROW_COUNT, STAND_IN_KEY_COUNT } from './client'
+import { lookupCost, requestCosts, PRICE_SOURCE_LABEL, STAND_IN_ROW_COUNT, STAND_IN_KEY_COUNT, leepRegions } from './client'
 import { WALL_LAYER_OPTIONS, CARD_OPTIONS, HRV_SIZE_CLASSES, WATER_HEATER_FUEL, WATER_HEATER_SIZES, FRAMING_STUDS, FRAMING_SPACINGS, CI_MATERIALS, CI_THICKNESSES } from '../costing/optionMap'
 import rows from '../costing/data/stand-in-costs.json'
 
@@ -39,7 +39,15 @@ describe('lookupCost', () => {
     }
   })
   it('names the source for the headline', () => {
-    expect(PRICE_SOURCE_LABEL).toBe('placeholder and LEEP 2013-2016 (Ontario, Manitoba, BC) data')
+    // Ruling R44: the label names only the regions present in the table; there are no BC rows today.
+    expect(PRICE_SOURCE_LABEL).toBe('placeholder and LEEP 2013-2016 (Ontario, Manitoba) data')
+  })
+  it('the label names exactly the LEEP regions the rows use (R44)', () => {
+    const NAME = { ON: 'Ontario', MB: 'Manitoba', BC: 'BC' }
+    const present = ['ON', 'MB', 'BC'].filter(code => rows.some(r => leepRegions(r.source).includes(code)))
+    expect(PRICE_SOURCE_LABEL).toBe(`placeholder and LEEP 2013-2016 (${present.map(c => NAME[c]).join(', ')}) data`)
+    expect(leepRegions('LEEP MB/BC')).toEqual(['MB', 'BC'])
+    expect(leepRegions('placeholder')).toEqual([])
   })
   it('every row names a LEEP region or placeholder', () => {
     for (const r of rows) expect(SOURCES, `${r.component}/${r.option}`).toContain(r.source)

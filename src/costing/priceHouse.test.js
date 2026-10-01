@@ -220,3 +220,23 @@ describe('priceHouse fix round 1 (rulings R23-R26)', () => {
     expect(d.material).toBe(5); expect(d.overridden).toEqual({ material: true, labour: false })
   })
 })
+
+// Ruling R45: an assembly wall's description carries its computed RSI; a Select RSI level keeps its wording.
+describe('priceHouse wall descriptions (R45)', () => {
+  it('describes an assembly wall as RSI x.xx (layers)', () => {
+    const r = priceHouse(typical, q, {}, 'baseline')
+    expect(r.aboveGroundWalls.description).toBe('RSI 3.99 (2x6 R24 batt + 1 in XPS, OSB, vinyl)')
+    const built = priceHouse({ cards: {}, wall: { kind: 'assembly', selection: builtWall } }, q, {}, 'design')
+    expect(built.aboveGroundWalls.description).toMatch(/^RSI \d\.\d\d \(2x6 R24 batt \+ 2 in Polyiso, OSB, vinyl\)$/)
+  })
+  it('a Select RSI level still reads "RSI <level>, assumed assembly: ..."', () => {
+    const r = priceHouse({ cards: {}, wall: { kind: 'level', rsi: 4.29 } }, q, {}, 'design')
+    expect(r.aboveGroundWalls.description).toBe('RSI 4.29, assumed assembly: 2x6 R22 batt + 1-1/2 in Polyiso, OSB, vinyl')
+  })
+  it('windows: per-unit x window area + doors = cost (R45)', () => {
+    const r = priceHouse({ cards: { windowsDoors: 1.22 }, wall: null }, q, {}, 'design').windowsDoors
+    const doors = r.components.filter(c => c.unit === 'each')
+    expect(doors.map(c => c.component)).toEqual(['doors'])
+    expect(r.perUnit * r.quantity + doors.reduce((s, c) => s + (c.material + c.labour) * c.quantity, 0)).toBeCloseTo(r.cost, 6)
+  })
+})

@@ -1,4 +1,4 @@
-import { ASSUMED_WALLS, assumedWallSelection, describeWall, ASSUMED_FOUNDATIONS } from './assumedAssemblies'
+import { ASSUMED_WALLS, assumedWallSelection, describeWall, ASSUMED_FOUNDATIONS, wallText } from './assumedAssemblies'
 import { calculateWallRsi, wallPointsThresholds, MIN_WALL_RSI } from '../data/ecpData'
 import { wallLayers } from './wallLayers'
 import { foundationAssemblyRsi } from './assumedAssemblies'
@@ -72,5 +72,14 @@ describe('assumed assemblies, fix round 1 (rulings R19, R20)', () => {
     const odd = describeWall({ ...w, sheathingId: 'mystery_board', claddingId: 'mystery_siding' })
     expect(odd).toBe('2x6 R24 batt @ 24 in + 1 in XPS, mystery_board, mystery_siding')
     expect(odd).not.toContain('undefined')
+  })
+})
+
+// Ruling R45: wallText moved here from BaselineEditor and shared.
+describe('wallText (R45)', () => {
+  it('a Select RSI pick is its level; an assembly is its computed RSI with its description', () => {
+    expect(wallText({ simpleIndex: 3 })).toBe('RSI 3.96')
+    expect(wallText(assumedWallSelection(3.96))).toBe('RSI 3.99 (2x6 R24 batt + 1 in XPS, OSB, vinyl)')
+    expect(wallText({})).toBe('an incomplete wall')
   })
 })

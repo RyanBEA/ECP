@@ -1,13 +1,13 @@
 // The baseline editor, "Your usual house" (spec 5, 5.1, 7.4). Reuses the Points cards in the baseline variant
 // and holds its own draft: Done commits it by value, Cancel discards it.
 import React, { useState, useEffect, useMemo } from 'react'
-import { categories, calculateWallRsi } from '../data/ecpData'
+import { categories } from '../data/ecpData'
 import CategoryCard from './CategoryCard'
 import WallBuilder from './WallBuilder'
 import PointsCounter from './PointsCounter'
 import { picksToSelections, selectionsToPicks, applySelect, isCategoryDisabled, totalCardPoints, wallPointsFor } from '../costing/usePicks'
 import { getPresetPicks, BASELINE_NAMES, presetText } from '../costing/baselines'
-import { describeWall } from '../costing/assumedAssemblies'
+import { wallText } from '../costing/assumedAssemblies'
 import { fillFromTypical } from '../costing/useHouseCost'
 
 const TIER2 = 10   // fixed, whatever the header tier shows (spec 5)
@@ -40,16 +40,6 @@ function presetSide(c, preset) {
 function optionText(c, option) {
   const v = c.metric ? `${c.metric} ${option.value}` : c.unit ? `${option.value} ${c.unit}` : `${option.value}`
   return option.label ? `${v} (${option.label})` : v
-}
-
-// A wall in words (ruling R43): a Select RSI pick is 'RSI <level>'; an assembly is its computed RSI to 2 decimals
-// with its description, e.g. 'RSI 3.99 (2x6 R24 batt + 1 in XPS, OSB, vinyl)'.
-function wallText(ws) {
-  if (ws?.simpleIndex !== undefined && ws?.simpleIndex !== null) return `RSI ${wallCategory.options[ws.simpleIndex].value}`
-  const rsi = calculateWallRsi(ws || {})
-  if (rsi === null || rsi === undefined) return 'an incomplete wall'
-  const d = describeWall(ws)
-  return d === 'wall' ? `RSI ${rsi.toFixed(2)}` : `RSI ${rsi.toFixed(2)} (${d})`
 }
 
 export default function BaselineEditor({ initialPicks, houseType, onDone, onCancel, onDirtyChange, fillMissing = false }) {

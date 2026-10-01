@@ -1,18 +1,20 @@
 import React from 'react'
 import { BASELINE_PRESETS, BASELINE_NAMES } from '../costing/baselines'
-import { describeWall } from '../costing/assumedAssemblies'
+import { wallText } from '../costing/assumedAssemblies'
 
 // "Compared with" (spec 3.1): three choices, each with its one-line description (all three shown, ruling R4).
 // "My usual house..." (none saved for this type) opens the editor; an existing usual house is chosen like the others (R40).
 const CHOICES = ['codeMinimum', 'typicalTier2', 'usualHouse']
 const DESCRIBE = { codeMinimum: BASELINE_PRESETS.codeMinimum.describe, typicalTier2: BASELINE_PRESETS.typicalTier2.describe, usualHouse: 'Start from Typical Tier 2 and change what you do differently.' }
 
-export function picksSmallPrint(picks) {
+// belowGradeApplicable: false when the house has no foundation wall (foundation height 0), so the below-grade
+// part is left out (ruling R45).
+export function picksSmallPrint(picks, { belowGradeApplicable = true } = {}) {
   if (!picks) return ''
   const c = picks.cards || {}
-  const wall = picks.wall?.kind === 'assembly' ? describeWall(picks.wall.selection) : picks.wall?.kind === 'level' ? `RSI ${picks.wall.rsi}` : 'no wall'
+  const wall = picks.wall?.kind === 'assembly' ? wallText(picks.wall.selection) : picks.wall?.kind === 'level' ? `RSI ${picks.wall.rsi}` : 'no wall'
   const parts = [`walls ${wall}`]
-  if (c.belowGradeWalls !== undefined) parts.push(`below grade RSI ${c.belowGradeWalls}`)
+  if (belowGradeApplicable && c.belowGradeWalls !== undefined) parts.push(`below grade RSI ${c.belowGradeWalls}`)
   if (c.windowsDoors !== undefined) parts.push(`windows U ${c.windowsDoors}`)
   if (c.airTightness !== undefined) parts.push(c.airTightness === 'untested' ? 'untested airtightness' : `${c.airTightness} ACH50`)
   if (c.hrv !== undefined) parts.push(`HRV ${c.hrv}%`)
@@ -20,7 +22,7 @@ export function picksSmallPrint(picks) {
   return parts.join(' . ')
 }
 
-export default function BaselinePicker({ choice, onChoice, onEdit, onResetUsual, hasUsual, baselinePicks }) {
+export default function BaselinePicker({ choice, onChoice, onEdit, onResetUsual, hasUsual, baselinePicks, belowGradeApplicable = true }) {
   const effective = choice === 'usualHouse' && !hasUsual ? 'typicalTier2' : choice
   const label = id => (id === 'usualHouse' ? (hasUsual ? 'My usual house' : 'My usual house...') : BASELINE_NAMES[id])
   return (
@@ -37,7 +39,7 @@ export default function BaselinePicker({ choice, onChoice, onEdit, onResetUsual,
           </li>
         ))}
       </ul>
-      <p className="costing-note small-print">{picksSmallPrint(baselinePicks)}</p>
+      <p className="costing-note small-print">{picksSmallPrint(baselinePicks, { belowGradeApplicable })}</p>
     </div>
   )
 }

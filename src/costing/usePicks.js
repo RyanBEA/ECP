@@ -23,10 +23,16 @@ export function isCategoryDisabled(selections, category) {
   return categories.filter(c => c.exclusiveGroup === category.exclusiveGroup && c.id !== category.id).some(c => selections[c.id] !== undefined)
 }
 
+// Main's App.jsx totalPoints card sum, verbatim in behaviour (App uses it for Points, ruling R45).
 export function totalCardPoints(selections) {
-  return Object.entries(selections).reduce((sum, [id, idx]) => sum + (idx === null ? 0 : cat(id)?.options[idx]?.points ?? 0), 0)
+  return Object.entries(selections).reduce((sum, [categoryId, optionIndex]) => {
+    const category = cat(categoryId)
+    if (category && category.options && optionIndex !== null) return sum + category.options[optionIndex].points
+    return sum
+  }, 0)
 }
 
+// Main's App.jsx wallPoints.
 export function wallPointsFor(wallSelection) {
   const ws = wallSelection || {}
   if (ws.simpleIndex !== undefined && ws.simpleIndex !== null) return cat('aboveGroundWalls').options[ws.simpleIndex].points

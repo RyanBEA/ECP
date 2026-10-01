@@ -3,7 +3,7 @@ import { categories } from '../data/ecpData'
 import { lookupCost } from '../costSystem/client'
 import { cardOptionId, WATER_HEATER_PARTS, WATER_HEATER_FUEL, hrvSizeClass } from './optionMap'
 import { wallLayers } from './wallLayers'
-import { assumedWallSelection, describeWall, ASSUMED_FOUNDATIONS } from './assumedAssemblies'
+import { assumedWallSelection, describeWall, wallText, ASSUMED_FOUNDATIONS } from './assumedAssemblies'
 
 export const COSTED_CATEGORIES = ['aboveGroundWalls', 'belowGradeWalls', 'windowsDoors', 'airTightness', 'hrv', 'dhw']
 // `option` is the priced-item id: the price option, or `${option}@${size}` for a sized row (ruling R25).
@@ -93,7 +93,8 @@ export function priceHouse(picks, q, overrides = {}, side = 'design') {
     const assumed = picks.wall.kind === 'level'
     const sel = assumed ? assumedWallSelection(picks.wall.rsi) : picks.wall.selection
     const wl = sel ? wallLayers(sel) : { priced: false, reason: `no assumed assembly for RSI ${picks.wall.rsi}` }
-    const description = assumed ? `RSI ${picks.wall.rsi}, assumed assembly: ${describeWall(sel)}` : describeWall(sel)
+    // Ruling R45: an assembly reads 'RSI 3.99 (2x6 R24 batt + 1 in XPS, OSB, vinyl)'; a level keeps its own wording.
+    const description = assumed ? `RSI ${picks.wall.rsi}, assumed assembly: ${describeWall(sel)}` : wallText(sel)
     out.aboveGroundWalls = wl.priced
       ? finish('aboveGroundWalls', q, wl.layers, description, assumed, overrides, side)
       : unpriced('aboveGroundWalls', q, 'notPriced', description, { reason: wl.reason, assumed })
