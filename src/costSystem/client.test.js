@@ -83,4 +83,16 @@ describe('lookupCost', () => {
       }
     }
   })
+  it('sheathing cost does not fall as thickness rises within a material', () => {
+    const sheets = WALL_LAYER_OPTIONS.filter(o => o.component === 'sheathing')
+      .map(o => o.option.match(/^(.*)_(\d+)_(\d+)in$/)).filter(Boolean)
+      .map(m => ({ id: m[0], material: m[1], inches: Number(m[2]) / Number(m[3]) }))
+    expect(sheets.length).toBe(5)
+    for (const material of new Set(sheets.map(x => x.material))) {
+      const ladder = sheets.filter(x => x.material === material).sort((a, b) => a.inches - b.inches)
+      for (let i = 1; i < ladder.length; i++) {
+        expect(wallTotal('sheathing', ladder[i].id), ladder[i].id).toBeGreaterThanOrEqual(wallTotal('sheathing', ladder[i - 1].id))
+      }
+    }
+  })
 })

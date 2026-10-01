@@ -16,7 +16,8 @@
 //              LEEP rows, so it uses LEEP's generic rigid board rows ('rigid_generic').
 //   cavities   by R-value: $ per RSI. Batts and loose fill from the LEEP batt rows; dense pack from LEEP's
 //              dense-pack row.
-//   sheathing  per inch of thickness from the LEEP sheathing rows, labour their median.
+//   sheathing  per inch of thickness by material, from that material's LEEP rows (OSB); plywood and gypsum
+//              sheathing scale from OSB by a stated factor.
 // Cladding has no LEEP rows at all, so every cladding keeps one flat invented placeholder (PH_WALL below).
 // Non-wall cards (windows, doors, airtightness, HRV, below-grade, water heating) are flat invented placeholders.
 import fs from 'node:fs'
@@ -55,12 +56,27 @@ function leepPrice(targetId) {
   return { material: median(use.map(r => r.material)), labour: median(use.map(r => r.labour)), priced_item: use[0].description, source: `LEEP ${regions.join('/')}` }
 }
 
-// Price option id -> LEEP target id. The LEEP "Insulation, R31 batt" row is filed under 2x8 by map_htap.py;
-// the wall builder offers R31 batts in 2x10, so that row prices r31_batt_2x10.
-const LEEP_ALIAS = { 'cavity_insulation/r31_batt_2x10': 'wall.cavity_insulation.r31_batt_2x8' }
-const leepTarget = (component, option) =>
-  LEEP_ALIAS[`${component}/${option}`] || `wall.${component === 'air_vapour_barrier' ? 'control_layer' : component}.${option}`
-const leepFor = (component, option) => leepPrice(leepTarget(component, option))
+// Price option id -> LEEP target id (null: not priced from its own LEEP row, derived instead).
+// - The LEEP "Insulation, R31 batt" row is filed under 2x8 by map_htap.py; the wall builder offers R31 batts in
+//   2x10, so that row prices r31_batt_2x10.
+// - Polyiso (ruling R18): the ON row filed as isocyanurate_4in reads "Insulation, Polyisocyanurate 51mm (4in)",
+//   so its label contradicts itself. 51 mm is 2 in, and we read it as 2 in: it prices isocyanurate_2in and is the
+//   only polyiso anchor. The MB "polyisocyanurate, foil-faced, 25mm (1in)" row (1.70/0.36 $/sq ft) is not used for
+//   isocyanurate_1in; next to the ON row it would make 1 in dearer than 2 in. All other polyiso thicknesses are
+//   derived per inch from the ON row (see CI_RATE_ROWS).
+// - Sheathing: every id is derived per inch by material (see sheathing below), so no id uses its own row.
+const LEEP_ALIAS = {
+  'cavity_insulation/r31_batt_2x10': 'wall.cavity_insulation.r31_batt_2x8',
+  'continuous_insulation/isocyanurate_2in': 'wall.continuous_insulation.isocyanurate_4in',
+  'continuous_insulation/isocyanurate_1in': null,
+}
+const leepTarget = (component, option) => {
+  const k = `${component}/${option}`
+  if (k in LEEP_ALIAS) return LEEP_ALIAS[k]
+  if (component === 'sheathing') return null
+  return `wall.${component === 'air_vapour_barrier' ? 'control_layer' : component}.${option}`
+}
+const leepFor = (component, option) => { const t = leepTarget(component, option); return t ? leepPrice(t) : null }
 
 const wallOpts = c => WALL_LAYER_OPTIONS.filter(o => o.component === c)
 const wallData = JSON.parse(fs.readFileSync(WALL_DATA, 'utf8')).wood
@@ -92,9 +108,13 @@ function deriveFraming(option) {
 const inches = t => (t === '3_4' ? 0.75 : Number(t.replace('_', '.')))
 const ciParts = option => { const m = option.match(/^(.*?)_(\d+(?:_\d+)?)in$/); return { material: m[1], thickness: inches(m[2]) } }
 const CI_RATE_FAMILY = { eps_i: 'eps_i', xps_iv: 'xps_iv', isocyanurate: 'isocyanurate', mineral_wool_rock: 'rigid_generic', mineral_wool_glass: 'rigid_generic' }
+// Families whose per-inch rate comes from named rows rather than every row of the family (ruling R18).
+const CI_RATE_ROWS = { isocyanurate: [{ target: 'wall.continuous_insulation.isocyanurate_4in', inches: 2 }] }
 function ciRate(family) { // per-inch material and median labour over that family's LEEP rows
   const re = new RegExp(`^wall\\.continuous_insulation\\.${family}_(\\d+(?:_\\d+)?)in$`)
-  const ps = Object.keys(byTarget).map(t => [t, t.match(re)]).filter(([, m]) => m).map(([t, m]) => ({ t: inches(m[1]), p: leepPrice(t) }))
+  const ps = CI_RATE_ROWS[family]
+    ? CI_RATE_ROWS[family].map(r => ({ t: r.inches, p: leepPrice(r.target) }))
+    : Object.keys(byTarget).map(t => [t, t.match(re)]).filter(([, m]) => m).map(([t, m]) => ({ t: inches(m[1]), p: leepPrice(t) }))
   if (!ps.length) throw new Error(`no LEEP rows for foam family ${family}`)
   return { perInch: median(ps.map(x => x.p.material / x.t)), labour: median(ps.map(x => x.p.labour)) }
 }
@@ -151,12 +171,28 @@ function deriveCavity(option) {
 }
 
 // --- sheathing ---
+// Per inch of thickness by material, from the per-inch median of that material's own LEEP rows; labour their median.
+// OSB has two LEEP rows (MB 7/16 in at 1.21 and MB 1/2 in at 0.22 $/sq ft; the ON 7/16 in row has zero labour and
+// is filtered out), so every OSB id, 7/16 in included, is priced from the OSB per-inch median.
+// Plywood and gypsum sheathing have no usable LEEP rows (the BC 1/2 in plywood row has zero labour), so they scale
+// from the OSB per-inch rate by a stated factor (BEA assumption): plywood 1.3x OSB, gypsum sheathing 1.0x OSB,
+// with OSB labour.
 const sheathingInches = option => { const m = option.match(/_(\d+)_(\d+)in$/); return Number(m[1]) / Number(m[2]) }
-const sheathingRate = (() => {
-  const ps = Object.keys(byTarget).filter(t => t.startsWith('wall.sheathing.')).map(t => ({ t: sheathingInches(t), p: leepPrice(t) }))
-  return { perInch: median(ps.map(x => x.p.material / x.t)), labour: median(ps.map(x => x.p.labour)) }
-})()
-const deriveSheathing = option => ({ material: sheathingRate.perInch * sheathingInches(option), labour: sheathingRate.labour })
+const sheathingMaterial = option => option.replace(/_\d+_\d+in$/, '')
+const SHEATHING_FACTOR_FROM_OSB = { plywood_particle_board: 1.3, gypsum_sheathing: 1.0 }
+function sheathingRate(material) {
+  const ps = Object.keys(byTarget).filter(t => t.startsWith('wall.sheathing.') && sheathingMaterial(t.slice('wall.sheathing.'.length)) === material)
+    .map(t => ({ t: sheathingInches(t), p: leepPrice(t) }))
+  if (ps.length) return { perInch: median(ps.map(x => x.p.material / x.t)), labour: median(ps.map(x => x.p.labour)) }
+  const factor = SHEATHING_FACTOR_FROM_OSB[material]
+  if (factor === undefined) throw new Error(`no LEEP rows and no OSB factor for sheathing ${material}`)
+  const osb = sheathingRate('waferboard_osb')
+  return { perInch: osb.perInch * factor, labour: osb.labour }
+}
+const deriveSheathing = option => {
+  const rate = sheathingRate(sheathingMaterial(option))
+  return { material: rate.perInch * sheathingInches(option), labour: rate.labour }
+}
 
 const DERIVE = { framing: deriveFraming, continuous_insulation: deriveCi, cavity_insulation: deriveCavity, sheathing: deriveSheathing }
 // Flat invented placeholder, $/m2 [material, labour]: only for families with no LEEP rows at all.
