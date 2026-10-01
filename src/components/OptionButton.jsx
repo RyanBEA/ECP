@@ -1,6 +1,6 @@
 import React from 'react'
 
-export default function OptionButton({ option, direction, metric, imperial, isSelected, onClick }) {
+export default function OptionButton({ option, direction, metric, imperial, isSelected, onClick, variant = 'design' }) {
   const directionSymbol = direction === 'higher' ? '≥' : '≤'
 
   const imperialText = imperial
@@ -11,7 +11,7 @@ export default function OptionButton({ option, direction, metric, imperial, isSe
 
   return (
     <button
-      className={`option-button ${isSelected ? 'selected' : ''} ${option.label ? 'has-label' : ''}`}
+      className={`option-button ${isSelected ? 'selected' : ''} ${option.label ? 'has-label' : ''}${variant === 'baseline' ? ' baseline' : ''}`}
       onClick={onClick}
       type="button"
     >

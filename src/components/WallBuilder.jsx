@@ -91,8 +91,8 @@ const DEFAULTS = {
   }),
 }
 
-export default function WallBuilder({ selection, onSelect }) {
-  const [mode, setMode] = useState('builder')
+export default function WallBuilder({ selection, onSelect, variant = 'design', hideExtras = false }) {
+  const [mode, setMode] = useState(() => (selection && selection.simpleIndex !== undefined && selection.simpleIndex !== null) ? 'simple' : 'builder')
   const wallSectionRef = useRef(null)
   const [exporting, setExporting] = useState(false)
 
@@ -218,7 +218,7 @@ export default function WallBuilder({ selection, onSelect }) {
   const nextGroup = () => ++groupNum
 
   return (
-    <div className="category-card wall-builder">
+    <div className={`category-card wall-builder${variant === 'baseline' ? ' baseline' : ''}`}>
       <div className="category-header">
         <h2 className="category-name">Above Ground Walls</h2>
         <span className="category-metric">RSI ({wallCategory.imperial ? wallCategory.imperial.unit : 'm²·K/W'})</span>
@@ -255,6 +255,7 @@ export default function WallBuilder({ selection, onSelect }) {
                 metric="RSI"
                 imperial={wallCategory.imperial}
                 isSelected={simpleIndex === index}
+                variant={variant}
                 onClick={() => handleSimpleSelect(index)}
               />
             ))}
@@ -729,7 +730,7 @@ export default function WallBuilder({ selection, onSelect }) {
           </div>
 
           {/* Wall Section Diagram */}
-          {isFramedWall && wallType === 'wood' && (() => {
+          {!hideExtras && isFramedWall && wallType === 'wood' && (() => {
             // Determine if we have enough info to show diagram
             const hasPrimaryInfo = isSingleWall
               ? (studSpacing && cavityType)
@@ -783,7 +784,7 @@ export default function WallBuilder({ selection, onSelect }) {
           })()}
 
           {/* Steel single wall diagram (unchanged) */}
-          {wallType === 'steel' && studSpacing && cavityType && (
+          {!hideExtras && wallType === 'steel' && studSpacing && cavityType && (
             <div className="wall-section-container" ref={wallSectionRef}>
               <WallSection
                 wallType="steel"
@@ -797,7 +798,7 @@ export default function WallBuilder({ selection, onSelect }) {
             </div>
           )}
 
-          {isIcf && icfFormThickness && (
+          {!hideExtras && isIcf && icfFormThickness && (
             <div className="wall-section-container" ref={wallSectionRef}>
               <WallSection
                 wallType="icf"
@@ -807,7 +808,7 @@ export default function WallBuilder({ selection, onSelect }) {
           )}
 
           {/* Export to Excel button */}
-          {rsi !== null && (
+          {!hideExtras && rsi !== null && (
             <button
               className="option-button export-button"
               onClick={handleExport}
