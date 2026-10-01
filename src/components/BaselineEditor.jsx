@@ -14,8 +14,17 @@ const TIER2 = 10   // fixed, whatever the header tier shows (spec 5)
 const PRESET_NAME = BASELINE_NAMES.typicalTier2
 const wallCategory = categories.find(c => c.id === 'aboveGroundWalls')
 
-// Wall selections compared by their set fields, so key order and unset fields do not count as a change.
-const wallKey = ws => JSON.stringify(Object.keys(ws || {}).filter(k => ws[k] !== undefined && ws[k] !== null).sort().map(k => [k, ws[k]]))
+// Values compared by their set fields, so key order and unset fields do not count as a change.
+const stableKey = v => {
+  if (Array.isArray(v)) return `[${v.map(stableKey).join(',')}]`
+  if (v && typeof v === 'object') return `{${Object.keys(v).filter(k => v[k] !== undefined && v[k] !== null).sort().map(k => `${JSON.stringify(k)}:${stableKey(v[k])}`).join(',')}}`
+  return JSON.stringify(v)
+}
+const wallKey = ws => stableKey(ws || {})
+
+// Ruling R42: an empty wall selection (no wall type, no RSI level: after Clear or a switch between Select RSI and
+// Build Assembly) counts as the preset wall. A missing baseline pick means the preset value (spec 5.1).
+const isEmptyWall = ws => !ws?.wallType && (ws?.simpleIndex === undefined || ws?.simpleIndex === null)
 
 // The preset side of a change note. A card with no preset of its own but an exclusive-group sibling that has
 // one (the gas DHW card) reads the sibling's preset: the two DHW cards are one costed line (spec 5.1).
@@ -23,7 +32,7 @@ function presetSide(c, preset) {
   const own = preset.cards[c.id]
   if (own !== undefined) return presetText(c.id, own)
   const sib = c.exclusiveGroup && categories.find(o => o.exclusiveGroup === c.exclusiveGroup && o.id !== c.id && preset.cards[o.id] !== undefined)
-  return sib ? presetText(sib.id, preset.cards[sib.id]) : 'nothing'
+  return sib ? presetText(sib.id, preset.cards[sib.id]) : 'no pick on this card'
 }
 
 // The picked side of a change note: '<metric> <value>' (or '<value> <unit>' on a card without a metric),
@@ -33,13 +42,14 @@ function optionText(c, option) {
   return option.label ? `${v} (${option.label})` : v
 }
 
+// A wall in words (ruling R43): a Select RSI pick is 'RSI <level>'; an assembly is its computed RSI to 2 decimals
+// with its description, e.g. 'RSI 3.99 (2x6 R24 batt + 1 in XPS, OSB, vinyl)'.
 function wallText(ws) {
   if (ws?.simpleIndex !== undefined && ws?.simpleIndex !== null) return `RSI ${wallCategory.options[ws.simpleIndex].value}`
-  if (!ws?.wallType) return 'nothing'
+  const rsi = calculateWallRsi(ws || {})
+  if (rsi === null || rsi === undefined) return 'an incomplete wall'
   const d = describeWall(ws)
-  if (d !== 'wall') return d
-  const rsi = calculateWallRsi(ws)
-  return rsi !== null ? `an assembly at RSI ${rsi}` : 'an incomplete wall'
+  return d === 'wall' ? `RSI ${rsi.toFixed(2)}` : `RSI ${rsi.toFixed(2)} (${d})`
 }
 
 export default function BaselineEditor({ initialPicks, houseType, onDone, onCancel, onDirtyChange, fillMissing = false }) {
@@ -55,12 +65,17 @@ export default function BaselineEditor({ initialPicks, houseType, onDone, onCanc
   const [wallSelection, setWallSelection] = useState(start.wallSelection)
   const [presetOnly, setPresetOnly] = useState(start.presetOnly)   // preset-only values (no option on the card) ride along
   const [wallKeyN, setWallKeyN] = useState(0)                      // bumped on reset so WallBuilder recomputes its mode
-  const [dirty, setDirty] = useState(false)
+  const effWall = ws => isEmptyWall(ws) ? presetView.wallSelection : ws
+  const wall = effWall(wallSelection)
+  // Ruling R43: dirty means the draft differs from where it started (an empty wall counting as the preset),
+  // so a no-op Clear or a Reset back to the start leaves it clean.
+  const draftKey = (sel, ws, po) => stableKey({ sel, wall: effWall(ws), po })
+  const dirty = draftKey(selections, wallSelection, presetOnly) !== draftKey(start.selections, start.wallSelection, start.presetOnly)
   useEffect(() => { onDirtyChange?.(dirty) }, [dirty, onDirtyChange])
 
-  const total = totalCardPoints(selections) + wallPointsFor(wallSelection)
+  const total = totalCardPoints(selections) + wallPointsFor(wall)
   const isChanged = c => c.id === wallCategory.id
-    ? wallKey(wallSelection) !== wallKey(presetView.wallSelection)
+    ? wallKey(wall) !== wallKey(presetView.wallSelection)
     : selections[c.id] !== presetView.selections[c.id]
   const changed = categories.filter(isChanged).map(c => c.name)
 
@@ -74,23 +89,21 @@ export default function BaselineEditor({ initialPicks, houseType, onDone, onCanc
       if (p >= 0) next = p
     }
     setSelections(s => applySelect(s, id, next))
-    setDirty(true)
   }
-  const selectWall = ws => { setWallSelection(ws); setDirty(true) }
+  const selectWall = ws => setWallSelection(ws)
   const reset = () => {
     setSelections(presetView.selections)
     setWallSelection(presetView.wallSelection)
     setPresetOnly(presetView.presetOnly)
     setWallKeyN(n => n + 1)
-    setDirty(true)
   }
 
   const note = c => {
     if (!isChanged(c)) return null
-    if (c.id === wallCategory.id) return `${PRESET_NAME}: ${preset.wall ? wallText(preset.wall.kind === 'assembly' ? preset.wall.selection : presetView.wallSelection) : 'nothing'}. You picked ${wallText(wallSelection)}.`
+    if (c.id === wallCategory.id) return `${PRESET_NAME}: ${wallText(presetView.wallSelection)}. You picked ${wallText(wall)}.`
     const idx = selections[c.id]
-    const mine = idx !== undefined ? optionText(c, c.options[idx]) : presetOnly[c.id] !== undefined ? presetText(c.id, presetOnly[c.id]) : 'nothing'
-    return `${PRESET_NAME}: ${presetSide(c, preset)}. You picked ${mine}.`
+    const mine = idx !== undefined ? optionText(c, c.options[idx]) : presetOnly[c.id] !== undefined ? presetText(c.id, presetOnly[c.id]) : null
+    return `${PRESET_NAME}: ${presetSide(c, preset)}. ${mine === null ? 'You have no pick on this card.' : `You picked ${mine}.`}`
   }
 
   return (

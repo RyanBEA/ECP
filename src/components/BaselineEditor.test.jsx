@@ -105,7 +105,7 @@ describe('BaselineEditor rulings', () => {
     expect(screen.getByText('Typical Tier 2: SRE 65. You picked SRE 75.')).toBeInTheDocument()
     fireEvent.click(within(wallCard()).getByRole('button', { name: 'Select RSI' }))
     fireEvent.click(within(wallCard()).getByRole('button', { name: /3\.69/ }))
-    expect(screen.getByText('Typical Tier 2: 2x6 R24 batt + 1 in XPS, OSB, vinyl. You picked RSI 3.69.')).toBeInTheDocument()
+    expect(screen.getByText('Typical Tier 2: RSI 3.99 (2x6 R24 batt + 1 in XPS, OSB, vinyl). You picked RSI 3.69.')).toBeInTheDocument()
     expect(screen.getByText(/Changed from Typical Tier 2: Above Ground Walls, DHW \(Gas- or oil-fired\), Ventilation, Windows & Doors\./)).toBeInTheDocument()
   })
   it('Reset to typical remounts the wall card in Build Assembly with the 2x6 R24 assembly', () => {
@@ -122,5 +122,60 @@ describe('BaselineEditor rulings', () => {
     const { container } = editor()
     expect(container.querySelector('.points-target')).toHaveTextContent('10')
     expect(container.querySelector('.points-counter')).toHaveClass('baseline')
+  })
+})
+
+// Fix round 1: rulings R42 and R43.
+describe('BaselineEditor fix round 1', () => {
+  it('R42: clearing the wall counts as the preset wall (points, changed list, note)', () => {
+    const { container } = editor()
+    const before = container.querySelector('.points-value').textContent
+    fireEvent.click(within(wallCard()).getByRole('button', { name: 'Clear' }))
+    expect(screen.getByText(/your usual house . meets Tier 2/)).toBeInTheDocument()
+    expect(container.querySelector('.points-value')).toHaveTextContent(before)
+    expect(screen.queryByText(/Changed from Typical Tier 2:/)).toBeNull()
+    expect(screen.queryByText(/You picked/)).toBeNull()
+  })
+  it('R42: Select RSI with no level picked counts as the preset wall and stays in Select RSI', () => {
+    editor()
+    fireEvent.click(within(wallCard()).getByRole('button', { name: 'Select RSI' }))
+    expect(within(wallCard()).getByRole('button', { name: 'Select RSI' })).toHaveClass('active')
+    expect(screen.getByText(/your usual house . meets Tier 2/)).toBeInTheDocument()
+    expect(screen.queryByText(/Changed from Typical Tier 2:/)).toBeNull()
+  })
+  it('R43: a card with no preset reads "no pick on this card"', () => {
+    editor()
+    fireEvent.click(within(card('Heated Volume')).getByRole('button', { name: /^\S+ 300[ +]/ }))
+    expect(screen.getByText(/^Typical Tier 2: no pick on this card\. You picked 300 /)).toBeInTheDocument()
+  })
+  it('R43: an assembly pick reads its computed RSI and description', () => {
+    editor()
+    fireEvent.change(within(wallCard()).getByLabelText('Cavity Size'), { target: { value: '2x6 R22' } })
+    expect(screen.getByText(/^Typical Tier 2: RSI 3\.99 \(2x6 R24 batt \+ 1 in XPS, OSB, vinyl\)\. You picked RSI \d\.\d\d \(2x6 R22 batt \+ 1 in XPS, OSB, vinyl\)\.$/)).toBeInTheDocument()
+  })
+  it('R43: dirty compares the draft with its start, not whether anything was touched', () => {
+    const onDirtyChange = vi.fn()
+    editor({ onDirtyChange })
+    const vent = card('Ventilation')
+    fireEvent.click(within(vent).getByRole('button', { name: 'Clear' }))   // no-op: back to 65
+    fireEvent.click(screen.getByRole('button', { name: 'Reset to typical' }))
+    fireEvent.click(within(wallCard()).getByRole('button', { name: 'Select RSI' }))   // empty wall = preset
+    expect(onDirtyChange).not.toHaveBeenCalledWith(true)
+    fireEvent.click(within(vent).getByRole('button', { name: /75/ }))
+    expect(onDirtyChange).toHaveBeenLastCalledWith(true)
+    fireEvent.click(within(vent).getByRole('button', { name: 'Clear' }))
+    expect(onDirtyChange).toHaveBeenLastCalledWith(false)
+    fireEvent.click(within(vent).getByRole('button', { name: /75/ }))
+    fireEvent.click(screen.getByRole('button', { name: 'Reset to typical' }))
+    expect(onDirtyChange).toHaveBeenLastCalledWith(false)
+  })
+  it('R43: Done after picking gas DHW saves dhwGas and not dhwElectric', () => {
+    const onDone = vi.fn()
+    editor({ onDone })
+    fireEvent.click(within(card('DHW (Gas- or oil-fired)')).getByRole('button', { name: /0\.92/ }))
+    fireEvent.click(screen.getByRole('button', { name: 'Done' }))
+    const picks = onDone.mock.calls[0][0]
+    expect(picks.cards.dhwGas).toBe(0.92)
+    expect(picks.cards).not.toHaveProperty('dhwElectric')
   })
 })
