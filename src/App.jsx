@@ -1,4 +1,4 @@
-import React, { useState, useMemo, useEffect, useCallback } from 'react'
+import React, { useState, useMemo, useEffect, useCallback, useRef } from 'react'
 import { categories, tiers, calculateWallRsi, getWallPoints } from './data/ecpData'
 import CategoryCard from './components/CategoryCard'
 import WallBuilder from './components/WallBuilder'
@@ -16,8 +16,8 @@ import { chipText, chipSecondLine } from './costing/delta'
 import { getPresetPicks } from './costing/baselines'
 import { overrideKey, lineOverrideKey } from './costing/priceHouse'
 
-const APP_VERSION = '1.2.0'
-const APP_UPDATED = '2026-09-11'
+const APP_VERSION = '1.4.0-cost-ui'
+const APP_UPDATED = '2026-10-01'
 
 export default function App() {
   // Track dark mode - default to system preference
@@ -121,6 +121,16 @@ export default function App() {
   const [openLine, setOpenLine] = useState(null)
   const [frozenOrder, setFrozenOrder] = useState(null)
   const [notice, setNotice] = useState('')
+
+  // The footer button, the chip, Done and Cancel are far down the page: after a switch of tab or editor, bring
+  // the tab bar back into view when it has scrolled off the top, so the new view starts at its beginning.
+  const isEditing = Boolean(editing)
+  const mounted = useRef(false)
+  useEffect(() => {
+    if (!mounted.current) { mounted.current = true; return }
+    const bar = document.querySelector('.tab-bar')
+    if (bar && bar.getBoundingClientRect().top < 0) bar.scrollIntoView?.({ block: 'start' })
+  }, [activeTab, isEditing])
 
   const { houseType, baselineChoice, usualHouse, overrides, fieldOverrides } = persisted
   const houseFields = useMemo(() => resolveHouseFields(houseType, fieldOverrides), [houseType, fieldOverrides])
@@ -250,7 +260,7 @@ export default function App() {
         <PointsCounter total={totalPoints} target={targetPoints} />
       </header>
 
-      <TabBar active={activeTab} onChange={changeTab} disabled={Boolean(editing)} />
+      <TabBar active={activeTab} onChange={changeTab} disabled={isEditing} />
 
       {/* Points stays mounted while Cost is shown, so WallBuilder keeps its state (spec 2.1). */}
       <div className="tab-panel" id="panel-points" role="tabpanel" aria-labelledby="tab-points" hidden={activeTab !== 'points'}>

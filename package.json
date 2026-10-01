@@ -1,7 +1,7 @@
 {
   "name": "ecp-calculator",
   "private": true,
-  "version": "1.2.0",
+  "version": "1.4.0-cost-ui",
   "type": "module",
   "scripts": {
     "dev": "vite",

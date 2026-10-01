@@ -32,7 +32,7 @@ ECP Calculator is a React web app for calculating Energy Conservation Points (EC
 npm install              # Install dependencies (once)
 npm run dev              # Dev server at localhost:5173
 npm run build            # Production build to dist/
-npm test                 # Run all tests (Vitest, 398 tests)
+npm test                 # Run all tests (Vitest, 652 tests)
 npm run generate         # Rebuild JSON from YAML materials
 npm run generate:audit   # Generate + compare against previous JSON
 ```
@@ -70,6 +70,13 @@ Eight scoring categories, each with point thresholds from NBC 2020 Tables 9.36.8
 - Above-Ground Walls, Below Grade Walls, Windows/Doors, Airtightness
 - Hot Water (Electric), Hot Water (Non-Electric) — mutually exclusive
 - Ventilation (HRV/ERV), Heated Volume
+
+## Cost UI (branch cost-ui)
+
+Design spec: `/srv/clients/BTZx/cost-DB-and-ECP/25_Working/ECP_Tool/specs/2026-10-01-ecp-cost-ui-design.md` (revision 2).
+Plan: `/srv/clients/BTZx/cost-DB-and-ECP/25_Working/ECP_Tool/plans/2026-10-01-ecp-cost-ui.md`.
+Two tabs, Points (unchanged) and Cost. Pure modules in `src/costing/`; stand-in prices in `src/costing/data/stand-in-costs.json`
+(rebuild with `npm run build:costs`); persistence in `src/costing/persist.js`. Costs never print. Proof of concept; nothing pushed.
 
 ## Skills
 

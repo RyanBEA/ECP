@@ -1160,10 +1160,17 @@ h1, h2, h3, h4, h5, h6 {
 
 .layer-table td:first-child {
   white-space: normal;
+  min-width: 7rem;
+}
+
+/* A part priced in its own unit (doors, each): its "2 each x $X = $Y" cells may wrap */
+.layer-table tr.part td {
+  white-space: normal;
 }
 
 .layer-table td:first-child small {
   display: block;
+  font-weight: 400;
   color: var(--text-secondary);
 }
 
@@ -1273,8 +1280,17 @@ h1, h2, h3, h4, h5, h6 {
   font-weight: 700;
 }
 
-.wall-builder.baseline .mode-btn.active {
+/* WallBuilder in the editor: its accent bar, mode toggle and stud-type buttons in amber too */
+.wall-builder.baseline {
+  border-left-color: var(--baseline);
+}
+
+.wall-builder.baseline .mode-btn.active,
+.wall-builder.baseline .option-button.selected {
   border-color: var(--baseline);
+  background: var(--baseline-light);
+  color: var(--text-primary);
+  font-weight: 700;
 }
 
 .points-counter.baseline {
@@ -1282,6 +1298,12 @@ h1, h2, h3, h4, h5, h6 {
   color: var(--text-primary);
   border: 2px solid var(--baseline);
   flex-wrap: wrap;
+}
+
+.points-counter.baseline .points-separator,
+.points-counter.baseline .points-target {
+  color: var(--text-secondary);
+  opacity: 1;
 }
 
 .points-sublabel {
@@ -1406,6 +1428,7 @@ h1, h2, h3, h4, h5, h6 {
   .categories-container,
   .app-footer,
   .app-version,
+  .tab-panel,
   .tab-bar,
   .cost-tab,
   .baseline-editor,
