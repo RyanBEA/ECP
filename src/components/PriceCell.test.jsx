@@ -1,0 +1,73 @@
+import { render, screen, fireEvent } from '@testing-library/react'
+import PriceCell, { formatMoney } from './PriceCell'
+
+const open = name => fireEvent.click(screen.getByRole('button', { name: `Override ${name}` }))
+const input = name => screen.getByRole('spinbutton', { name })
+
+describe('PriceCell', () => {
+  it('formats money in en-CA CAD', () => {
+    expect(formatMoney(1250)).toBe('$1,250')
+    expect(formatMoney(1.5, 2)).toBe('$1.50')
+  })
+  it('prefills the value rounded to decimals', () => {
+    render(<PriceCell name="x material" value={1.6722} overridden={false} onSet={() => {}} />)
+    open('x material')
+    expect(input('x material')).toHaveValue(1.67)
+  })
+  it('commits a changed value on Enter', () => {
+    const onSet = vi.fn()
+    render(<PriceCell name="x material" value={18} overridden={false} onSet={onSet} />)
+    open('x material')
+    fireEvent.change(input('x material'), { target: { value: '20' } })
+    fireEvent.keyDown(input('x material'), { key: 'Enter' })
+    expect(onSet).toHaveBeenCalledTimes(1)
+    expect(onSet).toHaveBeenCalledWith(20)
+  })
+  it('cancels on Esc without committing', () => {
+    const onSet = vi.fn()
+    render(<PriceCell name="x material" value={18} overridden={false} onSet={onSet} />)
+    open('x material')
+    const el = input('x material')
+    fireEvent.change(el, { target: { value: '20' } })
+    fireEvent.keyDown(el, { key: 'Escape' })
+    fireEvent.blur(el)
+    expect(onSet).not.toHaveBeenCalled()
+    expect(screen.queryByRole('spinbutton')).toBeNull()
+  })
+  it('commits a changed value on blur', () => {
+    const onSet = vi.fn()
+    render(<PriceCell name="x material" value={18} overridden={false} onSet={onSet} />)
+    open('x material')
+    fireEvent.change(input('x material'), { target: { value: '21.5' } })
+    fireEvent.blur(input('x material'))
+    expect(onSet).toHaveBeenCalledWith(21.5)
+  })
+  it('commits nothing when the pencil is opened and left unchanged', () => {
+    const onSet = vi.fn()
+    render(<PriceCell name="x material" value={1.6722} overridden={false} onSet={onSet} />)
+    open('x material')
+    fireEvent.blur(input('x material'))
+    open('x material')
+    fireEvent.keyDown(input('x material'), { key: 'Enter' })
+    expect(onSet).not.toHaveBeenCalled()
+  })
+  it('reset calls onSet(undefined), and only shows when overridden', () => {
+    const onSet = vi.fn()
+    const { rerender } = render(<PriceCell name="x material" value={18} overridden={false} onSet={onSet} />)
+    expect(screen.queryByRole('button', { name: 'Reset x material' })).toBeNull()
+    rerender(<PriceCell name="x material" value={18} overridden onSet={onSet} />)
+    fireEvent.click(screen.getByRole('button', { name: 'Reset x material' }))
+    expect(onSet).toHaveBeenCalledWith(undefined)
+  })
+  it('rejects negative and empty input', () => {
+    const onSet = vi.fn()
+    render(<PriceCell name="x material" value={18} overridden={false} onSet={onSet} />)
+    open('x material')
+    fireEvent.change(input('x material'), { target: { value: '-3' } })
+    fireEvent.keyDown(input('x material'), { key: 'Enter' })
+    open('x material')
+    fireEvent.change(input('x material'), { target: { value: '' } })
+    fireEvent.keyDown(input('x material'), { key: 'Enter' })
+    expect(onSet).not.toHaveBeenCalled()
+  })
+})
