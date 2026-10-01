@@ -17,7 +17,7 @@ export function resolveHouseFields(houseType, fieldOverrides) {
 // A missing baseline pick means the preset value (spec 5.1, ruling R32): fill missing cards and a missing wall
 // from Typical Tier 2 for the type. A card whose exclusive-group sibling is present is not filled. Returns a new
 // object; the stored usual house is left as it is.
-function fillFromTypical(usual, houseType) {
+export function fillFromTypical(usual, houseType) {
   const typical = getPresetPicks('typicalTier2', houseType)
   const cards = { ...(usual.cards || {}) }
   for (const [id, value] of Object.entries(typical.cards)) {
