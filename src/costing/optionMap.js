@@ -24,7 +24,8 @@ export function cardOptionId(categoryId, value) {
 export const HRV_SIZE_CLASSES = [30, 45, 75]  // L/s, the most the model runs at
 export function hrvSizeClass(airflow) {
   if (!airflow) return null
-  return HRV_SIZE_CLASSES.find(c => c >= airflow.max) ?? HRV_SIZE_CLASSES[HRV_SIZE_CLASSES.length - 1]
+  // No nearest-size substitution (spec 6.4): above the largest class there is no priced unit.
+  return HRV_SIZE_CLASSES.find(c => c >= airflow.max) ?? null
 }
 
 // --- water heating (Mark's DHW parts list, spec 4.4) ---
@@ -43,11 +44,20 @@ export function WATER_HEATER_PARTS(optionId, fuel) {
 }
 
 // --- wall layers (wood single stud only, spec 4.5) ---
-const studs = ['2x4', '2x6', '2x8']
-const spacings = ['16', '24']
-const cavity = ['r12_batt_2x4', 'r14_batt_2x4', 'r19_batt_2x6', 'r22_batt_2x6', 'r24_batt_2x6', 'r28_batt_2x8']
-const ci = ['eps_i_1in', 'eps_i_1_5in', 'eps_i_2in', 'eps_i_2_5in', 'eps_i_3in', 'xps_iv_1in', 'xps_iv_1_5in', 'xps_iv_2in', 'xps_iv_2_5in', 'xps_iv_3in',
-  'isocyanurate_1in', 'isocyanurate_1_5in', 'isocyanurate_2in', 'isocyanurate_2_5in', 'isocyanurate_3in']
+// Covers every wood single-stud option main's wall builder offers (ruling R12): studs and spacings from
+// wall-data.json / studSpacingOptions, cavity materials and types from wall-data.json (wood), continuous
+// insulation types and thicknesses from continuous-ins.json, sheathing and cladding from boundary-options.json.
+// Fiberglass and mineral wool batts of the same stud and R-value share one id (r<R>_batt_<stud>).
+export const FRAMING_STUDS = ['2x4', '2x6', '2x8', '2x10', '2x12']
+export const FRAMING_SPACINGS = ['16', '19', '24']
+const studs = FRAMING_STUDS
+const spacings = FRAMING_SPACINGS
+const batts = ['r12_batt_2x4', 'r14_batt_2x4', 'r20_batt_2x6', 'r22_batt_2x6', 'r24_batt_2x6', 'r28_batt_2x8', 'r31_batt_2x10', 'r40_batt_2x12']
+const fills = ['loose_fill_cellulose', 'dense_pack_cellulose', 'loose_fill_fiberglass']
+const cavity = [...batts, ...fills.flatMap(f => studs.map(s => `${f}_${s}`))]
+export const CI_MATERIALS = ['eps_i', 'xps_iv', 'isocyanurate', 'mineral_wool_rock', 'mineral_wool_glass']
+export const CI_THICKNESSES = ['1in', '1_5in', '2in', '2_5in', '3in']
+const ci = CI_MATERIALS.flatMap(m => CI_THICKNESSES.map(t => `${m}_${t}`))
 const sheathing = ['waferboard_osb_7_16in', 'waferboard_osb_3_8in', 'plywood_particle_board_1_2in', 'plywood_particle_board_3_8in', 'gypsum_sheathing_1_2in']
 const cladding = ['vinyl_siding', 'insulated_vinyl_siding', 'wood_bevel', 'fiber_cement', 'metal_siding', 'brick_veneer', 'stucco']
 

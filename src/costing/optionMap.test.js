@@ -1,6 +1,9 @@
 import { WALL_LAYER_OPTIONS, CARD_OPTIONS, cardOptionId, WATER_HEATER_PARTS, hrvSizeClass, HRV_SIZE_CLASSES } from './optionMap'
-import { categories } from '../data/ecpData'
+import { categories, studSpacingOptions, continuousInsTypes, continuousInsThicknesses } from '../data/ecpData'
 import { lookupCost } from '../costSystem/client'
+import wallData from '../data/generated/wall-data.json'
+import continuousInsData from '../data/generated/continuous-ins.json'
+import boundaryOptions from '../data/generated/boundary-options.json'
 
 describe('optionMap', () => {
   it('maps every card option value to a price option id', () => {
@@ -25,7 +28,7 @@ describe('optionMap', () => {
     expect(hrvSizeClass({ min: 22, max: 32 })).toBe(45)
     expect(hrvSizeClass({ min: 16, max: 24 })).toBe(30)
     expect(hrvSizeClass({ min: 60, max: 60 })).toBe(75)
-    expect(hrvSizeClass({ min: 90, max: 90 })).toBe(75)
+    expect(hrvSizeClass({ min: 90, max: 90 })).toBeNull() // ruling R15: no nearest-size substitution
   })
   it('wall layer options cover framing, cavity, continuous insulation, sheathing, barrier, strapping, cladding, finish', () => {
     const components = new Set(WALL_LAYER_OPTIONS.map(o => o.component))
@@ -53,6 +56,44 @@ describe('optionMap', () => {
           }
         }
       }
+    }
+  })
+  it('every wood single-stud option the wall builder offers has a priced row (ruling R12)', () => {
+    // Builder value -> price option id, the table in the Task 4 report that wallLayers.js maps to
+    const batt = t => { const [stud, r] = t.split(' '); return `${r.toLowerCase()}_batt_${stud}` }
+    const CAVITY = {
+      'Fiberglass Batt': batt, 'Mineral Wool Batt': batt,
+      'Loose Fill Cellulose': t => `loose_fill_cellulose_${t}`,
+      'Dense Pack Cellulose': t => `dense_pack_cellulose_${t}`,
+      'Loose Fill Fiberglass': t => `loose_fill_fiberglass_${t}`,
+    }
+    const CI_MATERIAL = { EPS: 'eps_i', XPS: 'xps_iv', Polyiso: 'isocyanurate', 'Mineral Wool (Rock Wool)': 'mineral_wool_rock', 'Mineral Wool (Glass Fibre)': 'mineral_wool_glass' }
+    const CI_THICKNESS = { '1"': '1in', '1-1/2"': '1_5in', '2"': '2in', '2-1/2"': '2_5in', '3"': '3in' }
+    const SHEATHING = { osb_11: 'waferboard_osb_7_16in', osb_9_5: 'waferboard_osb_3_8in', plywood_sw_12_5: 'plywood_particle_board_1_2in', plywood_sw_9_5: 'plywood_particle_board_3_8in', gypsum_12_7: 'gypsum_sheathing_1_2in' }
+    const CLADDING = { vinyl_siding: 'vinyl_siding', vinyl_insulated: 'insulated_vinyl_siding', wood_bevel_200: 'wood_bevel', wood_bevel_250: 'wood_bevel', fiber_cement: 'fiber_cement', metal_siding: 'metal_siding', brick_veneer: 'brick_veneer', stucco_19: 'stucco' }
+    const wanted = []
+    for (const { label } of studSpacingOptions) {
+      const sp = label.replace('"', '')
+      const materials = wallData.wood.spacings[sp].materials
+      for (const [mat, types] of Object.entries(materials)) {
+        for (const [type, e] of Object.entries(types)) {
+          wanted.push(['framing', `stud_${e.stud}_${sp}oc`, `${label} ${type}`])
+          wanted.push(['cavity_insulation', CAVITY[mat](type), `${mat} ${type}`])
+        }
+      }
+    }
+    for (const type of continuousInsTypes) {
+      for (const t of continuousInsThicknesses.filter(x => x !== 'None')) {
+        expect(continuousInsData[type].thicknesses[t], `${type} ${t}`).toBeDefined()
+        wanted.push(['continuous_insulation', `${CI_MATERIAL[type]}_${CI_THICKNESS[t]}`, `${type} ${t}`])
+      }
+    }
+    for (const o of boundaryOptions.sheathing.options) wanted.push(['sheathing', SHEATHING[o.id], o.id])
+    for (const o of boundaryOptions.cladding.options) wanted.push(['cladding', CLADDING[o.id], o.id])
+    const offered = new Set(WALL_LAYER_OPTIONS.map(o => `${o.component}/${o.option}`))
+    for (const [component, option, from] of wanted) {
+      expect(offered.has(`${component}/${option}`), `${from} -> ${component}/${option} in WALL_LAYER_OPTIONS`).toBe(true)
+      expect(lookupCost({ category: 'aboveGroundWalls', component, option }), `${from} -> ${component}/${option}`).not.toBeNull()
     }
   })
 })
