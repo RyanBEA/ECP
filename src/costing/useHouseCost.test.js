@@ -3,6 +3,7 @@ import { useHouseCost, resolveHouseFields, resolveBaselinePicks } from './useHou
 import { getArchetype } from './archetypes'
 import { assumedWallSelection } from './assumedAssemblies'
 import { overrideKey } from './priceHouse'
+import { getPresetPicks } from './baselines'
 
 describe('resolveHouseFields', () => {
   it('applies per-type overrides on the archetype defaults', () => {
@@ -16,6 +17,21 @@ describe('resolveBaselinePicks', () => {
     expect(r.picks.cards.hrv).toBe(65)
     const u = resolveBaselinePicks('usualHouse', 'miniHome', { miniHome: { cards: { hrv: 75 }, wall: null } })
     expect(u.name).toBe('Your usual house'); expect(u.picks.cards.hrv).toBe(75)
+  })
+  // Ruling R32: a missing baseline pick means the preset value (spec 5.1).
+  it('fills a usual house\'s missing cards and missing wall from Typical Tier 2 for the type', () => {
+    const stored = { singleDetached: { cards: { hrv: 75 }, wall: null } }
+    const r = resolveBaselinePicks('usualHouse', 'singleDetached', stored)
+    const typical = getPresetPicks('typicalTier2', 'singleDetached')
+    expect(r.name).toBe('Your usual house')
+    expect(r.picks).toEqual({ cards: { ...typical.cards, hrv: 75 }, wall: typical.wall })
+    expect(stored).toEqual({ singleDetached: { cards: { hrv: 75 }, wall: null } })   // stored usual house not mutated
+  })
+  it('a usual house with a gas water heater does not gain the electric one', () => {
+    const r = resolveBaselinePicks('usualHouse', 'singleDetached', { singleDetached: { cards: { dhwGas: 0.92 }, wall: null } })
+    expect(r.picks.cards.dhwGas).toBe(0.92)
+    expect(r.picks.cards).not.toHaveProperty('dhwElectric')
+    expect(r.picks.cards.hrv).toBe(65)
   })
 })
 describe('useHouseCost', () => {

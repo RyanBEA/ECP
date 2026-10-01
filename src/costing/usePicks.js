@@ -49,10 +49,23 @@ export function picksToSelections(picks) {
   return { selections, wallSelection, presetOnly }
 }
 
-// editor state -> picks (by value). A picked option replaces the card's preset-only value.
+// A selected card's exclusive-group siblings (e.g. dhwElectric when dhwGas is picked).
+function siblingsOfSelected(selections) {
+  const out = new Set()
+  for (const [id, idx] of Object.entries(selections)) {
+    const g = cat(id)?.exclusiveGroup
+    if (!g || cat(id).options[idx]?.value === undefined) continue
+    categories.filter(c => c.exclusiveGroup === g && c.id !== id).forEach(c => out.add(c.id))
+  }
+  return out
+}
+
+// editor state -> picks (by value). A picked option replaces the card's preset-only value, and drops the
+// preset-only values of the other members of its exclusive group (ruling R31).
 export function selectionsToPicks(selections, wallSelection, presetOnly = {}) {
   const cards = {}
-  for (const [id, value] of Object.entries(presetOnly)) if (id !== 'aboveGroundWalls') cards[id] = value
+  const dropped = siblingsOfSelected(selections)
+  for (const [id, value] of Object.entries(presetOnly)) if (id !== 'aboveGroundWalls' && !dropped.has(id)) cards[id] = value
   for (const [id, idx] of Object.entries(selections)) { const v = cat(id)?.options[idx]?.value; if (v !== undefined) cards[id] = v }
   const ws = wallSelection || {}
   let wall = null

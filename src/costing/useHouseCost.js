@@ -1,6 +1,7 @@
 // The memoised cost hook (spec 7.5): quantities, the priced design, the priced baseline, the delta and the
 // override count. All synchronous; no loading state.
 import { useMemo } from 'react'
+import { categories } from '../data/ecpData'
 import { getArchetype } from './archetypes'
 import { computeQuantities, quantitySentences } from './quantities'
 import { getPresetPicks, BASELINE_NAMES } from './baselines'
@@ -13,9 +14,24 @@ export function resolveHouseFields(houseType, fieldOverrides) {
   return { ...getArchetype(houseType).fields, ...(fieldOverrides?.[houseType] || {}) }
 }
 
+// A missing baseline pick means the preset value (spec 5.1, ruling R32): fill missing cards and a missing wall
+// from Typical Tier 2 for the type. A card whose exclusive-group sibling is present is not filled. Returns a new
+// object; the stored usual house is left as it is.
+function fillFromTypical(usual, houseType) {
+  const typical = getPresetPicks('typicalTier2', houseType)
+  const cards = { ...(usual.cards || {}) }
+  for (const [id, value] of Object.entries(typical.cards)) {
+    if (cards[id] !== undefined) continue
+    const g = categories.find(c => c.id === id)?.exclusiveGroup
+    if (g && categories.some(c => c.exclusiveGroup === g && c.id !== id && cards[c.id] !== undefined)) continue
+    cards[id] = value
+  }
+  return { ...usual, cards, wall: usual.wall ?? typical.wall }
+}
+
 // A usual house is per type (M6); with none saved for this type, compare with Typical Tier 2.
 export function resolveBaselinePicks(baselineChoice, houseType, usualHouse) {
-  if (baselineChoice === 'usualHouse' && usualHouse?.[houseType]) return { name: BASELINE_NAMES.usualHouse, picks: usualHouse[houseType], id: 'usualHouse' }
+  if (baselineChoice === 'usualHouse' && usualHouse?.[houseType]) return { name: BASELINE_NAMES.usualHouse, picks: fillFromTypical(usualHouse[houseType], houseType), id: 'usualHouse' }
   const id = baselineChoice === 'usualHouse' ? 'typicalTier2' : baselineChoice
   return { name: BASELINE_NAMES[id], picks: getPresetPicks(id, houseType), id }
 }
