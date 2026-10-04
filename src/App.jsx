@@ -17,8 +17,8 @@ import { getPresetPicks } from './costing/baselines'
 import { overrideKey, lineOverrideKey } from './costing/priceHouse'
 import { applySelect, isCategoryDisabled, totalCardPoints, wallPointsFor } from './costing/usePicks'
 
-const APP_VERSION = '1.4.0-cost-ui'
-const APP_UPDATED = '2026-10-01'
+const APP_VERSION = '1.5.0-cost-ui-2'
+const APP_UPDATED = '2026-10-02'
 
 export default function App() {
   // Track dark mode - default to system preference
@@ -133,6 +133,19 @@ export default function App() {
     delete next[houseType]
     return { usualHouse: next, baselineChoice: 'typicalTier2' }
   })
+  // "view" on a baseline pick (spec rev 3 3.2): a preset opens read-only; Your usual house opens for editing.
+  const onViewBaselineCard = cardId => {
+    if (cost.baselineId === 'usualHouse' && usualHouse[houseType]) setEditing({ initialPicks: usualHouse[houseType], focusCard: cardId })
+    else setEditing({ initialPicks: cost.baselinePicks, readOnly: true, baselineName: cost.baselineName, focusCard: cardId })
+  }
+  // "Go to Points" (rev 3 4.1): switch tabs, then bring the wall card into view.
+  const [toWall, setToWall] = useState(false)
+  const onGoToPoints = () => { setActiveTab('points'); setToWall(true) }
+  useEffect(() => {
+    if (!toWall || activeTab !== 'points') return
+    document.querySelector('#panel-points .wall-builder')?.scrollIntoView?.({ block: 'start' })
+    setToWall(false)
+  }, [toWall, activeTab])
 
   // Price overrides (spec 7.2). CostTab hands over values already in stored units ($/m2 where priced in m2).
   const onOverride = (side, categoryId, component, priceId, field, value) => patch(prev => {
@@ -324,7 +337,10 @@ export default function App() {
             <BaselineEditor
               initialPicks={editing.initialPicks}
               houseType={houseType}
-              fillMissing
+              fillMissing={!editing.readOnly}
+              readOnly={Boolean(editing.readOnly)}
+              baselineName={editing.baselineName}
+              focusCard={editing.focusCard}
               onDone={onEditorDone}
               onCancel={onEditorCancel}
               onDirtyChange={setEditorDirty}
@@ -343,6 +359,8 @@ export default function App() {
               onBaselineChoice={v => patch({ baselineChoice: v })}
               onEditUsual={onEditUsual}
               onResetUsual={onResetUsual}
+              onViewBaselineCard={onViewBaselineCard}
+              onGoToPoints={onGoToPoints}
               onOverride={onOverride}
               onLineOverride={onLineOverride}
               onResetAllOverrides={() => patch({ overrides: {} })}

@@ -9,6 +9,7 @@ import { picksToSelections, selectionsToPicks, applySelect, isCategoryDisabled, 
 import { getPresetPicks, BASELINE_NAMES, presetText } from '../costing/baselines'
 import { wallText } from '../costing/assumedAssemblies'
 import { fillFromTypical } from '../costing/useHouseCost'
+import { baselinePickRows } from './BaselinePicker'
 
 const TIER2 = 10   // fixed, whatever the header tier shows (spec 5)
 const PRESET_NAME = BASELINE_NAMES.typicalTier2
@@ -42,8 +43,10 @@ function optionText(c, option) {
   return option.label ? `${v} (${option.label})` : v
 }
 
-export default function BaselineEditor({ initialPicks, houseType, onDone, onCancel, onDirtyChange, fillMissing = false }) {
-  const preset = useMemo(() => getPresetPicks('typicalTier2', houseType), [houseType])
+export default function BaselineEditor({ initialPicks, houseType, onDone, onCancel, onDirtyChange, fillMissing = false, readOnly = false, baselineName, focusCard }) {
+  // Read-only (spec rev 3 3.2): the cards show the baseline's own picks and the notes name that baseline.
+  const preset = useMemo(() => (readOnly && initialPicks ? initialPicks : getPresetPicks('typicalTier2', houseType)), [readOnly, initialPicks, houseType])
+  const presetName = readOnly ? baselineName : PRESET_NAME
   const presetView = useMemo(() => picksToSelections(preset), [preset])
   // Ruling R41: with fillMissing, start from the usual house with its missing cards and wall filled from
   // Typical Tier 2, so a card missing from an older saved usual house shows its preset.
@@ -62,6 +65,19 @@ export default function BaselineEditor({ initialPicks, houseType, onDone, onCanc
   const draftKey = (sel, ws, po) => stableKey({ sel, wall: effWall(ws), po })
   const dirty = draftKey(selections, wallSelection, presetOnly) !== draftKey(start.selections, start.wallSelection, start.presetOnly)
   useEffect(() => { onDirtyChange?.(dirty) }, [dirty, onDirtyChange])
+
+  // A pick that is not one of the card's options (Code minimum's RSI 2.97 wall) is stated in words (Review Focus 5).
+  const roRows = useMemo(() => (readOnly ? baselinePickRows(initialPicks) : []), [readOnly, initialPicks])
+  const roNote = c => { const r = roRows.find(x => x.cardId === c.id); return r ? `${presetName}: ${r.value}.` : null }
+  useEffect(() => {
+    if (!focusCard) return undefined
+    const el = document.querySelector(`.baseline-editor [data-card="${focusCard}"]`)
+    if (!el) return undefined
+    el.classList.add('focused')
+    el.scrollIntoView?.({ block: 'center' })
+    const t = setTimeout(() => el.classList.remove('focused'), 2000)
+    return () => clearTimeout(t)
+  }, [focusCard])
 
   const total = totalCardPoints(selections) + wallPointsFor(wall)
   const isChanged = c => c.id === wallCategory.id
@@ -90,40 +106,48 @@ export default function BaselineEditor({ initialPicks, houseType, onDone, onCanc
 
   const note = c => {
     if (!isChanged(c)) return null
-    if (c.id === wallCategory.id) return `${PRESET_NAME}: ${wallText(presetView.wallSelection)}. You picked ${wallText(wall)}.`
+    if (c.id === wallCategory.id) return `${presetName}: ${wallText(presetView.wallSelection)}. You picked ${wallText(wall)}.`
     const idx = selections[c.id]
     const mine = idx !== undefined ? optionText(c, c.options[idx]) : presetOnly[c.id] !== undefined ? presetText(c.id, presetOnly[c.id]) : null
-    return `${PRESET_NAME}: ${presetSide(c, preset)}. ${mine === null ? 'You have no pick on this card.' : `You picked ${mine}.`}`
+    return `${presetName}: ${presetSide(c, preset)}. ${mine === null ? 'You have no pick on this card.' : `You picked ${mine}.`}`
   }
 
+  const label = readOnly ? baselineName : 'your usual house'
   return (
     <div className="baseline-editor">
-      <div className="crumb">Cost &gt; Your usual house</div>
+      <div className="crumb">Cost &gt; {readOnly ? baselineName : 'Your usual house'}</div>
       <div className="editor-header">
-        <PointsCounter total={total} target={TIER2} variant="baseline" label={`your usual house . ${total >= TIER2 ? 'meets Tier 2' : 'short of Tier 2'}`} />
+        <PointsCounter total={total} target={TIER2} variant="baseline" label={`${label} . ${total >= TIER2 ? 'meets Tier 2' : 'short of Tier 2'}`} />
       </div>
       <div className="banner">
-        <b>Describe the house you usually build.</b>
-        <p>We've filled in what a typical Nova Scotia Tier 2 house looks like. Change only what you do differently. This is what your costs are compared with; it is not printed and not your design. Saved on this device only.</p>
+        {readOnly
+          ? <><b>This is {baselineName}.</b><p>It cannot be changed; to describe your own, choose My usual house.</p></>
+          : <><b>Describe the house you usually build.</b><p>We've filled in what a typical Nova Scotia Tier 2 house looks like. Change only what you do differently. This is what your costs are compared with; it is not printed and not your design. Saved on this device only.</p></>}
       </div>
-      <main className="categories-container">
-        {categories.map(c => {
-          const n = note(c)
-          const pv = preset.cards[c.id]
-          return (
-            <div key={c.id} className="editor-card">
-              {c.type === 'wallBuilder'
-                ? <WallBuilder key={wallKeyN} selection={wallSelection} onSelect={selectWall} variant="baseline" hideExtras />
-                : <CategoryCard category={c} selectedOption={selections[c.id] ?? null} onSelect={select} disabled={isCategoryDisabled(selections, c)}
-                    variant="baseline" presetValue={pv} presetName={PRESET_NAME} presetText={pv !== undefined ? presetText(c.id, pv) : undefined} />}
-              {n && <p className="costing-note">{n}</p>}
-            </div>
-          )
-        })}
-      </main>
+      <fieldset className="editor-cards" disabled={readOnly}>
+        <main className="categories-container">
+          {categories.map(c => {
+            const n = readOnly ? roNote(c) : note(c)
+            const pv = preset.cards[c.id]
+            return (
+              <div key={c.id} className="editor-card" data-card={c.id}>
+                {c.type === 'wallBuilder'
+                  ? <WallBuilder key={wallKeyN} selection={wallSelection} onSelect={selectWall} variant="baseline" hideExtras />
+                  : <CategoryCard category={c} selectedOption={selections[c.id] ?? null} onSelect={select} disabled={isCategoryDisabled(selections, c)}
+                      variant="baseline" presetValue={pv} presetName={presetName} presetText={pv !== undefined ? presetText(c.id, pv) : undefined} />}
+                {n && <p className="costing-note">{n}</p>}
+              </div>
+            )
+          })}
+        </main>
+      </fieldset>
       <div className="editor-footer">
-        <span className="costing-note">{changed.length ? `Changed from ${PRESET_NAME}: ${changed.join(', ')}. ` : `Same as ${PRESET_NAME}. `}<button type="button" className="link-button" onClick={reset}>Reset to typical</button></span>
-        <span><button type="button" className="btn" onClick={onCancel}>Cancel</button> <button type="button" className="btn primary baseline" onClick={() => onDone(selectionsToPicks(selections, wallSelection, presetOnly))}>Done</button></span>
+        {readOnly
+          ? <span><button type="button" className="btn primary baseline" onClick={onCancel}>Back to Cost</button></span>
+          : <>
+              <span className="costing-note">{changed.length ? `Changed from ${PRESET_NAME}: ${changed.join(', ')}. ` : `Same as ${PRESET_NAME}. `}<button type="button" className="link-button" onClick={reset}>Reset to Typical Tier 2</button></span>
+              <span><button type="button" className="btn" onClick={onCancel}>Cancel</button> <button type="button" className="btn primary baseline" onClick={() => onDone(selectionsToPicks(selections, wallSelection, presetOnly))}>Done</button></span>
+            </>}
       </div>
     </div>
   )

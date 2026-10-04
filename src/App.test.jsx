@@ -75,6 +75,27 @@ describe('App with the cost tab', () => {
     const print = css.slice(css.indexOf('@media print'))
     for (const sel of ['.tab-bar', '.cost-tab', '.baseline-editor', '.cost-chip-wrap']) expect(print).toContain(sel)
   })
+  it('rev 3: "view" on a preset pick opens the read-only editor; Back returns to the statement (Review Focus 5)', () => {
+    render(<App />)
+    pickVentilation75()
+    fireEvent.click(screen.getByRole('tab', { name: 'Cost' }))
+    fireEvent.click(screen.getByRole('button', { name: /^What Typical Tier 2 includes/ }))
+    fireEvent.click(screen.getByRole('button', { name: 'view Ventilation' }))
+    expect(screen.getByText(/Cost > Typical Tier 2/)).toBeInTheDocument()
+    expect(screen.getByText('This is Typical Tier 2.')).toBeInTheDocument()
+    fireEvent.click(screen.getByRole('button', { name: 'Back to Cost' }))
+    expect(screen.getByRole('heading', { level: 2, name: /Typical Tier 2/ })).toBeInTheDocument()
+  })
+  it('rev 3: Go to Points switches to the Points tab', () => {
+    render(<App />)
+    const wall = document.querySelector('#panel-points .wall-builder')
+    fireEvent.click(within(wall).getByRole('button', { name: 'Select RSI' }))
+    fireEvent.click(within(wall).getAllByRole('button', { name: /4\.29/ })[0])
+    fireEvent.click(screen.getByRole('tab', { name: 'Cost' }))
+    fireEvent.click(screen.getByRole('button', { name: /^Above-ground walls/ }))
+    fireEvent.click(screen.getByRole('button', { name: 'Go to Points' }))
+    expect(screen.getByRole('tab', { name: 'Points' })).toHaveAttribute('aria-selected', 'true')
+  })
 })
 
 describe('App with the cost tab: controller-mandated checks (Task 15 notes)', () => {

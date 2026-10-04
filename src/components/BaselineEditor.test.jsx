@@ -24,11 +24,11 @@ describe('BaselineEditor', () => {
     fireEvent.click(screen.getByRole('button', { name: 'Cancel' }))
     expect(onCancel).toHaveBeenCalled()
   })
-  it('Reset to typical restores the preset', () => {
+  it('Reset to Typical Tier 2 restores the preset', () => {
     render(<BaselineEditor initialPicks={typical} houseType="singleDetached" onDone={() => {}} onCancel={() => {}} onDirtyChange={() => {}} />)
     const vent = screen.getByText('Ventilation').closest('.category-card')
     fireEvent.click(within(vent).getByRole('button', { name: /75/ }))
-    fireEvent.click(screen.getByRole('button', { name: 'Reset to typical' }))
+    fireEvent.click(screen.getByRole('button', { name: 'Reset to Typical Tier 2' }))
     expect(screen.queryByText(/Changed from Typical Tier 2:/)).toBeNull()
   })
   it('reads short of Tier 2 when the picks drop below 10', () => {
@@ -108,12 +108,12 @@ describe('BaselineEditor rulings', () => {
     expect(screen.getByText('Typical Tier 2: RSI 3.99 (2x6 R24 batt + 1 in XPS, OSB, vinyl). You picked RSI 3.69.')).toBeInTheDocument()
     expect(screen.getByText(/Changed from Typical Tier 2: Above Ground Walls, DHW \(Gas- or oil-fired\), Ventilation, Windows & Doors\./)).toBeInTheDocument()
   })
-  it('Reset to typical remounts the wall card in Build Assembly with the 2x6 R24 assembly', () => {
+  it('Reset to Typical Tier 2 remounts the wall card in Build Assembly with the 2x6 R24 assembly', () => {
     editor()
     fireEvent.click(within(wallCard()).getByRole('button', { name: 'Select RSI' }))
     fireEvent.click(within(wallCard()).getByRole('button', { name: /3\.69/ }))
     expect(within(wallCard()).getByRole('button', { name: 'Select RSI' })).toHaveClass('active')
-    fireEvent.click(screen.getByRole('button', { name: 'Reset to typical' }))
+    fireEvent.click(screen.getByRole('button', { name: 'Reset to Typical Tier 2' }))
     expect(within(wallCard()).getByRole('button', { name: 'Build Assembly' })).toHaveClass('active')
     expect(within(wallCard()).getByLabelText('Cavity Size')).toHaveValue('2x6 R24')
     expect(screen.getByText(/Same as Typical Tier 2/)).toBeInTheDocument()
@@ -158,7 +158,7 @@ describe('BaselineEditor fix round 1', () => {
     editor({ onDirtyChange })
     const vent = card('Ventilation')
     fireEvent.click(within(vent).getByRole('button', { name: 'Clear' }))   // no-op: back to 65
-    fireEvent.click(screen.getByRole('button', { name: 'Reset to typical' }))
+    fireEvent.click(screen.getByRole('button', { name: 'Reset to Typical Tier 2' }))
     fireEvent.click(within(wallCard()).getByRole('button', { name: 'Select RSI' }))   // empty wall = preset
     expect(onDirtyChange).not.toHaveBeenCalledWith(true)
     fireEvent.click(within(vent).getByRole('button', { name: /75/ }))
@@ -166,7 +166,7 @@ describe('BaselineEditor fix round 1', () => {
     fireEvent.click(within(vent).getByRole('button', { name: 'Clear' }))
     expect(onDirtyChange).toHaveBeenLastCalledWith(false)
     fireEvent.click(within(vent).getByRole('button', { name: /75/ }))
-    fireEvent.click(screen.getByRole('button', { name: 'Reset to typical' }))
+    fireEvent.click(screen.getByRole('button', { name: 'Reset to Typical Tier 2' }))
     expect(onDirtyChange).toHaveBeenLastCalledWith(false)
   })
   it('R43: Done after picking gas DHW saves dhwGas and not dhwElectric', () => {
@@ -177,5 +177,28 @@ describe('BaselineEditor fix round 1', () => {
     const picks = onDone.mock.calls[0][0]
     expect(picks.cards.dhwGas).toBe(0.92)
     expect(picks.cards).not.toHaveProperty('dhwElectric')
+  })
+  it('rev 3: read-only for a preset; banner, notes in words, disabled cards and Back to Cost', () => {
+    const onCancel = vi.fn()
+    const codeMin = getPresetPicks('codeMinimum', 'singleDetached')
+    render(<BaselineEditor initialPicks={codeMin} houseType="singleDetached" readOnly baselineName="Code minimum" onDone={() => {}} onCancel={onCancel} onDirtyChange={() => {}} />)
+    expect(screen.getByText(/Cost > Code minimum/)).toBeInTheDocument()
+    expect(screen.getByText('This is Code minimum.')).toBeInTheDocument()
+    expect(screen.queryByRole('button', { name: 'Done' })).toBeNull()
+    expect(screen.getByText('Code minimum: RSI 2.97 (priced as 2x6 R22 batt, OSB, vinyl).')).toBeInTheDocument()
+    expect(screen.queryByText(/Typical Tier 2: RSI 3\.99/)).toBeNull()
+    const vent = screen.getByText('Ventilation').closest('.category-card')
+    expect(within(vent).getAllByRole('button')[0]).toBeDisabled()
+    fireEvent.click(screen.getByRole('button', { name: 'Back to Cost' }))
+    expect(onCancel).toHaveBeenCalledTimes(1)
+  })
+  it('rev 3: focusCard scrolls to and highlights that card', () => {
+    const scroll = vi.fn()
+    Element.prototype.scrollIntoView = scroll
+    render(<BaselineEditor initialPicks={typical} houseType="singleDetached" focusCard="hrv" onDone={() => {}} onCancel={() => {}} onDirtyChange={() => {}} />)
+    const card = document.querySelector('[data-card="hrv"]')
+    expect(card).toHaveClass('focused')
+    expect(scroll).toHaveBeenCalled()
+    delete Element.prototype.scrollIntoView
   })
 })
