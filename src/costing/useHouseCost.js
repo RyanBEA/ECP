@@ -41,11 +41,12 @@ export function useHouseCost({ selections, wallSelection, houseType, houseFields
     const quantities = computeQuantities(houseFields)
     const sentences = quantitySentences(quantities, houseFields)
     const { name: baselineName, picks: baselinePicks, id: baselineId } = resolveBaselinePicks(baselineChoice, houseType, usualHouse)
-    const design = priceHouse(designPicks(selections, wallSelection), quantities, overrides, 'design')
+    const dp = designPicks(selections, wallSelection)
+    const design = priceHouse(dp, quantities, overrides, 'design')
     const baseline = priceHouse(baselinePicks, quantities, overrides, 'baseline')
     const delta = computeDelta(design, baseline, baselineName, frozenOrder)
     // Ruling R26: a 'both' override applied on both sides counts once.
     const overrideCount = new Set([...appliedOverrideKeys(design), ...appliedOverrideKeys(baseline)]).size
-    return { quantities, sentences, design, baseline, baselinePicks, baselineName, baselineId, delta, overrideCount }
+    return { quantities, sentences, design, baseline, baselinePicks, baselineName, baselineId, delta, overrideCount, designPicks: dp }
   }, [selections, wallSelection, houseType, houseFields, baselineChoice, usualHouse, overrides, frozenOrder])
 }
