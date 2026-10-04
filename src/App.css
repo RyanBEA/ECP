@@ -1055,6 +1055,7 @@ h1, h2, h3, h4, h5, h6 {
   font: inherit;
 }
 
+.changed-count { font-size: 0.8rem; font-weight: 700; margin: 0.25rem 0; }
 .line-overrides {
   display: flex;
   flex-wrap: wrap;
@@ -1213,7 +1214,6 @@ h1, h2, h3, h4, h5, h6 {
 
   .cost-chip-hide,
   .cost-tab .link-button,
-  .cost-tab .pencil-button,
   .baseline-editor .link-button {
     min-width: 44px;
   }
