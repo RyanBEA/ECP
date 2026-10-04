@@ -1,5 +1,5 @@
 import React, { useEffect, useState } from 'react'
-import HouseFields from './HouseFields'
+import HouseFields, { HIDDEN_FIELD_KEYS } from './HouseFields'
 import BaselinePicker, { picksSmallPrint } from './BaselinePicker'
 import CategoryLine, { unitLabelFor, qtyText } from './CategoryLine'
 import LayerTable from './LayerTable'
@@ -22,19 +22,6 @@ const lineUnit = (line, side) => line[side]?.unit ?? line.design.unit
 
 const UNCOSTED = ['notApplicable', 'notCosted']
 
-// "change house" (R40): a field inside "More about this house" opens that group and takes focus; any other
-// field scrolls the sidebar into view.
-function changeHouse(fieldKey) {
-  const el = fieldKey ? document.getElementById(`hf-${fieldKey}`) : null
-  const group = el?.closest('details')
-  if (group) {
-    group.open = true
-    el.focus()
-    return
-  }
-  document.querySelector('.cost-sidebar')?.scrollIntoView?.({ behavior: 'smooth' })
-}
-
 // Applied override keys on this card, both houses, counted once (R36).
 function changedCountFor(line) {
   const id = line.categoryId
@@ -44,16 +31,31 @@ function changedCountFor(line) {
 
 export default function CostTab(props) {
   const { cost, houseType, houseFields, overriddenKeys, baselineChoice, usualHouse, overrideCount, onTypeChange, onFieldChange, onBaselineChoice, onEditUsual, onResetUsual,
-    onOverride, onLineOverride, onResetAllOverrides, onResetCategoryOverrides = () => {}, chipHidden, onToggleChip, openLine, onOpenLine, onFreezeOrder, notice } = props
+    onOverride, onLineOverride, onResetAllOverrides, onResetCategoryOverrides = () => {}, chipHidden, onToggleChip, openLine, onOpenLine, onFreezeOrder, notice, onViewBaselineCard = () => {} } = props
   // Level 3 is App state beside openLine (ruling R45), so it survives the baseline editor; without the props
   // (component tests) CostTab keeps it itself.
   const [ownLevel3, setOwnLevel3] = useState(null)
   const controlled = props.onLevel3 !== undefined
   const level3 = controlled ? props.level3 ?? null : ownLevel3
   const setLevel3 = controlled ? props.onLevel3 : setOwnLevel3
+  const [moreOpen, setMoreOpen] = useState(false)
+  const [includesOpen, setIncludesOpen] = useState(false)
+  const [focusField, setFocusField] = useState(null)
+  useEffect(() => {
+    if (!focusField) return
+    const el = document.getElementById(`hf-${focusField}`)
+    el?.focus?.()
+    el?.scrollIntoView?.({ block: 'center' })
+    setFocusField(null)
+  }, [focusField])
   const { delta, sentences, baselineName } = cost
   const hasUsual = Boolean(usualHouse?.[houseType])
   const typeName = getArchetype(houseType)?.name ?? houseType
+  // "change house" (R40): a field in "More about this house" opens that group; the field then takes focus.
+  const changeHouse = fieldKey => {
+    if (HIDDEN_FIELD_KEYS.includes(fieldKey)) setMoreOpen(true)
+    setFocusField(fieldKey || 'type')
+  }
   // An open line that stops applying (e.g. Type -> Mini-home with Below-grade open) closes and releases the order (R40).
   const openState = openLine ? delta.lines.find(l => l.categoryId === openLine)?.state : null
   // Also when every pick is cleared: the empty state shows no lines.
@@ -70,11 +72,19 @@ export default function CostTab(props) {
   }
   const sidebar = (
     <aside className="cost-sidebar">
-      <HouseFields houseType={houseType} fields={houseFields} overriddenKeys={overriddenKeys} onTypeChange={onTypeChange} onFieldChange={onFieldChange} notice={notice} />
-      <BaselinePicker choice={baselineChoice} onChoice={onBaselineChoice} onEdit={onEditUsual} onResetUsual={onResetUsual} hasUsual={hasUsual} baselinePicks={cost.baselinePicks} belowGradeApplicable={cost.quantities.belowGradeApplicable} />
-      <div className="price-source"><h3>Prices</h3>
+      <section className="cost-card house-card">
+        <HouseFields houseType={houseType} typeName={typeName} fields={houseFields} overriddenKeys={overriddenKeys} onTypeChange={onTypeChange} onFieldChange={onFieldChange}
+          notice={notice} moreOpen={moreOpen} onToggleMore={() => setMoreOpen(o => !o)} />
+      </section>
+      <section className="cost-card baseline-card">
+        <BaselinePicker choice={baselineChoice} onChoice={onBaselineChoice} onEdit={onEditUsual} onResetUsual={onResetUsual} hasUsual={hasUsual}
+          baselineName={baselineName} baselinePicks={cost.baselinePicks} belowGradeApplicable={cost.quantities.belowGradeApplicable}
+          includesOpen={includesOpen} onToggleIncludes={() => setIncludesOpen(o => !o)} onView={onViewBaselineCard} />
+      </section>
+      <div className="price-source">
         <p className="costing-note">Prices: {PRICE_SOURCE_LABEL}, saved on this device{overrideCount > 0 && <> . you've changed {overrideCount} price{overrideCount === 1 ? '' : 's'} . <button type="button" className="link-button" onClick={onResetAllOverrides}>reset all</button></>}</p>
-        <label className="costing-note"><input type="checkbox" checked={!chipHidden} onChange={onToggleChip} /> Show cost on Points</label></div>
+        <label className="costing-note"><input type="checkbox" checked={!chipHidden} onChange={onToggleChip} /> Show cost on Points</label>
+      </div>
     </aside>
   )
   if (!delta.hasPicks) {

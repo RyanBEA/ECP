@@ -1,45 +1,69 @@
 import React from 'react'
-import { BASELINE_PRESETS, BASELINE_NAMES } from '../costing/baselines'
-import { wallText } from '../costing/assumedAssemblies'
+import Disclosure from './Disclosure'
+import { ArrowIcon } from './icons'
+import { BASELINE_PRESETS, presetPoints } from '../costing/baselines'
+import { wallText, describeWall, assumedWallSelection } from '../costing/assumedAssemblies'
+import { plural } from '../costing/houseText'
 
-// "Compared with" (spec 3.1): three choices, each with its one-line description (all three shown, ruling R4).
-// "My usual house..." (none saved for this type) opens the editor; an existing usual house is chosen like the others (R40).
+// The Compared with card (spec rev 3 3.1): three radios with their descriptions, and what the current
+// baseline includes, one pick per row with "view" (3.2).
 const CHOICES = ['codeMinimum', 'typicalTier2', 'usualHouse']
+const LABEL = { codeMinimum: 'Code minimum', typicalTier2: 'Typical Tier 2', usualHouse: 'My usual house' }
 const DESCRIBE = { codeMinimum: BASELINE_PRESETS.codeMinimum.describe, typicalTier2: BASELINE_PRESETS.typicalTier2.describe, usualHouse: 'Start from Typical Tier 2 and change what you do differently.' }
 
-// belowGradeApplicable: false when the house has no foundation wall (foundation height 0), so the below-grade
-// part is left out (ruling R45).
+// belowGradeApplicable: false when the house has no foundation wall, so the below-grade part is left out (R45).
 export function picksSmallPrint(picks, { belowGradeApplicable = true } = {}) {
-  if (!picks) return ''
-  const c = picks.cards || {}
-  const wall = picks.wall?.kind === 'assembly' ? wallText(picks.wall.selection) : picks.wall?.kind === 'level' ? `RSI ${picks.wall.rsi}` : 'no wall'
-  const parts = [`walls ${wall}`]
-  if (belowGradeApplicable && c.belowGradeWalls !== undefined) parts.push(`below grade RSI ${c.belowGradeWalls}`)
-  if (c.windowsDoors !== undefined) parts.push(`windows U ${c.windowsDoors}`)
-  if (c.airTightness !== undefined) parts.push(c.airTightness === 'untested' ? 'untested airtightness' : `${c.airTightness} ACH50`)
-  if (c.hrv !== undefined) parts.push(`HRV ${c.hrv}%`)
-  if (c.dhwElectric !== undefined || c.dhwGas !== undefined) parts.push(c.dhwElectric === 'electricStorage' ? 'electric tank' : `water heater ${c.dhwElectric ?? c.dhwGas}`)
-  return parts.join(' . ')
+  return baselinePickRows(picks, { belowGradeApplicable }).map(r => `${r.name.toLowerCase()} ${r.value}`).join(' . ')
 }
 
-export default function BaselinePicker({ choice, onChoice, onEdit, onResetUsual, hasUsual, baselinePicks, belowGradeApplicable = true }) {
+export function baselinePickRows(picks, { belowGradeApplicable = true } = {}) {
+  if (!picks) return []
+  const c = picks.cards || {}
+  const wall = picks.wall?.kind === 'assembly' ? wallText(picks.wall.selection)
+    : picks.wall?.kind === 'level' ? `RSI ${picks.wall.rsi} (priced as ${describeWall(assumedWallSelection(picks.wall.rsi))})` : 'no wall'
+  const rows = [{ cardId: 'aboveGroundWalls', name: 'Above-ground walls', value: wall }]
+  if (belowGradeApplicable && c.belowGradeWalls !== undefined) rows.push({ cardId: 'belowGradeWalls', name: 'Below-grade walls', value: `RSI ${c.belowGradeWalls}` })
+  if (c.windowsDoors !== undefined) rows.push({ cardId: 'windowsDoors', name: 'Windows and doors', value: `U ${c.windowsDoors}` })
+  if (c.airTightness !== undefined) rows.push({ cardId: 'airTightness', name: 'Airtightness', value: c.airTightness === 'untested' ? 'untested, prescriptive air-barrier detailing' : `${c.airTightness} ACH50, tested` })
+  if (c.hrv !== undefined) rows.push({ cardId: 'hrv', name: 'Ventilation', value: `HRV ${c.hrv}% SRE` })
+  if (c.dhwElectric !== undefined) rows.push({ cardId: 'dhwElectric', name: 'Water heating', value: c.dhwElectric === 'electricStorage' ? 'electric storage tank' : `heat pump, EF ${c.dhwElectric}` })
+  else if (c.dhwGas !== undefined) rows.push({ cardId: 'dhwGas', name: 'Water heating', value: `gas, UEF ${c.dhwGas}` })
+  return rows
+}
+
+export default function BaselinePicker({ choice, onChoice, onEdit, onResetUsual, hasUsual, baselineName, baselinePicks, belowGradeApplicable = true, includesOpen = false, onToggleIncludes = () => {}, onView = () => {}, showTitle = true }) {
   const effective = choice === 'usualHouse' && !hasUsual ? 'typicalTier2' : choice
-  const label = id => (id === 'usualHouse' ? (hasUsual ? 'My usual house' : 'My usual house...') : BASELINE_NAMES[id])
+  const pick = id => { if (id === 'usualHouse' && !hasUsual) onEdit(); else onChoice(id) }
+  const rows = baselinePickRows(baselinePicks, { belowGradeApplicable })
+  const includesLabel = baselineName === 'Your usual house' ? 'What your usual house includes' : `What ${baselineName} includes`
   return (
     <div className="baseline-picker">
-      <h3>Compared with</h3>
-      <select id="baseline-choice" aria-label="Compared with" value={effective} onChange={e => { const v = e.target.value; if (v === 'usualHouse' && !hasUsual) onEdit(); else onChoice(v) }}>
-        {CHOICES.map(id => <option key={id} value={id}>{label(id)}</option>)}
-      </select>
-      <ul className="baseline-choices">
+      <fieldset className="baseline-radios">
+        <legend className={showTitle ? 'card-title' : 'visually-hidden'}>Compared with</legend>
+        {showTitle && <p className="card-sub">What the difference is measured against.</p>}
         {CHOICES.map(id => (
-          <li key={id} className={`costing-note baseline-choice ${id === effective ? 'current' : ''}`}>
-            <strong>{label(id)}</strong> - <span className={`baseline-describe ${id === effective ? 'current' : ''}`}>{DESCRIBE[id]}</span>
-            {id === 'usualHouse' && hasUsual && <> <button type="button" className="link-button" onClick={onEdit}>edit</button> . <button type="button" className="link-button" onClick={onResetUsual}>reset to {BASELINE_NAMES.typicalTier2}</button></>}
-          </li>
+          <div key={id} className={`baseline-radio ${id === effective ? 'current' : ''}`}>
+            <input type="radio" id={`bc-${id}`} name="baseline-choice" value={id} checked={id === effective} onChange={() => pick(id)} aria-describedby={`bc-${id}-d`} />
+            <label htmlFor={`bc-${id}`}>{LABEL[id]}</label>
+            <p id={`bc-${id}-d`} className="radio-desc">{DESCRIBE[id]}</p>
+            {id === 'usualHouse' && (hasUsual
+              ? <p className="radio-actions"><button type="button" className="go-link" onClick={onEdit}>edit <ArrowIcon /></button> <button type="button" className="link-button" onClick={onResetUsual}>reset to Typical Tier 2</button></p>
+              : <p className="radio-actions"><button type="button" className="go-link" onClick={onEdit}>Describe it <ArrowIcon /></button></p>)}
+          </div>
         ))}
-      </ul>
-      <p className="costing-note small-print">{picksSmallPrint(baselinePicks, { belowGradeApplicable })}</p>
+      </fieldset>
+      {baselinePicks && (
+        <Disclosure className="baseline-includes" label={includesLabel} summary={`${plural(rows.length, 'pick')}, ${presetPoints({ ...baselinePicks, cards: Object.fromEntries(Object.entries(baselinePicks.cards || {}).filter(([id]) => belowGradeApplicable || id !== 'belowGradeWalls')) }).toFixed(1)} points`} open={includesOpen} onToggle={onToggleIncludes}>
+          <ul className="includes-list">
+            {rows.map(r => (
+              <li key={r.cardId}>
+                <span><span className="inc-card">{r.name}</span><span className="inc-value">{r.value}</span></span>
+                <button type="button" className="go-link" aria-label={`view ${r.name}`} onClick={() => onView(r.cardId)}>view <ArrowIcon /></button>
+              </li>
+            ))}
+          </ul>
+        </Disclosure>
+      )}
     </div>
   )
 }
