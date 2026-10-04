@@ -234,3 +234,18 @@ describe('App Type change, notice and level 3 (R45)', () => {
     expect(screen.getByTestId('specifics-aboveGroundWalls')).toBeInTheDocument()
   })
 })
+
+describe('App keeps disclosures open across the baseline editor (final review F2)', () => {
+  it('"What Typical Tier 2 includes" is still open after view then Back to Cost', () => {
+    render(<App />)
+    pickVentilation75()
+    fireEvent.click(screen.getByRole('tab', { name: 'Cost' }))
+    const includes = () => screen.getByRole('button', { name: /^What Typical Tier 2 includes/ })
+    fireEvent.click(includes())
+    expect(includes()).toHaveAttribute('aria-expanded', 'true')
+    fireEvent.click(screen.getByRole('button', { name: 'view Ventilation' }))
+    fireEvent.click(screen.getByRole('button', { name: 'Back to Cost' }))
+    expect(includes()).toHaveAttribute('aria-expanded', 'true')
+    expect(screen.getByRole('button', { name: 'view Ventilation' })).toBeInTheDocument()
+  })
+})

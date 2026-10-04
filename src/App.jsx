@@ -64,6 +64,8 @@ export default function App() {
   const [editing, setEditing] = useState(null)   // null | { initialPicks } while the baseline editor is open
   const [editorDirty, setEditorDirty] = useState(false)
   const [openLine, setOpenLine] = useState(null)
+  const [includesOpen, setIncludesOpen] = useState(false)   // the baseline disclosures also survive the editor (F2)
+  const [baseStrip, setBaseStrip] = useState(false)
   const [level3, setLevel3] = useState(null)   // the line whose level 3 is open; kept here so it survives the editor (R45)
   const [frozenOrder, setFrozenOrder] = useState(null)
   const [notice, setNotice] = useState('')
@@ -371,6 +373,10 @@ export default function App() {
               onOpenLine={setOpenLine}
               level3={level3}
               onLevel3={setLevel3}
+              includesOpen={includesOpen}
+              onIncludesOpen={setIncludesOpen}
+              baseStrip={baseStrip}
+              onBaseStrip={setBaseStrip}
               onFreezeOrder={setFrozenOrder}
               notice={notice}
             />

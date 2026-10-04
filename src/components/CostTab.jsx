@@ -39,9 +39,14 @@ export default function CostTab(props) {
   const setSpecLine = controlled ? props.onLevel3 : setOwnSpec
   const [editLine, setEditLine] = useState(null)
   const [moreOpen, setMoreOpen] = useState(false)
-  const [includesOpen, setIncludesOpen] = useState(false)
+  // The baseline disclosures are App state too (survive the editor, like level3); without the props CostTab keeps them.
+  const [ownIncludes, setOwnIncludes] = useState(false)
+  const [ownBaseStrip, setOwnBaseStrip] = useState(false)
+  const includesOpen = props.includesOpen ?? ownIncludes
+  const setIncludesOpen = props.onIncludesOpen ?? setOwnIncludes
+  const baseStrip = props.baseStrip ?? ownBaseStrip
+  const setBaseStrip = props.onBaseStrip ?? setOwnBaseStrip
   const [houseStrip, setHouseStrip] = useState(false)
-  const [baseStrip, setBaseStrip] = useState(false)
   const [focusField, setFocusField] = useState(null)
   const { delta, sentences, baselineName } = cost
   const hasUsual = Boolean(usualHouse?.[houseType])
