@@ -168,3 +168,25 @@ describe('SpecificsTable reset targets (R37)', () => {
     expect(onOverride).toHaveBeenCalledWith('baseline', 'framing', 'stud_2x6_16oc', 'material', undefined)
   })
 })
+
+describe('SpecificsTable edit, same-displayed rows with different price ids (final review F1)', () => {
+  const hpwh = () => setup({ selections: { dhwElectric: 0 } }, 'dhw')
+  it('"applies to both" on the 240 V circuit of a heat pump vs electric storage edits both price ids', () => {
+    const onOverride = vi.fn()
+    renderTable(hpwh(), { editing: true, onOverride })
+    const f = screen.getByRole('spinbutton', { name: 'This design 240 V circuit labour' })
+    fireEvent.change(f, { target: { value: '400' } })
+    fireEvent.keyDown(f, { key: 'Enter' })
+    expect(onOverride).toHaveBeenCalledWith('both', 'circuit_240v', 'heat_pump', 'labour', 400)
+    expect(onOverride).toHaveBeenCalledWith('both', 'circuit_240v', 'elec_storage', 'labour', 400)
+    expect(onOverride).toHaveBeenCalledTimes(2)
+  })
+  it('reset on that both-pair clears the override under both price ids', () => {
+    const onOverride = vi.fn()
+    const t = setup({ selections: { dhwElectric: 0 }, overrides: { 'both/dhw/circuit_240v/heat_pump': { labour: 400 }, 'both/dhw/circuit_240v/elec_storage': { labour: 400 } } }, 'dhw')
+    renderTable(t, { editing: true, onOverride })
+    fireEvent.click(screen.getByRole('button', { name: 'Reset This design 240 V circuit labour' }))
+    expect(onOverride).toHaveBeenCalledWith('both', 'circuit_240v', 'heat_pump', 'labour', undefined)
+    expect(onOverride).toHaveBeenCalledWith('both', 'circuit_240v', 'elec_storage', 'labour', undefined)
+  })
+})

@@ -202,3 +202,18 @@ describe('CostTab below 900 px (rev 3 3.4)', () => {
     expect(document.querySelector('[data-row="framing"]')).toHaveTextContent('same')
   })
 })
+
+describe('CostTab same-displayed rows with different price ids (final review F1)', () => {
+  it('editing the 240 V circuit labour on the both-pair changes both houses, so the row stays same and the difference does not move', () => {
+    render(<Harness selections={{ dhwElectric: 0 }} />)
+    const diffBefore = lineButton('Water heating').textContent
+    openSpecifics('Water heating', 'Heater and parts')
+    startEditing()
+    typeInto('This design 240 V circuit labour', 400)
+    expect(screen.getByRole('row', { name: '240 V circuit' })).toHaveClass('same')
+    fireEvent.click(screen.getByRole('button', { name: /^this house only/ }))
+    expect(screen.getByRole('spinbutton', { name: 'This design 240 V circuit labour' })).toHaveValue(400)
+    expect(screen.getByRole('spinbutton', { name: 'Typical Tier 2 240 V circuit labour' })).toHaveValue(400)
+    expect(lineButton('Water heating').textContent).toBe(diffBefore)
+  })
+})

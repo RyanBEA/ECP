@@ -119,21 +119,32 @@ function EditTable({ model, line, baselineName, narrow, onOverride, onLineOverri
   const editsBoth = r => r.same && !sideOnly[r.key]
   // The override keys to clear on reset: the key that supplied the value, or on a same row edited as one,
   // every distinct key supplying either side (R37).
-  const resetTargets = (r, side, field) => {
-    const cells = editsBoth(r) ? [r.design.comp, r.baseline.comp] : [r[side].comp]
-    const prefixes = [...new Set(cells.map(c => c.overrideKeys?.[field]).filter(Boolean).map(prefixOf))]
-    return prefixes.length ? prefixes : [editsBoth(r) ? 'both' : side]
+  const resetTargets = (r, side, field, cell) => {
+    const key = cell.overrideKeys?.[field]
+    return key ? [prefixOf(key)] : [editsBoth(r) ? 'both' : side]
   }
   const isDormant = (side, c) => Boolean(sides[side].lineKey) && c.unit === sides[side].unit
+  // A shared field is dormant if either house's line price covers it.
+  const dormantFor = (r, side, c) => (editsBoth(r) ? ['design', 'baseline'].some(s => r[s]?.comp && isDormant(s, r[s].comp)) : isDormant(side, c))
   const input = (r, side, field) => {
     const c = r[side]?.comp
     if (!c) return <span className="none">-</span>
     const onSet = v => {
-      if (v === undefined) for (const t of resetTargets(r, side, field)) onOverride(t, r.key, itemId(c), field, undefined)
-      else onOverride(editsBoth(r) ? 'both' : side, r.key, itemId(c), field, v)
+      if (v === undefined) {
+        // Clear every (key prefix, price id) pair behind the shown value; on a both-edited row that is each house's own id.
+        const cells = editsBoth(r) ? [r.design.comp, r.baseline.comp] : [c]
+        const seen = new Set()
+        for (const cell of cells) for (const t of resetTargets(r, side, field, cell)) {
+          const k = `${t}|${itemId(cell)}`
+          if (!seen.has(k)) { seen.add(k); onOverride(t, r.key, itemId(cell), field, undefined) }
+        }
+      } else if (editsBoth(r)) {
+        // Same on screen but possibly priced under two ids: write each distinct id so both houses move together.
+        for (const id of new Set([itemId(r.design.comp), itemId(r.baseline.comp)])) onOverride('both', r.key, id, field, v)
+      } else onOverride(side, r.key, itemId(c), field, v)
     }
     return <PriceInput name={`${names[side]} ${lower(r.item)} ${field}`} value={shown(c, c[field])} decimals={decimalsFor(c)}
-      overridden={c.overridden[field]} dormant={isDormant(side, c)} onSet={onSet} />
+      overridden={c.overridden[field]} dormant={dormantFor(r, side, c)} onSet={onSet} />
   }
   const subOf = r => (r.same ? r.design.text : `${r.design?.text ?? 'none'} vs ${r.baseline?.text ?? 'none'}`)
   const bothToggle = r => (r.same
