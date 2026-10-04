@@ -858,345 +858,173 @@ h1, h2, h3, h4, h5, h6 {
   padding: 0;
 }
 
-/* Cost tab layout: sidebar from 900 px up, one column below (spec 2.4; the collapsed strip waits, R38) */
-.cost-tab {
-  display: grid;
-  grid-template-columns: minmax(0, 1fr);
-  gap: 1rem;
+/* ---- Cost tab, spec rev 3 ---- */
+/* BEA data-viz accents: cost figures only, never controls (design system: data-viz only). */
+:root {
+  --viz-design: #476B8C;
+  --viz-baseline: #8C4776;
+  --viz-more: #8C4747;
+  --viz-less-fill: color-mix(in srgb, #47A68C 22%, var(--card-bg));
+}
+.dark {
+  --viz-design: #8FB0CF;
+  --viz-baseline: #D49AC2;
+  --viz-more: #E09A9A;
+  --viz-less-fill: color-mix(in srgb, #47A68C 30%, var(--card-bg));
 }
 
+.icon { width: 16px; height: 16px; flex: none; vertical-align: -3px; }
+.icon.chevron { color: var(--primary); transition: transform 0.15s; }
+[aria-expanded="true"] > .icon.chevron { transform: rotate(90deg); }
+.visually-hidden { position: absolute; width: 1px; height: 1px; overflow: hidden; clip: rect(0 0 0 0); white-space: nowrap; }
+
+.disclosure-row { display: flex; align-items: flex-start; gap: 0.5rem; width: 100%; background: none; border: 0; padding: 0.5rem 0 0.25rem; text-align: left; cursor: pointer; font: inherit; color: var(--text-primary); min-height: 34px; }
+.disclosure-row .icon.chevron { margin-top: 2px; }
+.disclosure-label { font-weight: 700; font-size: 0.9rem; }
+.disclosure-summary { display: block; font-size: 0.78rem; color: var(--text-secondary); margin-top: 1px; }
+.disclosure-row:hover .disclosure-label { color: var(--primary); text-decoration: underline; }
+.disclosure-body { padding: 0.25rem 0 0.25rem 1.5rem; }
+.go-link { display: inline-flex; align-items: center; gap: 0.2rem; background: none; border: 0; padding: 0; color: var(--primary); font: inherit; font-size: 0.8rem; font-weight: 700; text-decoration: underline; cursor: pointer; }
+
+.cost-tab { display: grid; grid-template-columns: minmax(0, 1fr); gap: 1rem; }
 @media (min-width: 900px) {
-  .cost-tab {
-    grid-template-columns: 250px minmax(0, 1fr);
-    align-items: start;
-  }
-
-  .cost-sidebar {
-    position: sticky;
-    top: 0.5rem;
-  }
+  .cost-tab:not(.narrow) { grid-template-columns: 250px minmax(0, 1fr); align-items: start; }
 }
+.cost-card { background: var(--card-bg); border: 1px solid var(--border-color); border-radius: var(--radius); padding: 0.9rem 1rem; }
+.cost-sidebar { display: flex; flex-direction: column; gap: 0.75rem; }
+.cost-strips { display: flex; flex-direction: column; gap: 0.5rem; }
+.cost-card.strip { padding: 0.2rem 0.9rem 0.5rem; }
+.card-title { font-size: 0.95rem; font-weight: 700; margin: 0; padding: 0; color: var(--text-primary); }
+.card-sub { font-size: 0.75rem; color: var(--text-secondary); margin: 0.15rem 0 0.6rem; line-height: 1.4; }
 
-.cost-sidebar,
-.cost-statement {
-  background: var(--card-bg);
-  border-radius: var(--radius);
-  box-shadow: 0 1px 3px rgba(0,0,0,0.1);
-  padding: 1rem;
-}
+.cost-tab select, .cost-tab input[type="number"] { padding: 0.25rem 0.4rem; border: 1px solid var(--gray-300); border-radius: 6px; background: var(--card-bg); color: var(--text-primary); font: inherit; font-size: 0.85rem; min-width: 0; }
+.house-field { display: grid; grid-template-columns: 4.6rem minmax(0, 1fr); gap: 0.15rem 0.5rem; align-items: center; margin-bottom: 0.4rem; font-size: 0.85rem; }
+.disclosure-body .house-field { grid-template-columns: 6.4rem minmax(0, 1fr); }
+.house-field .fl { color: var(--gray-700); line-height: 1.2; }
+.dark .house-field .fl { color: var(--text-secondary); }
+.house-field .fv { display: flex; align-items: center; gap: 0.3rem; flex-wrap: wrap; }
+.house-field .fv select:first-child { max-width: 100%; }
+.house-field input[type="number"] { width: 3.4rem; }
+.house-field .unit { font-size: 0.75rem; color: var(--text-secondary); }
+.house-field.changed select, .house-field.changed input { border: 2px solid var(--primary); }
+.field-state { font-size: 0.7rem; font-weight: 700; color: var(--text-primary); }
+.footprint-metric { margin: -0.2rem 0 0.4rem 5.1rem; }
+.costing-note { font-size: 0.8rem; color: var(--text-secondary); margin: 0.25rem 0; }
+.costing-notice { font-size: 0.8rem; color: var(--text-primary); border-left: 3px solid var(--baseline); padding-left: 0.5rem; margin: 0.25rem 0 0.5rem; }
 
-.cost-sidebar h3 {
-  font-size: 0.75rem;
-  text-transform: uppercase;
-  letter-spacing: 0.03em;
-  margin: 0.75rem 0 0.35rem;
-  color: var(--text-secondary);
-}
+.baseline-radios { border: 0; margin: 0; padding: 0; min-width: 0; display: flex; flex-direction: column; gap: 0.4rem; }
+.baseline-radio { display: grid; grid-template-columns: 1.1rem minmax(0, 1fr); gap: 0 0.4rem; padding: 0.4rem 0.5rem; border: 1px solid var(--border-color); border-radius: 7px; font-size: 0.8rem; }
+.baseline-radio.current { border-color: var(--primary); background: var(--primary-light); }
+.baseline-radio input { margin: 0.2rem 0 0; accent-color: var(--primary); }
+.baseline-radio label { font-weight: 700; cursor: pointer; }
+.baseline-radio .radio-desc, .baseline-radio .radio-actions { grid-column: 2; margin: 0.1rem 0 0; color: var(--text-secondary); line-height: 1.4; }
+.baseline-includes { margin-top: 0.5rem; border-top: 1px solid var(--border-color); }
+.includes-list { list-style: none; margin: 0; padding: 0; font-size: 0.8rem; }
+.includes-list li { display: grid; grid-template-columns: minmax(0, 1fr) auto; gap: 0.5rem; align-items: center; padding: 0.35rem 0; border-top: 1px solid var(--gray-100); }
+.dark .includes-list li { border-top-color: var(--border-color); }
+.inc-card { display: block; font-size: 0.72rem; color: var(--text-secondary); }
+.inc-value { font-weight: 600; }
+.price-source label { display: flex; align-items: center; gap: 0.4rem; cursor: pointer; }
+.price-source { padding: 0 0.15rem; }
 
-.cost-sidebar h3:first-child {
-  margin-top: 0;
-}
+.headline { font-size: 1.6rem; line-height: 1.25; margin: 0 0 0.35rem; color: var(--primary); }
+.category-lines { display: flex; flex-direction: column; margin-top: 0.75rem; }
+.category-line { background: var(--card-bg); border: 1px solid var(--border-color); border-top: 0; }
+.category-line:first-child { border-top: 1px solid var(--border-color); border-radius: var(--radius) var(--radius) 0 0; }
+.category-line:last-child { border-radius: 0 0 var(--radius) var(--radius); }
+.category-line.open { margin: 0.9rem 0; border: 2px solid var(--primary); border-radius: 10px; box-shadow: 0 8px 22px rgba(79, 61, 99, 0.22); }
+.category-line.open:first-child { margin-top: 0; }
+.category-line.open + .category-line { border-top: 1px solid var(--border-color); border-radius: var(--radius) var(--radius) 0 0; }
+.category-line:has(+ .category-line.open) { border-radius: 0 0 var(--radius) var(--radius); }
+.line-row { display: grid; grid-template-columns: 1.1rem minmax(0, 1fr) auto; gap: 0.25rem 0.5rem; width: 100%; align-items: start; background: none; border: 0; padding: 0.6rem 0.9rem; text-align: left; font: inherit; color: var(--text-primary); cursor: pointer; }
+.line-row.static { cursor: default; }
+.line-row .icon.chevron { margin-top: 3px; }
+.line-row:not(.static):hover .line-name { color: var(--primary); }
+.category-line.open .line-row { background: var(--primary-light); border-radius: 8px 8px 0 0; position: sticky; top: 0; z-index: 2; }
+.line-name { display: block; font-weight: 700; }
+.line-small { display: block; font-size: 0.75rem; color: var(--text-secondary); font-weight: 400; margin-top: 1px; }
+.dot { display: inline-block; width: 3px; height: 3px; border-radius: 50%; background: currentColor; margin: 0 0.35rem; vertical-align: 3px; }
+.line-delta { font-weight: 800; white-space: nowrap; color: var(--viz-more); }
+.line-delta.neg { color: var(--text-primary); background: var(--viz-less-fill); border-radius: 4px; padding: 0 0.25rem; }
+.line-delta.z, .state-notCosted .line-delta, .state-notApplicable .line-delta, .state-notPriced .line-delta { color: var(--text-secondary); font-weight: 600; background: none; }
+.state-notCosted .line-name { color: var(--text-secondary); }
+.total-line { display: flex; justify-content: space-between; padding: 0.6rem 0.9rem 0.6rem 2.5rem; border-top: 2px solid var(--text-primary) !important; font-weight: 800; }
+.total-line .line-delta { color: var(--text-primary); }
+.line-detail { padding: 0.75rem 0.9rem 0.9rem; font-size: 0.85rem; }
 
-.cost-sidebar select,
-.cost-sidebar input[type="number"] {
-  padding: 0.3rem 0.4rem;
-  border: 1px solid var(--gray-300);
-  border-radius: var(--radius);
-  background: var(--card-bg);
-  color: var(--text-primary);
-  font: inherit;
-  font-size: 0.85rem;
-  min-width: 0;
-}
+.cost-tiles { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 0.5rem; margin-bottom: 0.6rem; }
+.tile { background: var(--gray-50); border: 1px solid var(--border-color); border-top-width: 3px; border-radius: 6px; padding: 0.35rem 0.5rem; font-size: 0.75rem; color: var(--text-secondary); }
+.dark .tile { background: var(--body-bg); }
+.tile b { display: block; font-size: 1.05rem; color: var(--text-primary); }
+.tile-design { border-top-color: var(--viz-design); }
+.tile-baseline { border-top-color: var(--viz-baseline); }
+.tile-diff { border-top-color: var(--gray-300); }
+.who-design { color: var(--viz-design); }
+.who-baseline { color: var(--viz-baseline); }
+.line-desc { margin: 0 0 0.5rem; line-height: 1.5; }
+.line-notice { display: flex; gap: 0.5rem; align-items: flex-start; background: var(--gray-50); border: 1px solid var(--border-color); border-left: 3px solid var(--primary); border-radius: 6px; padding: 0.45rem 0.6rem; margin: 0 0 0.6rem; font-size: 0.8rem; }
+.dark .line-notice { background: var(--body-bg); }
+.line-notice .icon { color: var(--primary); margin-top: 1px; }
+.line-quantity { margin: 0 0 0.25rem; }
+.specifics-disclosure { border-top: 1px solid var(--border-color); margin-top: 0.5rem; }
+.specifics-disclosure > .disclosure-body { padding-left: 0; }
+.specifics-head { display: flex; justify-content: space-between; align-items: center; gap: 0.5rem; margin: 0.3rem 0 0.4rem; }
+.specifics-head small { color: var(--text-secondary); }
+.edit-prices { display: inline-flex; align-items: center; gap: 0.35rem; }
 
-.cost-sidebar input[type="number"] {
-  width: 5.5rem;
-}
+.specifics-table { width: 100%; border-collapse: collapse; font-size: 0.8rem; }
+.specifics-table th { text-align: left; font-size: 0.66rem; text-transform: uppercase; letter-spacing: 0.04em; color: var(--text-secondary); padding: 0.3rem 0.4rem; border-bottom: 1px solid var(--border-color); vertical-align: bottom; }
+.specifics-table th.col-design { color: var(--viz-design); box-shadow: inset 0 -2px 0 var(--viz-design); }
+.specifics-table th.col-baseline { color: var(--viz-baseline); box-shadow: inset 0 -2px 0 var(--viz-baseline); }
+.specifics-table td { padding: 0.35rem 0.4rem; border-bottom: 1px solid var(--gray-100); vertical-align: top; }
+.dark .specifics-table td { border-bottom-color: var(--border-color); }
+.specifics-table .r { text-align: right; white-space: nowrap; font-variant-numeric: tabular-nums; }
+.specifics-table td small { display: block; font-size: 0.72rem; color: var(--text-secondary); font-weight: 400; }
+.specifics-table tr.same td { color: var(--text-secondary); }
+.specifics-table tr.differs td { background: color-mix(in srgb, var(--viz-design) 6%, var(--card-bg)); }
+.specifics-table tr.differs td:first-child { box-shadow: inset 3px 0 0 var(--viz-design); font-weight: 700; }
+.specifics-table tr.group td { font-size: 0.66rem; text-transform: uppercase; letter-spacing: 0.04em; color: var(--text-secondary); font-weight: 700; padding-top: 0.6rem; background: none; box-shadow: none; }
+.specifics-table .opt { display: block; }
+.specifics-table tr.differs .opt { font-weight: 600; color: var(--text-primary); }
+.specifics-table .price { display: block; font-size: 0.72rem; color: var(--text-secondary); }
+.specifics-table tfoot td { border-bottom: 0; font-weight: 600; }
+.specifics-table tfoot tr.tot td { border-top: 2px solid var(--text-primary); font-weight: 800; }
+.diff.more { color: var(--viz-more); font-weight: 800; }
+.diff.less { color: var(--text-primary); background: var(--viz-less-fill); border-radius: 4px; padding: 0 0.25rem; font-weight: 800; }
+.specifics-legend { display: flex; flex-wrap: wrap; gap: 0.8rem; font-size: 0.72rem; color: var(--text-secondary); margin: 0.4rem 0 0; }
+.specifics-legend .key::before { content: ''; display: inline-block; width: 0.7rem; height: 0.7rem; border-radius: 3px; margin-right: 0.3rem; vertical-align: -1px; }
+.key-design::before { background: var(--viz-design); }
+.key-baseline::before { background: var(--viz-baseline); }
+.key-more::before { background: var(--viz-more); }
+.key-less::before { background: var(--viz-less-fill); border: 1px solid #47A68C; }
+.specifics-notes { margin: 0.5rem 0 0; padding-left: 1.1rem; font-size: 0.8rem; color: var(--text-secondary); }
 
-.house-field {
-  display: grid;
-  grid-template-columns: minmax(0, 1fr) auto;
-  gap: 0.15rem 0.5rem;
-  align-items: center;
-  margin-bottom: 0.45rem;
-  font-size: 0.85rem;
-}
+.specifics-narrow { font-size: 0.8rem; }
+.narrow-row { padding: 0.4rem 0; border-bottom: 1px solid var(--gray-100); }
+.narrow-row.same { display: flex; justify-content: space-between; gap: 0.5rem; color: var(--text-secondary); }
+.narrow-row.differs { box-shadow: inset 3px 0 0 var(--viz-design); padding-left: 0.6rem; background: color-mix(in srgb, var(--viz-design) 6%, var(--card-bg)); }
+.narrow-top { display: flex; justify-content: space-between; font-weight: 700; }
+.narrow-side { display: grid; grid-template-columns: 6rem minmax(0, 1fr); gap: 0.4rem; margin-top: 0.15rem; }
+.who { font-weight: 600; }
+.who.who-design { color: var(--viz-design); }
+.who.who-baseline { color: var(--viz-baseline); }
+.narrow-group { font-size: 0.66rem; text-transform: uppercase; color: var(--text-secondary); font-weight: 700; margin: 0.5rem 0 0.1rem; }
+.narrow-total { display: grid; grid-template-columns: minmax(0, 1fr) auto auto; gap: 0.2rem 0.7rem; margin-top: 0.5rem; }
+.narrow-total .h { font-size: 0.66rem; text-transform: uppercase; color: var(--text-secondary); font-weight: 700; }
+.narrow-total .t { font-weight: 800; border-top: 2px solid var(--text-primary); padding-top: 0.2rem; }
+.edit-block { padding: 0.45rem 0; border-bottom: 1px solid var(--gray-100); }
+.edit-block.differs { box-shadow: inset 3px 0 0 var(--viz-design); padding-left: 0.6rem; }
+.edit-top small { display: block; color: var(--text-secondary); font-weight: 400; }
+.edit-side { display: flex; align-items: center; gap: 0.4rem; flex-wrap: wrap; margin-top: 0.25rem; }
+.edit-side .who { width: 6rem; }
+.specifics-table.edit td.both { color: var(--text-secondary); font-size: 0.75rem; }
+.price-field { display: inline-flex; align-items: center; gap: 0.2rem; }
+.price-field .price-input { width: 4.6rem; text-align: right; }
+.price-field.overridden .price-input { border: 2px solid var(--primary); background: var(--primary-light); }
+.price-field.dormant .price-input { text-decoration: line-through; color: var(--text-secondary); }
 
-.house-field label {
-  grid-column: 1 / -1;
-  font-weight: 600;
-}
-
-/* A changed field: a thicker border and the word "changed" (never colour alone) */
-.house-field.changed select,
-.house-field.changed input {
-  border: 2px solid var(--primary);
-}
-
-.field-state {
-  font-size: 0.7rem;
-  color: var(--text-secondary);
-}
-
-.house-field.changed .field-state {
-  font-weight: 700;
-  color: var(--text-primary);
-}
-
-.more-house {
-  margin-top: 0.5rem;
-  font-size: 0.85rem;
-}
-
-.more-house summary {
-  cursor: pointer;
-  font-weight: 600;
-  margin-bottom: 0.4rem;
-}
-
-.costing-note {
-  font-size: 0.8rem;
-  color: var(--text-secondary);
-  margin: 0.25rem 0;
-}
-
-.costing-notice {
-  font-size: 0.8rem;
-  color: var(--text-primary);
-  border-left: 3px solid var(--baseline);
-  padding-left: 0.5rem;
-  margin: 0.25rem 0 0.5rem;
-}
-
-.baseline-picker select {
-  width: 100%;
-}
-
-.baseline-choices {
-  list-style: none;
-  margin: 0.4rem 0;
-}
-
-.baseline-choice {
-  line-height: 1.4;
-}
-
-.baseline-choice.current strong {
-  color: var(--text-primary);
-}
-
-.small-print {
-  font-size: 0.75rem;
-}
-
-.price-source label {
-  display: flex;
-  align-items: center;
-  gap: 0.4rem;
-  cursor: pointer;
-}
-
-/* Statement */
-.headline {
-  font-size: 1.6rem;
-  line-height: 1.25;
-  margin: 0 0 0.35rem;
-  color: var(--primary);
-}
-
-.category-lines {
-  margin-top: 0.75rem;
-}
-
-.category-line {
-  border-bottom: 1px solid var(--border-color);
-}
-
-.category-line .line-row {
-  width: 100%;
-  display: flex;
-  justify-content: space-between;
-  align-items: baseline;
-  gap: 0.75rem;
-  background: none;
-  border: none;
-  padding: 0.6rem 0.25rem;
-  text-align: left;
-  cursor: pointer;
-  font: inherit;
-  color: var(--text-primary);
-}
-
-.category-line .line-row:hover:not(:disabled) {
-  background: var(--gray-50);
-}
-
-.category-line .line-row:disabled {
-  cursor: default;
-  opacity: 0.7;
-}
-
-.line-name {
-  font-weight: 600;
-}
-
-.line-name small {
-  display: block;
-  font-weight: 400;
-  color: var(--text-secondary);
-  font-size: 0.75rem;
-}
-
-.line-delta {
-  font-weight: 800;
-  color: var(--primary);
-  white-space: nowrap;
-}
-
-/* Negative deltas: the word "less" plus a neutral second colour, never red or green (spec 3.2) */
-.line-delta.neg {
-  color: var(--gray-600);
-}
-
-.line-delta.z {
-  color: var(--text-secondary);
-  font-weight: 600;
-}
-
-.category-line.open {
-  border-left: 3px solid var(--primary);
-  padding-left: 0.5rem;
-}
-
-.line-detail {
-  padding: 0.25rem 0.25rem 0.75rem;
-  font-size: 0.85rem;
-}
-
-.comparison {
-  width: 100%;
-  border-collapse: collapse;
-  margin-bottom: 0.5rem;
-}
-
-.comparison th,
-.comparison td {
-  text-align: left;
-  padding: 0.25rem 0.4rem;
-  border-bottom: 1px solid var(--border-color);
-  vertical-align: top;
-}
-
-.comparison th {
-  font-weight: 700;
-}
-
-.comparison td:first-child {
-  color: var(--text-secondary);
-}
-
-.assumptions {
-  padding-left: 1.1rem;
-  margin: 0.25rem 0;
-}
-
-.assumptions li {
-  margin-bottom: 0.2rem;
-}
-
-.total-line {
-  display: flex;
-  justify-content: space-between;
-  font-weight: 800;
-  border-top: 2px solid var(--text-primary);
-  margin-top: 0.5rem;
-  padding: 0.4rem 0.25rem 0;
-}
-
-/* Level 3: LayerTable (spec 4.2) */
-.layer-table {
-  margin-top: 0.75rem;
-  overflow-x: auto;
-}
-
-.layer-table-head {
-  display: flex;
-  justify-content: space-between;
-  gap: 1rem;
-  font-weight: 600;
-  margin-bottom: 0.35rem;
-}
-
-.changed-count {
-  font-size: 0.8rem;
-  font-weight: 700;
-  margin: 0.25rem 0;
-}
-
-.layer-table table {
-  width: 100%;
-  border-collapse: collapse;
-  font-size: 0.8rem;
-}
-
-.layer-table th {
-  position: sticky;
-  top: 0;
-  background: var(--card-bg);
-  font-size: 0.65rem;
-  text-transform: uppercase;
-  letter-spacing: 0.03em;
-  color: var(--text-secondary);
-  padding: 0.2rem 0.3rem;
-  border-bottom: 1px solid var(--border-color);
-  text-align: left;
-}
-
-.layer-table td {
-  padding: 0.2rem 0.3rem;
-  border-bottom: 1px solid var(--border-color);
-  white-space: nowrap;
-}
-
-.layer-table td:first-child {
-  white-space: normal;
-  min-width: 7rem;
-}
-
-/* A part priced in its own unit (doors, each): its "2 each x $X = $Y" cells may wrap */
-.layer-table tr.part td {
-  white-space: normal;
-}
-
-.layer-table td:first-child small {
-  display: block;
-  font-weight: 400;
-  color: var(--text-secondary);
-}
-
-.layer-table td:first-child .link-button {
-  display: block;
-  font-size: 0.7rem;
-}
-
-.layer-table .r {
-  text-align: right;
-}
-
-/* Rows that differ: a bar and bold text; identical rows muted */
-.layer-table tr.differs td:first-child {
-  border-left: 3px solid var(--primary);
-  font-weight: 700;
-}
-
-.layer-table tr.same td {
-  color: var(--text-secondary);
-}
-
-.layer-table tr.tot td {
-  font-weight: 800;
-  border-top: 2px solid var(--text-primary);
-}
+.editor-cards { border: 0; margin: 0; padding: 0; min-width: 0; }
+.editor-card.focused { outline: 3px solid var(--baseline); outline-offset: 4px; border-radius: var(--radius); }
 
 /* An overridden price: bold and underlined, plus its own "reset" link (not colour alone) */
 .price-cell.overridden {
@@ -1209,16 +1037,6 @@ h1, h2, h3, h4, h5, h6 {
 .price-cell.dormant {
   text-decoration: line-through;
   color: var(--text-secondary);
-}
-
-.pencil-button {
-  background: none;
-  border: none;
-  color: var(--primary);
-  cursor: pointer;
-  font-size: 0.8rem;
-  margin-left: 0.2rem;
-  padding: 0 0.15rem;
 }
 
 .price-cell .link-button {

@@ -74,6 +74,7 @@ Eight scoring categories, each with point thresholds from NBC 2020 Tables 9.36.8
 ## Cost UI (branch cost-ui)
 
 Design spec: `/srv/clients/BTZx/cost-DB-and-ECP/25_Working/ECP_Tool/specs/2026-10-01-ecp-cost-ui-design.md` (revision 2).
+- Iteration 2 (branch `cost-ui-2`): spec revision 3, `/srv/clients/BTZx/cost-DB-and-ECP/25_Working/ECP_Tool/specs/2026-10-02-ecp-cost-ui-design-rev3.md`. `LayerTable` is retired; `costing/specifics.js` builds every line's specifics.
 Plan: `/srv/clients/BTZx/cost-DB-and-ECP/25_Working/ECP_Tool/plans/2026-10-01-ecp-cost-ui.md`.
 Two tabs, Points (unchanged) and Cost. Pure modules in `src/costing/`; stand-in prices in `src/costing/data/stand-in-costs.json`
 (rebuild with `npm run build:costs`); persistence in `src/costing/persist.js`. Costs never print. Proof of concept; nothing pushed.
