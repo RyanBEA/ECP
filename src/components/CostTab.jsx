@@ -29,7 +29,7 @@ function changedCountFor(line) {
 export default function CostTab(props) {
   const { cost, houseType, houseFields, overriddenKeys, baselineChoice, usualHouse, overrideCount, onTypeChange, onFieldChange, onBaselineChoice, onEditUsual, onResetUsual,
     onViewBaselineCard = () => {}, onGoToPoints = () => {}, onOverride, onLineOverride, onResetAllOverrides, onResetCategoryOverrides = () => {},
-    chipHidden, onToggleChip, openLine, onOpenLine, onFreezeOrder, notice } = props
+    openLine, onOpenLine, onFreezeOrder, notice } = props
   const narrowNow = useNarrow()
   const narrow = props.narrow ?? narrowNow
   // The line whose specifics are open is App state beside openLine (R45); without the props, CostTab keeps it.
@@ -97,7 +97,6 @@ export default function CostTab(props) {
   const prices = (
     <div className="price-source">
       <p className="costing-note">Prices: {PRICE_SOURCE_LABEL}, saved on this device{overrideCount > 0 && <> . you've changed {overrideCount} price{overrideCount === 1 ? '' : 's'} . <button type="button" className="link-button" onClick={onResetAllOverrides}>reset all</button></>}</p>
-      <label className="costing-note"><input type="checkbox" checked={!chipHidden} onChange={onToggleChip} /> Show cost on Points</label>
     </div>
   )
   const side = narrow

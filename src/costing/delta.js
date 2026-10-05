@@ -85,9 +85,3 @@ export function computeDelta(design, baseline, baselineName, frozenOrder = null)
   return { lines, headline: { exact, text, secondLine: SECOND_LINE, coveredText }, coveredCount, costedCount, pickedCount, hasPicks, order }
 }
 
-// Header chip on Points (spec 2.3): '+$8,500' / '-$1,000' / '$0'.
-export const chipText = exact => (isZero(exact) ? '$0' : formatDelta(exact))
-// 'more than Typical Tier 2 . details ->' / 'less than ...' / 'same as ...' at $0,
-// with ' . your prices' when any override applies.
-export const chipSecondLine = (exact, baselineName, hasOverrides) =>
-  `${isZero(exact) ? 'same as' : exact < 0 ? 'less than' : 'more than'} ${baselineName}${hasOverrides ? ' . your prices' : ''} . details ->`

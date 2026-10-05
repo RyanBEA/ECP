@@ -29,6 +29,6 @@ export function Harness({ selections = {}, wallSelection = {}, initialType = 'si
       onViewBaselineCard={spies.onViewBaselineCard || (() => {})} onGoToPoints={spies.onGoToPoints || (() => {})}
       onOverride={spies.onOverride || setOverride} onLineOverride={spies.onLineOverride || (() => {})}
       onResetAllOverrides={() => setOverrides({})} onResetCategoryOverrides={spies.onResetCategoryOverrides}
-      chipHidden={false} onToggleChip={() => {}} openLine={openLine} onOpenLine={setOpenLine} onFreezeOrder={setFrozenOrder} notice="" narrow={narrow} />
+      openLine={openLine} onOpenLine={setOpenLine} onFreezeOrder={setFrozenOrder} notice="" narrow={narrow} />
   )
 }

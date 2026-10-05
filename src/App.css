@@ -766,7 +766,7 @@ h1, h2, h3, h4, h5, h6 {
   cursor: not-allowed;
 }
 
-/* ===== Cost layer (spec 2-5): tabs, header chip, Cost tab, baseline editor ===== */
+/* ===== Cost layer (spec 2-5): tabs, Cost tab, baseline editor ===== */
 
 /* Tabs: two indicators on the selected tab, colour and an underline (spec 2.1) */
 .tab-bar {
@@ -817,43 +817,6 @@ h1, h2, h3, h4, h5, h6 {
   display: none !important;
 }
 
-/* Header cost chip (spec 2.3) */
-.cost-chip-wrap {
-  display: inline-flex;
-  align-items: center;
-  gap: 0.35rem;
-  margin-left: auto;
-}
-
-.cost-chip {
-  border: 2px solid var(--primary);
-  color: var(--primary);
-  background: var(--card-bg);
-  border-radius: var(--radius);
-  padding: 0.25rem 0.6rem;
-  text-align: left;
-  cursor: pointer;
-  font: inherit;
-}
-
-.cost-chip:hover {
-  background: var(--gray-50);
-}
-
-.cost-chip-value {
-  display: block;
-  font-weight: 800;
-  font-size: 1.05rem;
-}
-
-.cost-chip-sub {
-  display: block;
-  font-size: 0.7rem;
-  font-weight: 400;
-  color: var(--text-secondary);
-}
-
-.cost-chip-hide,
 .link-button {
   background: none;
   border: none;
@@ -931,7 +894,6 @@ h1, h2, h3, h4, h5, h6 {
 .dark .includes-list li { border-top-color: var(--border-color); }
 .inc-card { display: block; font-size: 0.72rem; color: var(--text-secondary); }
 .inc-value { font-weight: 600; }
-.price-source label { display: flex; align-items: center; gap: 0.4rem; cursor: pointer; }
 .price-source { padding: 0 0.15rem; }
 
 .headline { font-size: 1.6rem; line-height: 1.25; margin: 0 0 0.35rem; color: var(--primary); }
@@ -1230,18 +1192,14 @@ h1, h2, h3, h4, h5, h6 {
 /* Tap targets of at least 44 px below 900 px (spec 2.4) */
 @media (max-width: 899px) {
   .tab-bar .tab,
-  .cost-chip,
-  .cost-chip-hide,
   .cost-tab button,
   .cost-tab select,
   .cost-tab input[type="number"],
-  .cost-tab .price-source label,
   .baseline-editor .btn,
   .baseline-editor .link-button {
     min-height: 44px;
   }
 
-  .cost-chip-hide,
   .cost-tab .link-button,
   .baseline-editor .link-button {
     min-width: 44px;
@@ -1250,15 +1208,6 @@ h1, h2, h3, h4, h5, h6 {
   .cost-tab .link-button,
   .baseline-editor .link-button {
     padding: 0 0.25rem;
-  }
-
-  .cost-tab .price-source input[type="checkbox"] {
-    width: 22px;
-    height: 22px;
-  }
-
-  .cost-chip-wrap {
-    margin-left: 0;
   }
 }
 
@@ -1280,7 +1229,6 @@ h1, h2, h3, h4, h5, h6 {
   .cost-tab,
   .baseline-editor,
   .dialog,
-  .cost-chip-wrap,
   .cost-button {
     display: none !important;
   }

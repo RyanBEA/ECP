@@ -1,5 +1,4 @@
 import { computeDelta } from './delta'
-import { chipText, chipSecondLine } from './delta'
 import { formatDelta, roundDisplay, ROUNDING_UNIT } from './units'
 
 const priced = (cost, extra = {}) => ({ state: 'priced', cost, description: 'x', assumed: false, components: [], ...extra })
@@ -90,17 +89,6 @@ describe('reconciliation of lines and Total (spec 7.1)', () => {
   })
 })
 
-describe('chip text (spec 2.3)', () => {
-  it('reads the rounded delta and names the baseline', () => {
-    expect(chipText(8300, 'Typical Tier 2')).toBe('+$8,500')
-    expect(chipText(-800, 'Your usual house')).toBe('-$1,000')
-    expect(chipText(0, 'Typical Tier 2')).toBe('$0')
-    expect(chipSecondLine(8300, 'Typical Tier 2', false)).toBe('more than Typical Tier 2 . details ->')
-    expect(chipSecondLine(-800, 'Your usual house', false)).toBe('less than Your usual house . details ->')
-    expect(chipSecondLine(8300, 'Typical Tier 2', true)).toBe('more than Typical Tier 2 . your prices . details ->')
-  })
-})
-
 describe('fix round 1 (R27 to R30)', () => {
   const notPriced = reason => ({ state: 'notPriced', reason, cost: 0, components: [] })
   const unselected = { state: 'unselected', cost: 0, components: [] }
@@ -147,10 +135,6 @@ describe('fix round 1 (R27 to R30)', () => {
       const l = d.lines.find(x => x.categoryId === id)
       expect(l.delta).toBe(0); expect(l.deltaText).toBe('$0'); expect(l.smallPrint).toBe('same as Typical Tier 2')
     }
-  })
-  it('chip second line at exactly $0 reads "same as"', () => {
-    expect(chipSecondLine(0, 'Typical Tier 2', false)).toBe('same as Typical Tier 2 . details ->')
-    expect(chipSecondLine(0, 'Typical Tier 2', true)).toBe('same as Typical Tier 2 . your prices . details ->')
   })
   it('design-side not priced small print reads "This design: <reason>"', () => {
     const design = { ...base, aboveGroundWalls: notPriced('double stud walls are not priced in this version') }

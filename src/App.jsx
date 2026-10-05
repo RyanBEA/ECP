@@ -5,7 +5,6 @@ import WallBuilder from './components/WallBuilder'
 import PointsCounter from './components/PointsCounter'
 import PrintSummary from './components/PrintSummary'
 import TabBar from './components/TabBar'
-import HeaderCostChip from './components/HeaderCostChip'
 import CostTab from './components/CostTab'
 import BaselineEditor from './components/BaselineEditor'
 import Dialog from './components/Dialog'
@@ -16,7 +15,6 @@ import { DISCLAIMER, USAGE_NOTICE } from './data/disclaimer'
 import { buildPrintEvent, sendPrintEvent } from './utils/printEvent'
 import { useHouseCost, resolveHouseFields } from './costing/useHouseCost'
 import { loadPersisted, savePersisted } from './costing/persist'
-import { chipText, chipSecondLine } from './costing/delta'
 import { getPresetPicks } from './costing/baselines'
 import { overrideKey, lineOverrideKey } from './costing/priceHouse'
 import { applySelect, isCategoryDisabled, totalCardPoints, wallPointsFor } from './costing/usePicks'
@@ -104,7 +102,6 @@ export default function App() {
   // The footer button is enabled whenever any card has a pick (spec 2.2).
   const anyPick = Object.keys(selections).length > 0 || Boolean(wallSelection.wallType)
     || (wallSelection.simpleIndex !== undefined && wallSelection.simpleIndex !== null)
-  const showChip = persisted.hasOpenedCost && !persisted.chipHidden
 
   const openCost = () => {
     setActiveTab('cost')
@@ -251,14 +248,6 @@ export default function App() {
         >
           {darkMode ? <SunIcon /> : <MoonIcon />}
         </button>
-        {showChip && activeTab === 'points' && (
-          <HeaderCostChip
-            text={chipText(cost.delta.headline.exact)}
-            secondLine={chipSecondLine(cost.delta.headline.exact, cost.baselineName, cost.overrideCount > 0)}
-            onOpen={openCost}
-            onHide={() => patch({ chipHidden: true })}
-          />
-        )}
         <PointsCounter total={totalPoints} target={targetPoints} />
       </header>
 
@@ -405,8 +394,6 @@ export default function App() {
               onLineOverride={onLineOverride}
               onResetAllOverrides={() => patch({ overrides: {} })}
               onResetCategoryOverrides={onResetCategoryOverrides}
-              chipHidden={persisted.chipHidden}
-              onToggleChip={() => patch(prev => ({ chipHidden: !prev.chipHidden }))}
               openLine={openLine}
               onOpenLine={setOpenLine}
               level3={level3}

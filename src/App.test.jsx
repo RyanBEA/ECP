@@ -19,27 +19,17 @@ describe('App with the cost tab', () => {
     pickVentilation75()
     expect(screen.getByRole('button', { name: 'What does this cost? ->' })).toBeEnabled()
   })
-  it('opening Cost shows the chip on Points afterwards, remembers it, and hide removes it', () => {
+  it('Points never shows a cost: after visiting Cost there is still no cost chip, and the Cost tab has no "Show cost on Points" option', () => {
     render(<App />)
     pickVentilation75()
     fireEvent.click(screen.getByRole('button', { name: 'What does this cost? ->' }))
     expect(screen.getByRole('tab', { name: 'Cost' })).toHaveAttribute('aria-selected', 'true')
+    expect(screen.queryByRole('checkbox', { name: /Show cost on Points/ })).toBeNull()
     fireEvent.click(screen.getByRole('tab', { name: 'Points' }))
-    expect(screen.getByRole('button', { name: /Cost details:/ })).toBeInTheDocument()
+    expect(screen.queryByRole('button', { name: /Cost details:/ })).toBeNull()
+    expect(document.querySelector('.app-header').textContent).not.toMatch(/\$/)
     expect(screen.getByRole('button', { name: 'Cost details ->' })).toBeInTheDocument()
     expect(JSON.parse(localStorage.getItem(STORAGE_KEY)).hasOpenedCost).toBe(true)
-    fireEvent.click(screen.getByRole('button', { name: 'Hide cost from the Points tab' }))
-    expect(screen.queryByRole('button', { name: /Cost details:/ })).toBeNull()
-    expect(JSON.parse(localStorage.getItem(STORAGE_KEY)).chipHidden).toBe(true)
-  })
-  it('the chip recalculates on a pick and clicking it opens Cost', () => {
-    localStorage.setItem(STORAGE_KEY, JSON.stringify({ schemaVersion: 1, hasOpenedCost: true, chipHidden: false, houseType: 'singleDetached', baselineChoice: 'typicalTier2', fieldOverrides: {}, usualHouse: {}, overrides: {} }))
-    render(<App />)
-    const before = screen.getByRole('button', { name: /Cost details:/ }).textContent
-    pickVentilation75()
-    expect(screen.getByRole('button', { name: /Cost details:/ }).textContent).not.toBe(before)
-    fireEvent.click(screen.getByRole('button', { name: /Cost details:/ }))
-    expect(screen.getByRole('tab', { name: 'Cost' })).toHaveAttribute('aria-selected', 'true')
   })
   it('the usual-house flow: the editor opens in a dialog, every pick is saved at once, the live line shows it (Review Focus 1)', () => {
     render(<App />)
@@ -77,7 +67,7 @@ describe('App with the cost tab', () => {
   it('print media hides the tab bar, cost tab and editor', () => {
     const css = fs.readFileSync(path.resolve(__dirname, 'App.css'), 'utf8')
     const print = css.slice(css.indexOf('@media print'))
-    for (const sel of ['.tab-bar', '.cost-tab', '.baseline-editor', '.cost-chip-wrap', '.dialog']) expect(print).toContain(sel)
+    for (const sel of ['.tab-bar', '.cost-tab', '.baseline-editor', '.dialog']) expect(print).toContain(sel)
   })
   it('"view" on a preset pick opens that card alone, read-only, in a dialog; Close returns (Review Focus 5)', () => {
     render(<App />)
@@ -107,15 +97,14 @@ describe('App with the cost tab', () => {
 describe('App with the cost tab: controller-mandated checks (Task 15 notes)', () => {
   beforeEach(() => { localStorage.clear(); window.matchMedia = window.matchMedia || (() => ({ matches: false, addListener() {}, removeListener() {} })) })
 
-  it('the Points categories container renders identically with the chip hidden and shown (spec 9)', () => {
+  it('the Points categories container renders identically before and after a visit to Cost (spec 9)', () => {
     const first = render(<App />)
-    expect(screen.queryByRole('button', { name: /Cost details:/ })).toBeNull()
-    const withoutChip = first.container.querySelector('.categories-container').outerHTML
+    const before = first.container.querySelector('.categories-container').outerHTML
     first.unmount()
     localStorage.setItem(STORAGE_KEY, JSON.stringify({ ...DEFAULT_PERSISTED, hasOpenedCost: true }))
     const second = render(<App />)
-    expect(screen.getByRole('button', { name: /Cost details:/ })).toBeInTheDocument()
-    expect(second.container.querySelector('.categories-container').outerHTML).toBe(withoutChip)
+    expect(screen.queryByRole('button', { name: /Cost details:/ })).toBeNull()
+    expect(second.container.querySelector('.categories-container').outerHTML).toBe(before)
   })
   it('a stored blob with the right schema version but usualHouse null loads as a first visit, without throwing', () => {
     localStorage.setItem(STORAGE_KEY, JSON.stringify({ schemaVersion: 1, usualHouse: null }))
