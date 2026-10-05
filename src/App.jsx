@@ -8,6 +8,9 @@ import TabBar from './components/TabBar'
 import HeaderCostChip from './components/HeaderCostChip'
 import CostTab from './components/CostTab'
 import BaselineEditor from './components/BaselineEditor'
+import Dialog from './components/Dialog'
+import BaselineCardView from './components/BaselineCardView'
+import useNarrow from './components/useNarrow'
 import { SunIcon, MoonIcon } from './components/icons'
 import { DISCLAIMER, USAGE_NOTICE } from './data/disclaimer'
 import { buildPrintEvent, sendPrintEvent } from './utils/printEvent'
@@ -18,8 +21,8 @@ import { getPresetPicks } from './costing/baselines'
 import { overrideKey, lineOverrideKey } from './costing/priceHouse'
 import { applySelect, isCategoryDisabled, totalCardPoints, wallPointsFor } from './costing/usePicks'
 
-const APP_VERSION = '1.5.0-cost-ui-2'
-const APP_UPDATED = '2026-10-02'
+const APP_VERSION = '1.6.0-cost-ui-2'
+const APP_UPDATED = '2026-10-05'
 
 export default function App() {
   // Track dark mode - default to system preference
@@ -62,8 +65,11 @@ export default function App() {
   useEffect(() => { savePersisted(persisted) }, [persisted])
   // Merge a partial blob, or a function of the previous blob returning one, into the persisted state.
   const patch = useCallback(p => setPersisted(prev => ({ ...prev, ...(typeof p === 'function' ? p(prev) : p) })), [])
-  const [editing, setEditing] = useState(null)   // null | { initialPicks } while the baseline editor is open
-  const [editorDirty, setEditorDirty] = useState(false)
+  // null, or while the usual-house editor is open: { initialPicks, focusCard, layout: 'dialog' | 'page', snapshot }.
+  // The layout is fixed when it opens (a dialog from 900 px up, a page below), so a resize never remounts it.
+  const [editing, setEditing] = useState(null)
+  const [viewCard, setViewCard] = useState(null)   // "view" on a preset card: { cardId, picks, baselineName }
+  const narrow = useNarrow()
   const [openLine, setOpenLine] = useState(null)
   const [includesOpen, setIncludesOpen] = useState(false)   // the baseline disclosures also survive the editor (F2)
   const [baseStrip, setBaseStrip] = useState(false)
@@ -71,15 +77,16 @@ export default function App() {
   const [frozenOrder, setFrozenOrder] = useState(null)
   const [notice, setNotice] = useState('')
 
-  // The footer button, the chip, Done and Cancel are far down the page: after a switch of tab or editor, bring
-  // the tab bar back into view when it has scrolled off the top, so the new view starts at its beginning.
-  const isEditing = Boolean(editing)
+  // The footer button and the chip are far down the page: after a switch of tab, or into or out of the editor
+  // page on a phone, bring the tab bar back into view when it has scrolled off the top, so the new view starts
+  // at its beginning. The editor dialog opens over the page and does not move it.
+  const editingPage = editing?.layout === 'page'
   const mounted = useRef(false)
   useEffect(() => {
     if (!mounted.current) { mounted.current = true; return }
     const bar = document.querySelector('.tab-bar')
     if (bar && bar.getBoundingClientRect().top < 0) bar.scrollIntoView?.({ block: 'start' })
-  }, [activeTab, isEditing])
+  }, [activeTab, editingPage])
 
   const { houseType, baselineChoice, usualHouse, overrides, fieldOverrides } = persisted
   const houseFields = useMemo(() => resolveHouseFields(houseType, fieldOverrides), [houseType, fieldOverrides])
@@ -94,9 +101,9 @@ export default function App() {
     setActiveTab('cost')
     if (!persisted.hasOpenedCost) patch({ hasOpenedCost: true })
   }
-  // The tab bar is inert while the baseline editor is open (spec 2.1, M5).
+  // A tab is a way out of the editor page (iteration 3): the editor closes, its picks already saved.
   const changeTab = id => {
-    if (editing) return
+    if (editing) setEditing(null)
     if (id === 'cost') openCost()
     else setActiveTab(id)
   }
@@ -121,25 +128,45 @@ export default function App() {
     })
   }
 
-  const onEditUsual = () => setEditing({ initialPicks: usualHouse[houseType] || getPresetPicks('typicalTier2', houseType) })
-  const closeEditor = () => { setEditing(null); setEditorDirty(false) }
-  const onEditorDone = picks => {
-    patch(prev => ({ usualHouse: { ...prev.usualHouse, [houseType]: picks }, baselineChoice: 'usualHouse' }))
-    closeEditor()
+  // Iteration 3: the editor saves as you pick. The snapshot is the usual house and the baseline choice as they
+  // were when it opened; a draft back at its start (Undo changes, or no change at all) restores them.
+  const openEditor = focusCard => setEditing({
+    initialPicks: usualHouse[houseType] || getPresetPicks('typicalTier2', houseType),
+    focusCard,
+    layout: narrow ? 'page' : 'dialog',
+    snapshot: { usual: usualHouse[houseType] ?? null, choice: baselineChoice },
+  })
+  const onEditUsual = () => openEditor()
+  const closeEditor = () => setEditing(null)
+  const onEditorChange = picks => {
+    if (!editing) return
+    const { usual, choice } = editing.snapshot
+    patch(prev => {
+      const next = { ...prev.usualHouse }
+      if (picks) next[houseType] = picks
+      else if (usual) next[houseType] = usual
+      else delete next[houseType]
+      return { usualHouse: next, baselineChoice: picks ? 'usualHouse' : choice }
+    })
   }
-  const onEditorCancel = () => {
-    if (editorDirty && !window.confirm('Discard changes to your usual house?')) return
-    closeEditor()
-  }
+  // Esc leaves the editor page on a phone; the dialog handles its own Esc.
+  useEffect(() => {
+    if (!editingPage) return undefined
+    const onKey = e => { if (e.key === 'Escape') setEditing(null) }
+    document.addEventListener('keydown', onKey)
+    return () => document.removeEventListener('keydown', onKey)
+  }, [editingPage])
+  const liveHeadline = cost.delta.hasPicks ? cost.delta.headline.text : 'Pick options on the Points tab to see the cost difference.'
   const onResetUsual = () => patch(prev => {
     const next = { ...prev.usualHouse }
     delete next[houseType]
     return { usualHouse: next, baselineChoice: 'typicalTier2' }
   })
-  // "view" on a baseline pick (spec rev 3 3.2): a preset opens read-only; Your usual house opens for editing.
+  // "view" on a baseline pick (spec rev 3 3.2, iteration 3): a preset card opens alone, read-only, in a small
+  // dialog; Your usual house opens the editor at that card.
   const onViewBaselineCard = cardId => {
-    if (cost.baselineId === 'usualHouse' && usualHouse[houseType]) setEditing({ initialPicks: usualHouse[houseType], focusCard: cardId })
-    else setEditing({ initialPicks: cost.baselinePicks, readOnly: true, baselineName: cost.baselineName, focusCard: cardId })
+    if (cost.baselineId === 'usualHouse' && usualHouse[houseType]) openEditor(cardId)
+    else setViewCard({ cardId, picks: cost.baselinePicks, baselineName: cost.baselineName })
   }
   // "Go to Points" (rev 3 4.1): switch tabs, then bring the wall card into view.
   const [toWall, setToWall] = useState(false)
@@ -226,7 +253,7 @@ export default function App() {
         <PointsCounter total={totalPoints} target={targetPoints} />
       </header>
 
-      <TabBar active={activeTab} onChange={changeTab} disabled={isEditing} />
+      <TabBar active={activeTab} onChange={changeTab} />
 
       {/* Points stays mounted while Cost is shown, so WallBuilder keeps its state (spec 2.1). */}
       <div className="tab-panel" id="panel-points" role="tabpanel" aria-labelledby="tab-points" hidden={activeTab !== 'points'}>
@@ -338,18 +365,16 @@ export default function App() {
       </div>
 
       <div className="tab-panel" id="panel-cost" role="tabpanel" aria-labelledby="tab-cost" hidden={activeTab !== 'cost'}>
-        {activeTab === 'cost' && (editing
+        {activeTab === 'cost' && (editingPage
           ? (
             <BaselineEditor
               initialPicks={editing.initialPicks}
               houseType={houseType}
-              fillMissing={!editing.readOnly}
-              readOnly={Boolean(editing.readOnly)}
-              baselineName={editing.baselineName}
+              fillMissing
               focusCard={editing.focusCard}
-              onDone={onEditorDone}
-              onCancel={onEditorCancel}
-              onDirtyChange={setEditorDirty}
+              headline={liveHeadline}
+              onChange={onEditorChange}
+              onClose={closeEditor}
             />
           ) : (
             <CostTab
@@ -385,6 +410,22 @@ export default function App() {
               notice={notice}
             />
           ))}
+        {activeTab === 'cost' && editing && !editingPage && (
+          <Dialog title="Your usual house" sub={liveHeadline} onClose={closeEditor} className="editor-dialog">
+            <BaselineEditor
+              initialPicks={editing.initialPicks}
+              houseType={houseType}
+              fillMissing
+              focusCard={editing.focusCard}
+              onChange={onEditorChange}
+              onClose={closeEditor}
+              asDialog
+            />
+          </Dialog>
+        )}
+        {activeTab === 'cost' && viewCard && (
+          <BaselineCardView picks={viewCard.picks} baselineName={viewCard.baselineName} cardId={viewCard.cardId} onClose={() => setViewCard(null)} />
+        )}
       </div>
 
       <p className="app-version">v{APP_VERSION} — Updated {APP_UPDATED}</p>

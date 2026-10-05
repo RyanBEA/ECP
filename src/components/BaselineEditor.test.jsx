@@ -3,45 +3,67 @@ import BaselineEditor from './BaselineEditor'
 import { getPresetPicks } from '../costing/baselines'
 
 const typical = getPresetPicks('typicalTier2', 'singleDetached')
+const noop = () => {}
+const editor = (props = {}) => render(<BaselineEditor initialPicks={typical} houseType="singleDetached" onChange={noop} onClose={noop} {...props} />)
+const card = name => screen.getByText(name).closest('.category-card')
+const wallCard = () => screen.getByText('Above Ground Walls').closest('.category-card')
 
 describe('BaselineEditor', () => {
   it('opens pre-filled, shows the amber counter at or above 10, and the preset rows', () => {
-    render(<BaselineEditor initialPicks={typical} houseType="singleDetached" onDone={() => {}} onCancel={() => {}} onDirtyChange={() => {}} />)
-    expect(screen.getByText(/Cost > Your usual house/)).toBeInTheDocument()
+    editor()
+    expect(document.querySelector('.crumb')).toHaveTextContent('Cost > Your usual house')
     expect(screen.getByText(/your usual house . meets Tier 2/)).toBeInTheDocument()
     expect(screen.getByRole('button', { name: /Typical Tier 2: U-value 1.61 \(0 pts\)/ })).toHaveAttribute('aria-pressed', 'true')
     expect(screen.queryByRole('button', { name: /Export/ })).toBeNull()
+    expect(screen.queryByRole('button', { name: 'Done' })).toBeNull()
+    expect(screen.queryByRole('button', { name: 'Cancel' })).toBeNull()
   })
-  it('Done returns picks by value and records what changed; Cancel returns nothing (Review Focus 1)', () => {
-    const onDone = vi.fn(), onCancel = vi.fn(), onDirtyChange = vi.fn()
-    render(<BaselineEditor initialPicks={typical} houseType="singleDetached" onDone={onDone} onCancel={onCancel} onDirtyChange={onDirtyChange} />)
-    const vent = screen.getByText('Ventilation').closest('.category-card')
-    fireEvent.click(within(vent).getByRole('button', { name: /75/ }))
-    expect(onDirtyChange).toHaveBeenLastCalledWith(true)
+  it('saves as you pick: onChange gets the picks by value, and Back to Cost calls onClose (Review Focus 1)', () => {
+    const onChange = vi.fn(), onClose = vi.fn()
+    editor({ onChange, onClose })
+    expect(onChange).not.toHaveBeenCalled()
+    fireEvent.click(within(card('Ventilation')).getByRole('button', { name: /75/ }))
+    expect(onChange).toHaveBeenLastCalledWith(expect.objectContaining({ cards: expect.objectContaining({ hrv: 75, windowsDoors: 1.61, airTightness: 'untested' }) }))
     expect(screen.getByText(/Changed from Typical Tier 2: Ventilation/)).toBeInTheDocument()
-    fireEvent.click(screen.getByRole('button', { name: 'Done' }))
-    expect(onDone).toHaveBeenCalledWith(expect.objectContaining({ cards: expect.objectContaining({ hrv: 75, windowsDoors: 1.61, airTightness: 'untested' }) }))
-    fireEvent.click(screen.getByRole('button', { name: 'Cancel' }))
-    expect(onCancel).toHaveBeenCalled()
+    fireEvent.click(screen.getByRole('button', { name: 'Back to Cost' }))
+    expect(onClose).toHaveBeenCalledTimes(1)
+  })
+  it('the Cost link in the crumb calls onClose', () => {
+    const onClose = vi.fn()
+    editor({ onClose })
+    fireEvent.click(within(document.querySelector('.crumb')).getByRole('button', { name: 'Cost' }))
+    expect(onClose).toHaveBeenCalledTimes(1)
+  })
+  it('Undo changes returns the draft to where it started and sends null; it shows only while something changed', () => {
+    const onChange = vi.fn()
+    editor({ initialPicks: { cards: { ...typical.cards, hrv: 75 }, wall: typical.wall }, onChange })
+    expect(screen.queryByRole('button', { name: 'Undo changes' })).toBeNull()
+    const vent = card('Ventilation')
+    fireEvent.click(within(vent).getByRole('button', { name: /60/ }))
+    expect(onChange).toHaveBeenLastCalledWith(expect.objectContaining({ cards: expect.objectContaining({ hrv: 60 }) }))
+    fireEvent.click(screen.getByRole('button', { name: 'Undo changes' }))
+    expect(onChange).toHaveBeenLastCalledWith(null)
+    expect(within(vent).getByRole('button', { name: /75/ })).toHaveClass('selected')
+    expect(screen.queryByRole('button', { name: 'Undo changes' })).toBeNull()
+  })
+  it('in a dialog there is no crumb; with a headline there is a live cost bar', () => {
+    const { rerender } = editor({ asDialog: true })
+    expect(document.querySelector('.crumb')).toBeNull()
+    expect(document.querySelector('.live-bar')).toBeNull()
+    rerender(<BaselineEditor initialPicks={typical} houseType="singleDetached" onChange={noop} onClose={noop} headline="+$9,200 more than Your usual house, before HST." />)
+    expect(document.querySelector('.live-bar')).toHaveTextContent('+$9,200 more than Your usual house, before HST.')
   })
   it('Reset to Typical Tier 2 restores the preset', () => {
-    render(<BaselineEditor initialPicks={typical} houseType="singleDetached" onDone={() => {}} onCancel={() => {}} onDirtyChange={() => {}} />)
-    const vent = screen.getByText('Ventilation').closest('.category-card')
-    fireEvent.click(within(vent).getByRole('button', { name: /75/ }))
+    editor()
+    fireEvent.click(within(card('Ventilation')).getByRole('button', { name: /75/ }))
     fireEvent.click(screen.getByRole('button', { name: 'Reset to Typical Tier 2' }))
     expect(screen.queryByText(/Changed from Typical Tier 2:/)).toBeNull()
   })
   it('reads short of Tier 2 when the picks drop below 10', () => {
-    render(<BaselineEditor initialPicks={{ cards: { windowsDoors: 1.61 }, wall: null }} houseType="singleDetached" onDone={() => {}} onCancel={() => {}} onDirtyChange={() => {}} />)
+    editor({ initialPicks: { cards: { windowsDoors: 1.61 }, wall: null } })
     expect(screen.getByText(/short of Tier 2/)).toBeInTheDocument()
   })
 })
-
-// Controller-mandated tests for Task 14 beyond the brief: rulings R32, R33, R34, R41 and the wall remount on reset.
-const noop = () => {}
-const editor = (props = {}) => render(<BaselineEditor initialPicks={typical} houseType="singleDetached" onDone={noop} onCancel={noop} onDirtyChange={noop} {...props} />)
-const card = name => screen.getByText(name).closest('.category-card')
-const wallCard = () => screen.getByText('Above Ground Walls').closest('.category-card')
 
 describe('BaselineEditor rulings', () => {
   it('R34: preset rows use readable preset text', () => {
@@ -89,11 +111,12 @@ describe('BaselineEditor rulings', () => {
     expect(within(wallCard()).getByLabelText('Cavity Size')).toHaveValue('2x6 R24')
     expect(screen.getByText(/Same as Typical Tier 2/)).toBeInTheDocument()
   })
-  it('R41: Done with fillMissing saves the filled picks', () => {
-    const onDone = vi.fn()
-    editor({ initialPicks: { cards: { hrv: 75 }, wall: null }, fillMissing: true, onDone })
-    fireEvent.click(screen.getByRole('button', { name: 'Done' }))
-    expect(onDone).toHaveBeenCalledWith({ cards: { ...typical.cards, hrv: 75 }, wall: typical.wall })
+  it('R41: with fillMissing, nothing is saved until a change, then the filled picks are', () => {
+    const onChange = vi.fn()
+    editor({ initialPicks: { cards: { hrv: 75 }, wall: null }, fillMissing: true, onChange })
+    expect(onChange).not.toHaveBeenCalled()
+    fireEvent.click(within(card('Windows & Doors')).getByRole('button', { name: /1\.22/ }))
+    expect(onChange).toHaveBeenLastCalledWith({ cards: { ...typical.cards, hrv: 75, windowsDoors: 1.22 }, wall: typical.wall })
   })
   it('R41: change notes read the preset and the pick in words', () => {
     editor()
@@ -125,7 +148,6 @@ describe('BaselineEditor rulings', () => {
   })
 })
 
-// Fix round 1: rulings R42 and R43.
 describe('BaselineEditor fix round 1', () => {
   it('R42: clearing the wall counts as the preset wall (points, changed list, note)', () => {
     const { container } = editor()
@@ -153,51 +175,36 @@ describe('BaselineEditor fix round 1', () => {
     fireEvent.change(within(wallCard()).getByLabelText('Cavity Size'), { target: { value: '2x6 R22' } })
     expect(screen.getByText(/^Typical Tier 2: RSI 3\.99 \(2x6 R24 batt \+ 1 in XPS, OSB, vinyl\)\. You picked RSI \d\.\d\d \(2x6 R22 batt \+ 1 in XPS, OSB, vinyl\)\.$/)).toBeInTheDocument()
   })
-  it('R43: dirty compares the draft with its start, not whether anything was touched', () => {
-    const onDirtyChange = vi.fn()
-    editor({ onDirtyChange })
+  it('R43: what is saved compares the draft with its start, not whether anything was touched', () => {
+    const onChange = vi.fn()
+    editor({ onChange })
     const vent = card('Ventilation')
     fireEvent.click(within(vent).getByRole('button', { name: 'Clear' }))   // no-op: back to 65
     fireEvent.click(screen.getByRole('button', { name: 'Reset to Typical Tier 2' }))
     fireEvent.click(within(wallCard()).getByRole('button', { name: 'Select RSI' }))   // empty wall = preset
-    expect(onDirtyChange).not.toHaveBeenCalledWith(true)
+    expect(onChange).not.toHaveBeenCalled()
     fireEvent.click(within(vent).getByRole('button', { name: /75/ }))
-    expect(onDirtyChange).toHaveBeenLastCalledWith(true)
+    expect(onChange).toHaveBeenLastCalledWith(expect.objectContaining({ cards: expect.objectContaining({ hrv: 75 }) }))
     fireEvent.click(within(vent).getByRole('button', { name: 'Clear' }))
-    expect(onDirtyChange).toHaveBeenLastCalledWith(false)
+    expect(onChange).toHaveBeenLastCalledWith(null)
     fireEvent.click(within(vent).getByRole('button', { name: /75/ }))
     fireEvent.click(screen.getByRole('button', { name: 'Reset to Typical Tier 2' }))
-    expect(onDirtyChange).toHaveBeenLastCalledWith(false)
+    expect(onChange).toHaveBeenLastCalledWith(null)
   })
-  it('R43: Done after picking gas DHW saves dhwGas and not dhwElectric', () => {
-    const onDone = vi.fn()
-    editor({ onDone })
+  it('R43: picking gas DHW saves dhwGas and not dhwElectric', () => {
+    const onChange = vi.fn()
+    editor({ onChange })
     fireEvent.click(within(card('DHW (Gas- or oil-fired)')).getByRole('button', { name: /0\.92/ }))
-    fireEvent.click(screen.getByRole('button', { name: 'Done' }))
-    const picks = onDone.mock.calls[0][0]
+    const picks = onChange.mock.calls.at(-1)[0]
     expect(picks.cards.dhwGas).toBe(0.92)
     expect(picks.cards).not.toHaveProperty('dhwElectric')
-  })
-  it('rev 3: read-only for a preset; banner, notes in words, disabled cards and Back to Cost', () => {
-    const onCancel = vi.fn()
-    const codeMin = getPresetPicks('codeMinimum', 'singleDetached')
-    render(<BaselineEditor initialPicks={codeMin} houseType="singleDetached" readOnly baselineName="Code minimum" onDone={() => {}} onCancel={onCancel} onDirtyChange={() => {}} />)
-    expect(screen.getByText(/Cost > Code minimum/)).toBeInTheDocument()
-    expect(screen.getByText('This is Code minimum.')).toBeInTheDocument()
-    expect(screen.queryByRole('button', { name: 'Done' })).toBeNull()
-    expect(screen.getByText('Code minimum: RSI 2.97 (priced as 2x6 R22 batt, OSB, vinyl).')).toBeInTheDocument()
-    expect(screen.queryByText(/Typical Tier 2: RSI 3\.99/)).toBeNull()
-    const vent = screen.getByText('Ventilation').closest('.category-card')
-    expect(within(vent).getAllByRole('button')[0]).toBeDisabled()
-    fireEvent.click(screen.getByRole('button', { name: 'Back to Cost' }))
-    expect(onCancel).toHaveBeenCalledTimes(1)
   })
   it('rev 3: focusCard scrolls to and highlights that card', () => {
     const scroll = vi.fn()
     Element.prototype.scrollIntoView = scroll
-    render(<BaselineEditor initialPicks={typical} houseType="singleDetached" focusCard="hrv" onDone={() => {}} onCancel={() => {}} onDirtyChange={() => {}} />)
-    const card = document.querySelector('[data-card="hrv"]')
-    expect(card).toHaveClass('focused')
+    editor({ focusCard: 'hrv' })
+    const el = document.querySelector('[data-card="hrv"]')
+    expect(el).toHaveClass('focused')
     expect(scroll).toHaveBeenCalled()
     delete Element.prototype.scrollIntoView
   })
