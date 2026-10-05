@@ -22,3 +22,6 @@ export const SunIcon = ({ className = '' }) => (
 export const MoonIcon = ({ className = '' }) => (
   <Svg className={`moon ${className}`}><path d="M13.2 10.1A5.6 5.6 0 0 1 5.9 2.8a5.6 5.6 0 1 0 7.3 7.3z" fill="none" stroke="currentColor" strokeWidth="1.6" strokeLinejoin="round" /></Svg>
 )
+export const CloseIcon = ({ className = '' }) => (
+  <Svg className={className}><path d="M4 4l8 8M12 4l-8 8" fill="none" stroke="currentColor" strokeWidth="1.9" strokeLinecap="round" /></Svg>
+)
