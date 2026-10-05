@@ -84,6 +84,7 @@ export default function App() {
   const mounted = useRef(false)
   useEffect(() => {
     if (!mounted.current) { mounted.current = true; return }
+    if (editing?.layout === 'page' && editing.focusCard) return   // the editor scrolls to its card; keep it there
     const bar = document.querySelector('.tab-bar')
     if (bar && bar.getBoundingClientRect().top < 0) bar.scrollIntoView?.({ block: 'start' })
   }, [activeTab, editingPage])

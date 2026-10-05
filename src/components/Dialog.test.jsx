@@ -1,3 +1,4 @@
+import React, { useEffect, useRef } from 'react'
 import { render, screen, fireEvent } from '@testing-library/react'
 import Dialog from './Dialog'
 
@@ -25,5 +26,15 @@ describe('Dialog', () => {
     fireEvent.click(screen.getByText('inside'))
     fireEvent.keyDown(screen.getByText('inside'), { key: 'a' })
     expect(onClose).not.toHaveBeenCalled()
+  })
+  it('is open before its children\'s effects run, so a child can scroll inside it', () => {
+    let openAtEffect = null
+    function Probe() {
+      const ref = useRef(null)
+      useEffect(() => { openAtEffect = ref.current.closest('dialog').hasAttribute('open') }, [])
+      return <p ref={ref}>probe</p>
+    }
+    render(<Dialog title="T" onClose={() => {}}><Probe /></Dialog>)
+    expect(openAtEffect).toBe(true)
   })
 })

@@ -1,4 +1,4 @@
-import React, { useEffect, useId, useRef } from 'react'
+import React, { useLayoutEffect, useId, useRef } from 'react'
 import { CloseIcon } from './icons'
 
 // A modal on the browser's own <dialog> (iteration 3): showModal gives the backdrop, the focus trap and the
@@ -10,7 +10,9 @@ export default function Dialog({ title, sub, onClose, className = '', children }
   const titleId = useId()
   const closeRef = useRef(onClose)
   closeRef.current = onClose
-  useEffect(() => {
+  // A layout effect: it runs before the children's effects, so a child (the editor scrolling to a card) finds the
+  // dialog already open.
+  useLayoutEffect(() => {
     const d = ref.current
     if (!d) return undefined
     if (typeof d.showModal === 'function') { if (!d.open) d.showModal() } else d.setAttribute('open', '')

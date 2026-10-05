@@ -311,4 +311,20 @@ describe('App on a phone: the usual-house editor is a page (iteration 3, Review 
     fireEvent.click(screen.getByRole('tab', { name: 'Cost' }))
     expect(document.querySelector('.baseline-editor')).toBeNull()
   })
+  it('opening the editor page at a card does not scroll the tab bar over the card (fix 1, F2)', () => {
+    localStorage.setItem(STORAGE_KEY, JSON.stringify({ ...DEFAULT_PERSISTED, hasOpenedCost: true, houseType: 'singleDetached', baselineChoice: 'usualHouse',
+      usualHouse: { singleDetached: { cards: { hrv: 60 }, wall: null } } }))
+    render(<App />)
+    const bar = document.querySelector('.tab-bar')
+    const scroll = vi.fn()
+    bar.scrollIntoView = scroll
+    bar.getBoundingClientRect = () => ({ top: -1200, bottom: -1150, left: 0, right: 0, width: 0, height: 50 })
+    fireEvent.click(screen.getByRole('tab', { name: 'Cost' }))
+    fireEvent.click(screen.getByRole('button', { name: /^Compared with/ }))
+    fireEvent.click(screen.getByRole('button', { name: /^What your usual house includes/ }))
+    const before = scroll.mock.calls.length
+    fireEvent.click(screen.getByRole('button', { name: 'view Ventilation' }))
+    expect(document.querySelector('.baseline-editor')).not.toBeNull()
+    expect(scroll.mock.calls.length).toBe(before)
+  })
 })
