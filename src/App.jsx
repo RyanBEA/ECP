@@ -8,6 +8,7 @@ import TabBar from './components/TabBar'
 import HeaderCostChip from './components/HeaderCostChip'
 import CostTab from './components/CostTab'
 import BaselineEditor from './components/BaselineEditor'
+import { SunIcon, MoonIcon } from './components/icons'
 import { DISCLAIMER, USAGE_NOTICE } from './data/disclaimer'
 import { buildPrintEvent, sendPrintEvent } from './utils/printEvent'
 import { useHouseCost, resolveHouseFields } from './costing/useHouseCost'
@@ -206,10 +207,13 @@ export default function App() {
           <span>Compliance</span>
         </div>
         <button
+          type="button"
           className="dark-toggle"
           onClick={() => setDarkMode(!darkMode)}
+          aria-label={darkMode ? 'Switch to light mode' : 'Switch to dark mode'}
+          title={darkMode ? 'Switch to light mode' : 'Switch to dark mode'}
         >
-          {darkMode ? 'Light' : 'Dark'}
+          {darkMode ? <SunIcon /> : <MoonIcon />}
         </button>
         {showChip && activeTab === 'points' && (
           <HeaderCostChip
