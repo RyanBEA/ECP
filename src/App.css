@@ -9,22 +9,23 @@
 :root {
   --primary: #4F3D63;
   --primary-dark: #3d2f4d;
-  --primary-light: #e8e0f0;
+  --primary-light: #e6dfe9;
   --success: #16a34a;
   --success-light: #dcfce7;
   --danger: #dc2626;
-  --gray-50: #f9fafb;
-  --gray-100: #f3f4f6;
-  --gray-200: #e5e7eb;
-  --gray-300: #d1d5db;
-  --gray-400: #9ca3af;
-  --gray-500: #6b7280;
-  --gray-600: #4b5563;
-  --gray-700: #374151;
-  --gray-900: #111827;
+  /* Light mode: warm stone neutrals (whiteboard ecp-cost-ui-brainstorm, page 11, option C) */
+  --gray-50: #f1eee9;
+  --gray-100: #e9e5df;
+  --gray-200: #d9d3cc;
+  --gray-300: #c9c2ba;
+  --gray-400: #9a928a;
+  --gray-500: #5f5852;
+  --gray-600: #4f4943;
+  --gray-700: #3d3833;
+  --gray-900: #1c1917;
   --radius: 8px;
-  --card-bg: white;
-  --body-bg: var(--gray-100);
+  --card-bg: #f8f6f3;
+  --body-bg: #e4e0db;
   --text-primary: var(--gray-900);
   --text-secondary: var(--gray-500);
   --border-color: var(--gray-200);
@@ -171,16 +172,22 @@ h1, h2, h3, h4, h5, h6 {
 
 /* Dark Mode Toggle */
 .dark-toggle {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 2.25rem;
+  height: 2.25rem;
   background: none;
   border: 2px solid var(--border-color);
-  border-radius: var(--radius);
-  padding: 0.4rem 0.6rem;
+  border-radius: 50%;
+  padding: 0;
   cursor: pointer;
-  font-size: 0.875rem;
   line-height: 1;
   transition: all 0.15s ease;
   color: var(--text-primary);
 }
+
+.dark-toggle .icon { width: 18px; height: 18px; }
 
 .dark-toggle:hover {
   border-color: var(--primary);
