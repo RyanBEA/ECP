@@ -1033,6 +1033,27 @@ h1, h2, h3, h4, h5, h6 {
 .editor-cards { border: 0; margin: 0; padding: 0; min-width: 0; }
 .editor-card.focused { outline: 3px solid var(--baseline); outline-offset: 4px; border-radius: var(--radius); }
 
+/* Dialogs (iteration 3): the usual-house editor from 900 px up, and the one-card "view". */
+.dialog { margin: auto; padding: 0; border: 0; border-radius: 12px; background: var(--card-bg); color: var(--text-primary); box-shadow: 0 12px 40px rgba(0, 0, 0, 0.3); max-height: calc(100vh - 3rem); overflow: auto; }
+.dialog::backdrop { background: rgba(28, 25, 23, 0.45); }
+.dialog-body { padding: 0 1.25rem 1.25rem; }
+.dialog-head { position: sticky; top: 0; z-index: 3; display: flex; justify-content: space-between; align-items: flex-start; gap: 1rem; padding: 1rem 0 0.75rem; background: var(--card-bg); border-bottom: 1px solid var(--border-color); margin-bottom: 0.75rem; }
+.dialog-title { margin: 0; font-size: 1.15rem; }
+.dialog-sub { margin: 0.2rem 0 0; font-weight: 800; color: var(--primary); }
+.dialog-close { display: inline-flex; align-items: center; justify-content: center; flex: none; width: 2.25rem; height: 2.25rem; border-radius: 50%; border: 2px solid var(--border-color); background: none; color: var(--text-primary); cursor: pointer; }
+.dialog-close:hover { border-color: var(--primary); }
+.editor-dialog { width: min(880px, calc(100vw - 2rem)); }
+.in-dialog .editor-footer { position: sticky; bottom: 0; z-index: 3; margin-bottom: 0; box-shadow: 0 -2px 10px rgba(0, 0, 0, 0.12); }
+.card-view { width: min(560px, calc(100vw - 2rem)); }
+.card-view-value { font-weight: 700; margin: 0 0 0.75rem; }
+
+/* The editor page on a phone: the crumb's "Cost" is a way back; the live cost bar stays in view. */
+.crumb-link { font-weight: 700; }
+.live-bar { position: sticky; top: 0; z-index: 3; display: flex; flex-wrap: wrap; justify-content: space-between; align-items: baseline; gap: 0.25rem 0.75rem; background: var(--card-bg); border: 2px solid var(--primary); border-radius: var(--radius); padding: 0.5rem 0.75rem; margin: 0 0 0.75rem; }
+.live-text { font-weight: 800; color: var(--primary); }
+.live-note { font-size: 0.8rem; color: var(--text-secondary); }
+@media (max-width: 899px) { .dialog-body { padding: 0 0.85rem 1rem; } }
+
 /* An overridden price: bold and underlined, plus its own "reset" link (not colour alone) */
 .price-cell.overridden {
   font-weight: 800;
@@ -1257,6 +1278,7 @@ h1, h2, h3, h4, h5, h6 {
   .tab-bar,
   .cost-tab,
   .baseline-editor,
+  .dialog,
   .cost-chip-wrap,
   .cost-button {
     display: none !important;

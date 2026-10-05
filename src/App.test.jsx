@@ -77,7 +77,7 @@ describe('App with the cost tab', () => {
   it('print media hides the tab bar, cost tab and editor', () => {
     const css = fs.readFileSync(path.resolve(__dirname, 'App.css'), 'utf8')
     const print = css.slice(css.indexOf('@media print'))
-    for (const sel of ['.tab-bar', '.cost-tab', '.baseline-editor', '.cost-chip-wrap']) expect(print).toContain(sel)
+    for (const sel of ['.tab-bar', '.cost-tab', '.baseline-editor', '.cost-chip-wrap', '.dialog']) expect(print).toContain(sel)
   })
   it('"view" on a preset pick opens that card alone, read-only, in a dialog; Close returns (Review Focus 5)', () => {
     render(<App />)
