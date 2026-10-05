@@ -208,4 +208,8 @@ describe('BaselineEditor fix round 1', () => {
     expect(scroll).toHaveBeenCalled()
     delete Element.prototype.scrollIntoView
   })
+  it('announces the live cost line politely (final review M1)', () => {
+    editor({ headline: '+$9,200 more than Your usual house, before HST.' })
+    expect(document.querySelector('.live-text')).toHaveAttribute('aria-live', 'polite')
+  })
 })

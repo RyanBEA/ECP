@@ -32,9 +32,9 @@ export default function Dialog({ title, sub, onClose, className = '', children }
         <div className="dialog-head">
           <div>
             <h2 id={titleId} className="dialog-title">{title}</h2>
-            {sub && <p className="dialog-sub">{sub}</p>}
+            {sub && <p className="dialog-sub" aria-live="polite">{sub}</p>}
           </div>
-          <button type="button" className="dialog-close" aria-label="Close" onClick={onClose}><CloseIcon /></button>
+          <button type="button" className="dialog-close" autoFocus aria-label="Close" onClick={onClose}><CloseIcon /></button>
         </div>
         {children}
       </div>

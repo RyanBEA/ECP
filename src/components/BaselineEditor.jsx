@@ -123,7 +123,7 @@ export default function BaselineEditor({ initialPicks, houseType, onChange, onCl
   return (
     <div className={`baseline-editor${asDialog ? ' in-dialog' : ''}`}>
       {!asDialog && <div className="crumb"><button type="button" className="link-button crumb-link" onClick={onClose}>Cost</button> &gt; Your usual house</div>}
-      {headline && <div className="live-bar"><span className="live-text">{headline}</span><span className="live-note">Saved as you pick</span></div>}
+      {headline && <div className="live-bar"><span className="live-text" aria-live="polite">{headline}</span><span className="live-note">Saved as you pick</span></div>}
       <div className="editor-header">
         <PointsCounter total={total} target={TIER2} variant="baseline" label={`your usual house . ${total >= TIER2 ? 'meets Tier 2' : 'short of Tier 2'}`} />
       </div>

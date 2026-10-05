@@ -89,6 +89,14 @@ export default function App() {
     if (bar && bar.getBoundingClientRect().top < 0) bar.scrollIntoView?.({ block: 'start' })
   }, [activeTab, editingPage])
 
+  // Leaving the editor page while Cost stays the active tab would drop focus to <body> (the page unmounts):
+  // hand it to the Cost tab. Leaving by another tab leaves focus where that click put it.
+  const wasEditingPage = useRef(false)
+  useEffect(() => {
+    if (wasEditingPage.current && !editingPage && activeTab === 'cost') document.getElementById('tab-cost')?.focus()
+    wasEditingPage.current = editingPage
+  }, [editingPage, activeTab])
+
   const { houseType, baselineChoice, usualHouse, overrides, fieldOverrides } = persisted
   const houseFields = useMemo(() => resolveHouseFields(houseType, fieldOverrides), [houseType, fieldOverrides])
   const cost = useHouseCost({ selections, wallSelection, houseType, houseFields, baselineChoice, usualHouse, overrides, frozenOrder })

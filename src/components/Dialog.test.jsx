@@ -37,4 +37,12 @@ describe('Dialog', () => {
     render(<Dialog title="T" onClose={() => {}}><Probe /></Dialog>)
     expect(openAtEffect).toBe(true)
   })
+  it('announces the live cost line politely (final review M1)', () => {
+    render(<Dialog title="T" sub="+$1 more" onClose={() => {}}><p>inside</p></Dialog>)
+    expect(document.querySelector('.dialog-sub')).toHaveAttribute('aria-live', 'polite')
+  })
+  it('puts focus on the Close button when it opens (final review M2)', () => {
+    render(<Dialog title="T" onClose={() => {}}><p>inside</p></Dialog>)
+    expect(document.activeElement).toBe(screen.getByRole('button', { name: 'Close' }))
+  })
 })
