@@ -58,15 +58,43 @@ describe('RecruitingBanner', () => {
     render(<RecruitingBanner now={BEFORE} />)
     const link = screen.getByRole('link', { name: "I'm interested" })
     expect(link.getAttribute('href').startsWith('mailto:ryan@baselineenergy.ca')).toBe(true)
+    expect(link.getAttribute('href')).toBe(
+      'mailto:ryan@baselineenergy.ca?subject=ECP%20cost%20feature%20usability%20session&body=Hi%20Ryan%2C%0A%0AI%27d%20be%20interested%20in%20a%20session.%0A%0AName%3A%0ACompany%3A%0APhone%3A%0AWhat%20I%20build%3A%20'
+    )
     expect(link.getAttribute('target')).toBeNull()
   })
 
   it('still dismisses for the session when localStorage.setItem throws', () => {
-    vi.spyOn(Storage.prototype, 'setItem').mockImplementation(() => {
+    const spy = vi.spyOn(Storage.prototype, 'setItem').mockImplementation(() => {
       throw new Error('storage unavailable')
     })
     render(<RecruitingBanner now={BEFORE} />)
     fireEvent.click(screen.getByRole('button', { name: 'No thanks' }))
+    expect(spy).toHaveBeenCalled()
     expect(screen.queryByRole('region', { name: 'Usability testing invitation' })).toBeNull()
+  })
+
+  it('renders when localStorage.getItem throws', () => {
+    const spy = vi.spyOn(Storage.prototype, 'getItem').mockImplementation(() => {
+      throw new Error('storage unavailable')
+    })
+    render(<RecruitingBanner now={BEFORE} />)
+    expect(spy).toHaveBeenCalled()
+    expect(screen.getByRole('region', { name: 'Usability testing invitation' })).toBeTruthy()
+  })
+
+  it('renders and dismisses when the localStorage global itself throws', () => {
+    const original = Object.getOwnPropertyDescriptor(window, 'localStorage')
+    Object.defineProperty(window, 'localStorage', {
+      configurable: true,
+      get() { throw new DOMException('denied', 'SecurityError') },
+    })
+    try {
+      render(<RecruitingBanner now={BEFORE} />)
+      fireEvent.click(screen.getByRole('button', { name: 'No thanks' }))
+      expect(screen.queryByRole('region', { name: 'Usability testing invitation' })).toBeNull()
+    } finally {
+      Object.defineProperty(window, 'localStorage', original)
+    }
   })
 })

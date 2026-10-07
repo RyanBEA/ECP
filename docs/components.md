@@ -29,7 +29,7 @@ Root component. Owns all application state. No props.
 
 ### Rendering
 
-Iterates `categories` array. If `category.type === 'wallBuilder'`, renders `<WallBuilder>`. Otherwise renders `<CategoryCard>`.
+A temporary `<RecruitingBanner />` sits between the intro section and the categories. Then iterates `categories` array. If `category.type === 'wallBuilder'`, renders `<WallBuilder>`. Otherwise renders `<CategoryCard>`.
 
 Footer contains an optional **Project details** block (three text inputs: Project / Address, Permit Number, Applicant) held in `projectInfo` state, plus a "Save / Print" button that calls `window.print()`, disabled when `totalPoints === 0`. The project fields are never required; whatever is entered is printed on the summary. A disclaimer (`src/data/disclaimer.js`, shared with `PrintSummary`) states the output is not an official compliance document and is subject to AHJ approval. A short usage notice (`USAGE_NOTICE`) sits directly under the Save / Print button. After the footer, renders a hidden `<PrintSummary>` component (visible only in `@media print`).
 
@@ -388,6 +388,25 @@ Stateless display component for current ECP progress.
 ```
 
 When `total >= target`, adds `.complete` class (switches to green styling).
+
+---
+
+## RecruitingBanner (`src/components/RecruitingBanner.jsx`)
+
+Temporary, dismissible invitation to the cost-feature usability sessions. Remove after the recruiting window (the comment at the top of the component lists what to delete).
+
+### Props
+
+| Prop | Type | Required | Description |
+|------|------|----------|-------------|
+| `now` | `Date` | no | Current date, injectable for tests; defaults to `new Date()` |
+
+### Behaviors
+
+- Hidden on and after `RECRUITING_END_DATE` (`'2026-10-24'`, exported), compared against the **local** calendar date so it switches off at local midnight without a deploy.
+- "I'm interested" is a plain `mailto:` link to Ryan with a prefilled subject and body.
+- "No thanks" hides the banner and writes `localStorage['ecp-recruiting-banner-dismissed'] = '2026-10'`; any stored value keeps it hidden. All storage access is wrapped in try/catch, so a blocked `localStorage` still dismisses for the session.
+- Records no telemetry. Hidden in print. Buttons stack under the text at the 600 px breakpoint.
 
 ---
 
