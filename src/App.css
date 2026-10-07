@@ -674,71 +674,100 @@ h1, h2, h3, h4, h5, h6 {
   color: var(--primary);
 }
 
-/* Recruiting banner (temporary) */
+/* Recruiting banner (temporary)
+   Inverted against the page theme so it stands out: solid BEA purple in
+   light mode, BEA light lavender in dark mode. Amber accent per BEA. */
+:root {
+  --banner-bg: #4F3D63;           /* --bea-purple */
+  --banner-heading: #FFFFFF;
+  --banner-text: #E8E4ED;         /* --bea-purple-faint */
+  --banner-accent: #C17F47;       /* --bea-amber */
+  --banner-btn-bg: #FFFFFF;
+  --banner-btn-text: #4F3D63;
+  --banner-btn-hover-bg: #E8E4ED;
+  --banner-focus: #FFFFFF;
+}
+
+.dark {
+  --banner-bg: #F0EDF4;           /* --bea-bg-alt */
+  --banner-heading: #3D2E4E;      /* --bea-purple-dark */
+  --banner-text: #4F3D63;
+  --banner-btn-bg: #4F3D63;
+  --banner-btn-text: #FFFFFF;
+  --banner-btn-hover-bg: #3D2E4E;
+  --banner-focus: #4F3D63;
+}
+
 .recruiting-banner {
   display: flex;
   align-items: center;
   justify-content: space-between;
-  gap: 1rem;
-  background: var(--card-bg);
-  border: 1px solid var(--border-color);
-  border-left: 4px solid var(--primary);
+  gap: 1.5rem;
+  background: var(--banner-bg);
+  border-left: 6px solid var(--banner-accent);
   border-radius: var(--radius);
-  padding: 0.75rem 1.5rem;
+  padding: 1.25rem 1.5rem;
   margin-bottom: 1rem;
-  font-size: 0.9rem;
-  color: var(--text-secondary);
+  font-size: 0.95rem;
+  font-weight: 400;
+  color: var(--banner-text);
   line-height: 1.6;
 }
 
 .recruiting-banner-text strong {
-  color: var(--text-primary);
+  display: block;
+  font-size: 1.15rem;
+  font-weight: 800;
+  color: var(--banner-heading);
+  margin-bottom: 0.25rem;
 }
 
 .recruiting-banner-actions {
   display: flex;
   flex-shrink: 0;
   align-items: center;
-  gap: 0.75rem;
+  gap: 1rem;
 }
 
 .recruiting-banner-primary,
 .recruiting-banner-secondary {
   font-family: inherit;
-  font-size: 0.85rem;
+  font-size: 0.95rem;
   line-height: 1.2;
   cursor: pointer;
   border-radius: var(--radius);
-  padding: 0.5rem 0.9rem;
-  transition: all 0.15s ease;
+  padding: 0.7rem 1.25rem;
+  transition: background-color 0.15s ease, color 0.15s ease;
 }
 
 .recruiting-banner-primary {
-  background: var(--primary);
-  color: white;
-  border: 1px solid var(--primary);
+  background: var(--banner-btn-bg);
+  color: var(--banner-btn-text);
+  border: 1px solid var(--banner-btn-bg);
   text-decoration: none;
-  font-weight: 600;
+  font-weight: 700;
 }
 
 .recruiting-banner-primary:hover {
-  opacity: 0.9;
+  background: var(--banner-btn-hover-bg);
+  border-color: var(--banner-btn-hover-bg);
 }
 
 .recruiting-banner-secondary {
   background: none;
   border: 1px solid transparent;
-  color: var(--text-secondary);
+  color: var(--banner-text);
+  font-weight: 600;
   text-decoration: underline;
 }
 
 .recruiting-banner-secondary:hover {
-  color: var(--text-primary);
+  color: var(--banner-heading);
 }
 
 .recruiting-banner-primary:focus-visible,
 .recruiting-banner-secondary:focus-visible {
-  outline: 2px solid var(--primary);
+  outline: 2px solid var(--banner-focus);
   outline-offset: 2px;
 }
 
@@ -762,7 +791,8 @@ h1, h2, h3, h4, h5, h6 {
   .recruiting-banner {
     flex-direction: column;
     align-items: flex-start;
-    padding: 0.75rem 1rem;
+    gap: 1rem;
+    padding: 1rem;
   }
 }
 

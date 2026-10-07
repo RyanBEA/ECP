@@ -51,8 +51,9 @@ export default function RecruitingBanner({ now }) {
     >
       <p className="recruiting-banner-text">
         <strong>Help us build the cost feature.</strong> We are adding construction costs
-        to this tool and want to watch a few builders use an early version. One 45-minute
-        session over Teams, in October, with a $100 gift card as thanks. Space is limited.
+        to this tool and are looking for a few builders to try an early version and tell us
+        what works. One 45-minute virtual session in October, with a $100 gift card as
+        thanks. Space is limited.
       </p>
       <div className="recruiting-banner-actions">
         <a className="recruiting-banner-primary" href={MAILTO_HREF}>I'm interested</a>

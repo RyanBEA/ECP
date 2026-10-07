@@ -81,6 +81,8 @@ The `.dark` class on `<body>` inverts the gray scale and adjusts semantic tokens
 
 **Design pattern:** The gray scale is numerically inverted in dark mode — all components using gray vars adapt automatically without per-component overrides.
 
+**Exception — recruiting banner (temporary):** `--banner-*` variables (defined next to `.recruiting-banner` in App.css) deliberately invert *against* the page theme so the banner stands out: solid BEA purple `#4F3D63` with white text in light mode, BEA light lavender `#F0EDF4` with purple text in dark mode, BEA amber `#C17F47` left accent in both. Delete them with the banner.
+
 ---
 
 ## Layout
