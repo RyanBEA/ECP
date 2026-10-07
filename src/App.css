@@ -674,6 +674,74 @@ h1, h2, h3, h4, h5, h6 {
   color: var(--primary);
 }
 
+/* Recruiting banner (temporary) */
+.recruiting-banner {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 1rem;
+  background: var(--card-bg);
+  border: 1px solid var(--border-color);
+  border-left: 4px solid var(--primary);
+  border-radius: var(--radius);
+  padding: 0.75rem 1.5rem;
+  margin-bottom: 1rem;
+  font-size: 0.9rem;
+  color: var(--text-secondary);
+  line-height: 1.6;
+}
+
+.recruiting-banner-text strong {
+  color: var(--text-primary);
+}
+
+.recruiting-banner-actions {
+  display: flex;
+  flex-shrink: 0;
+  align-items: center;
+  gap: 0.75rem;
+}
+
+.recruiting-banner-primary,
+.recruiting-banner-secondary {
+  font-family: inherit;
+  font-size: 0.85rem;
+  line-height: 1.2;
+  cursor: pointer;
+  border-radius: var(--radius);
+  padding: 0.5rem 0.9rem;
+  transition: all 0.15s ease;
+}
+
+.recruiting-banner-primary {
+  background: var(--primary);
+  color: white;
+  border: 1px solid var(--primary);
+  text-decoration: none;
+  font-weight: 600;
+}
+
+.recruiting-banner-primary:hover {
+  opacity: 0.9;
+}
+
+.recruiting-banner-secondary {
+  background: none;
+  border: 1px solid transparent;
+  color: var(--text-secondary);
+  text-decoration: underline;
+}
+
+.recruiting-banner-secondary:hover {
+  color: var(--text-primary);
+}
+
+.recruiting-banner-primary:focus-visible,
+.recruiting-banner-secondary:focus-visible {
+  outline: 2px solid var(--primary);
+  outline-offset: 2px;
+}
+
 /* Responsive */
 @media (max-width: 600px) {
   .app-header {
@@ -689,6 +757,12 @@ h1, h2, h3, h4, h5, h6 {
   .option-button {
     flex: 1;
     min-width: 70px;
+  }
+
+  .recruiting-banner {
+    flex-direction: column;
+    align-items: flex-start;
+    padding: 0.75rem 1rem;
   }
 }
 
@@ -762,6 +836,7 @@ h1, h2, h3, h4, h5, h6 {
   /* Hide interactive UI */
   .app-header,
   .app-intro,
+  .recruiting-banner,
   .categories-container,
   .app-footer,
   .app-version {
