@@ -1346,3 +1346,29 @@ h1, h2, h3, h4, h5, h6 {
     text-align: center;
   }
 }
+
+/* Optimize tab (Capability 2 spec 5) */
+.optimize-tab .headline.small { font-size: 1.3rem; }
+.consider-options { display: flex; flex-wrap: wrap; gap: 0.3rem 0.9rem; margin: 0.4rem 0 0.2rem 0.9rem; font-size: 0.88rem; }
+.consider-options.stack { flex-direction: column; gap: 0.35rem; }
+.consider-option { display: flex; align-items: flex-start; gap: 0.4rem; }
+.consider-option input { accent-color: var(--primary); margin-top: 0.2rem; }
+.consider-option .muted, .optimize-tab .muted { color: var(--text-secondary); }
+.optimize-actions { display: flex; flex-direction: column; gap: 0.4rem; align-items: flex-start; }
+.optimize-actions.row { flex-direction: row; align-items: center; gap: 0.6rem; margin-top: 0.6rem; flex-wrap: wrap; }
+.optimize-actions .blocked { color: var(--danger); }
+.summary-line { display: flex; justify-content: space-between; gap: 1rem; align-items: center; font-size: 0.88rem; }
+.link-btn { font: inherit; font-weight: 600; color: var(--primary); background: none; border: 0; cursor: pointer; display: inline-flex; align-items: center; gap: 0.2rem; padding: 0; }
+.stale-notice { display: flex; gap: 0.6rem; align-items: center; background: var(--baseline-light); color: var(--baseline); border-radius: var(--radius); padding: 0.4rem 0.7rem; margin-bottom: 0.6rem; font-size: 0.88rem; }
+.package-table { width: 100%; border-collapse: collapse; font-size: 0.88rem; }
+.package-table th, .package-table td { padding: 0.45rem 0.3rem; border-top: 1px solid var(--border-color); text-align: left; vertical-align: top; }
+.package-table th { font-size: 0.75rem; color: var(--text-secondary); font-weight: 600; border-top: 0; }
+.package-table .r { text-align: right; white-space: nowrap; font-variant-numeric: tabular-nums; }
+.package-table .total td { font-weight: 700; }
+.package-table .state-fixed td, .package-table .state-leftOut td, .package-table .state-unavailable td { color: var(--text-secondary); }
+.package-table .chg { display: inline-block; background: var(--primary-light); color: var(--primary-dark); font-size: 0.7rem; font-weight: 700; padding: 1px 6px; border-radius: 10px; margin-left: 6px; vertical-align: middle; }
+.package-table .you { display: block; font-size: 0.76rem; color: var(--text-secondary); }
+.alt-row { display: grid; grid-template-columns: 1fr auto; gap: 0.5rem; padding: 0.5rem 0.3rem; border-top: 1px solid var(--border-color); font-size: 0.88rem; align-items: center; }
+.alt-row:first-of-type { border-top: 0; }
+.alt-detail { color: var(--text-secondary); font-size: 0.78rem; }
+.alt-cost { white-space: nowrap; display: flex; gap: 0.5rem; align-items: center; }
