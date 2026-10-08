@@ -96,6 +96,7 @@ export function wallLayers(sel) {
   if (s.assemblyType === 'doubleStud') {
     const oc = (s.studSpacing || '').replace('"', '')
     if (!s.outerStud || !s.innerStud || !s.plate || !s.doubleStudMaterial || !wallData.wood.spacings[oc]) return notPriced('wall not finished')
+    if (s.hasServiceWall) return notPriced('double stud walls with a service cavity are not priced in this version')
     if (s.outerStud !== s.innerStud) return notPriced('double stud walls with different stud sizes are not priced in this version')
     const cav = DEEP_CAVITY[s.doubleStudMaterial]?.[s.plate]
     if (!cav) return notPriced(`${s.doubleStudMaterial} is not priced in this version`)

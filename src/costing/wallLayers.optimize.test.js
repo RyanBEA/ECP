@@ -5,6 +5,8 @@ import { priceHouse } from './priceHouse'
 import { computeQuantities } from './quantities'
 import { resolveHouseFields } from './useHouseCost'
 import { lookupCost } from '../costSystem/client'
+import { scenario } from './__testing__/scenario'
+import { buildSpecifics } from './specifics'
 
 const ext = { sheathingId: 'osb_11', claddingId: 'vinyl_siding' }
 const svc = { wallType: 'wood', assemblyType: 'single', studSpacing: '16"', cavityMaterial: 'Fiberglass Batt', cavityType: '2x6 R24', contInsThickness: 'None',
@@ -61,5 +63,21 @@ describe('double-stud walls price (spec 3)', () => {
     expect(wallLayers({ wallType: 'steel' }).priced).toBe(false)
     expect(wallLayers({ wallType: 'icf' }).priced).toBe(false)
     expect(wallLayers({ ...ds, plate: undefined }).priced).toBe(false)
+  })
+})
+
+describe('review fixes', () => {
+  it('the Layers table keeps both the main and the service framing and batt rows', () => {
+    const sc = scenario({ wallSelection: svc })
+    const m = buildSpecifics(sc.line('aboveGroundWalls'), sc.ctx)
+    const texts = m.rows.map(r => r.design?.text)
+    expect(texts).toEqual(expect.arrayContaining(['2x6 studs @ 16 in o.c.', '2x6 R24 fiberglass batt', '2x4 service cavity studs @ 16 in o.c.', '2x4 R14 fiberglass batt (service cavity)']))
+    expect(m.rows.filter(r => r.item === 'Framing')).toHaveLength(2)
+    expect(m.rows.filter(r => r.item === 'Cavity insulation')).toHaveLength(2)
+    const shown = m.rows.reduce((t, r) => t + (r.design ? r.design.cost : 0), 0)
+    expect(shown).toBeCloseTo(sc.line('aboveGroundWalls').design.cost, 6)
+  })
+  it('a double stud wall with a service cavity is not priced, rather than priced as a bare double stud wall', () => {
+    expect(wallLayers({ ...ds, hasServiceWall: true })).toEqual({ priced: false, reason: 'double stud walls with a service cavity are not priced in this version' })
   })
 })

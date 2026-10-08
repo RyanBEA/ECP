@@ -71,21 +71,32 @@ function rowSub(c) {
 
 function pricedRows(line) {
   const id = line.categoryId
+  // A component can occur more than once on a side (a service wall has two framing and two cavity_insulation parts).
+  // Rows pair by component and by which occurrence it is on its side, so the second never overwrites the first.
   const byComp = new Map()
   for (const [side, r] of [['design', line.design], ['baseline', line.baseline]]) {
+    const seen = {}
     for (const c of r.components || []) {
-      if (!byComp.has(c.component)) byComp.set(c.component, { design: null, baseline: null })
-      byComp.get(c.component)[side] = c
+      const n = seen[c.component] = (seen[c.component] ?? -1) + 1
+      const gk = n ? `${c.component}#${n}` : c.component
+      if (!byComp.has(gk)) byComp.set(gk, { design: null, baseline: null, component: c.component, n })
+      byComp.get(gk)[side] = c
     }
   }
   let keys = [...byComp.keys()]
-  if (id === 'aboveGroundWalls') keys = WALL_ORDER.filter(k => byComp.has(k)).concat(keys.filter(k => !WALL_ORDER.includes(k)))
+  if (id === 'aboveGroundWalls') {
+    // A repeat occurrence follows the first cavity insulation row; every other row keeps the inside-to-outside order.
+    const rank = k => { const { component, n } = byComp.get(k); return n ? WALL_ORDER.indexOf('cavity_insulation') + n / 10 + WALL_ORDER.indexOf(component) / 1000 : WALL_ORDER.indexOf(component) }
+    keys = keys.filter(k => WALL_ORDER.includes(byComp.get(k).component)).sort((a, b) => rank(a) - rank(b))
+      .concat(keys.filter(k => !WALL_ORDER.includes(byComp.get(k).component)))
+  }
   const cell = c => (c ? { text: optionText(id, c), price: priceText(c), cost: rowCost(c), comp: c } : null)
   return keys.map(k => {
-    const { design: d, baseline: b } = byComp.get(k)
+    const { design: d, baseline: b, component } = byComp.get(k)
     const same = isSame(d, b)
+    // key stays the component name: the price override keys are built from it (overrideKey in priceHouse).
     return {
-      key: k, item: COMPONENT_NAMES[k] || k.replace(/_/g, ' '), sub: rowSub(d || b), same,
+      key: component, item: COMPONENT_NAMES[component] || component.replace(/_/g, ' '), sub: rowSub(d || b), same,
       design: cell(d), baseline: cell(b), diff: same ? 0 : rowCost(d) - rowCost(b), inLine: (d || b).unit === line.design.unit,
     }
   })
