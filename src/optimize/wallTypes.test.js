@@ -69,8 +69,7 @@ describe('wallCandidates', () => {
     expect(c[0].selection.claddingId).toBe('fiber_cement')
     expect(c[0].label).toMatch(/plywood, fibre cement$/)
   })
-  it('every single-stud curated candidate is priceable today', () => {
-    // double stud and service cavity become priceable in Task 2
-    for (const c of wallCandidates(new Set(['thickFoam', 'largeStuds']), null)) expect(wallLayers(c.selection).priced, c.id).toBe(true)
+  it('every curated candidate is priceable', () => {
+    for (const c of wallCandidates(allTypes, null)) expect(wallLayers(c.selection).priced, c.id).toBe(true)
   })
 })
