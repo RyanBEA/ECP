@@ -29,4 +29,21 @@ describe('pruneDominated (spec 2 step 2)', () => {
     const cards = { x: [o('a', 1, 1), o('b', 2, 1)], y: [o('c', 5, 5)] }
     expect(pruneCards(cards)).toEqual({ x: [o('a', 1, 1)], y: [o('c', 5, 5)] })
   })
+  it('prunes walls within each construction type only (a type whose only candidate is dominated by another type survives)', () => {
+    const w = (id, typeId, cost, points) => ({ id, typeId, cost, points })
+    const walls = [w('a1', 'A', 100, 5), w('a2', 'A', 200, 4), w('b1', 'B', 300, 3), w('b2', 'B', 400, 2)]
+    const kept = pruneCards({ aboveGroundWalls: walls }).aboveGroundWalls
+    expect(kept.map(x => x.id)).toEqual(['a1', 'b1'])
+    // Across all candidates b1 would have been dropped (a1 costs less and earns more).
+    expect(pruneDominated(walls).map(x => x.id)).toEqual(['a1'])
+  })
+  it('never prunes the starting option, even when another option beats it', () => {
+    const cards = { x: [o('own', 100, 1), o('better', 100, 2), o('worse', 150, 1)] }
+    expect(pruneCards(cards, { x: 'own' }).x.map(c => c.id)).toEqual(['own', 'better'])
+    expect(pruneCards(cards, {}).x.map(c => c.id)).toEqual(['better'])
+  })
+  it('keeps the starting option: equal cost, fewer points', () => {
+    const cards = { x: [o('start', 100, 1), o('other', 100, 2)] }
+    expect(pruneCards(cards, { x: 'start' }).x.map(c => c.id)).toContain('start')
+  })
 })

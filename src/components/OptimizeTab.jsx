@@ -12,7 +12,7 @@ import { getArchetype } from '../costing/archetypes'
 // The Optimize tab (Capability 2 spec 5): the Cost tab's sidebar, then screen 1 or screen 2.
 export default function OptimizeTab(props) {
   const { cost, houseType, houseFields, overriddenKeys, baselineChoice, usualHouse, overrideCount, onTypeChange, onFieldChange, onBaselineChoice, onEditUsual, onResetUsual, onViewBaselineCard,
-    tierLabel, consider, onToggleConsider, result, stale, blocked, onRun, onApply, applied, canRestore, onRestore, screen, onScreen, wallSelection } = props
+    tierLabel, consider, onToggleConsider, result, stale, blocked, onRun, onApply, canRestore, onRestore, screen, onScreen, wallSelection } = props
   const narrowNow = useNarrow()
   const narrow = props.narrow ?? narrowNow
   const [moreOpen, setMoreOpen] = useState(false)
@@ -50,7 +50,7 @@ export default function OptimizeTab(props) {
     <div className={`cost-tab optimize-tab ${narrow ? 'narrow' : ''}`}>
       {side}
       {showResult
-        ? <ResultScreen result={result} consider={consider} stale={stale} onRun={onRun} onChange={() => onScreen('consider')} onApply={onApply} applied={applied} canRestore={canRestore} onRestore={onRestore} />
+        ? <ResultScreen result={result} consider={consider} stale={stale} onRun={onRun} onChange={() => onScreen('consider')} onApply={onApply} canRestore={canRestore} onRestore={onRestore} blocked={blocked} />
         : <ConsiderScreen consider={consider} onToggle={onToggleConsider} tierLabel={tierLabel} wallSelection={wallSelection ?? cost.designPicks?.wall?.selection} blocked={blocked} onRun={onRun} />}
       {narrow && prices}
     </div>

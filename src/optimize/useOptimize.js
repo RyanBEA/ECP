@@ -9,8 +9,8 @@ import { cardPoints, wallPoints } from '../costing/baselines'
 import { formatDelta, roundDisplay, ROUNDING_UNIT } from '../costing/units'
 import { LEVER_CARDS, CARD_NAMES, cardOptions, buildCandidates, codeMinimumId } from './candidates'
 import { pruneCards } from './prune'
-import { optimize, startingIds, packagePicks, wallTypeOfPackage } from './enumerate'
-import { ownWallCandidate } from './wallTypes'
+import { optimize, startingIds, packagePicks, wallTypeOfPackage, isCodeMinimumWall } from './enumerate'
+import { ownWallCandidate, WALL_TYPES, STANDARD_TYPE_ID } from './wallTypes'
 
 const money = n => n.toLocaleString('en-CA', { style: 'currency', currency: 'CAD', maximumFractionDigits: 0 })
 // Same wording as the Cost tab's lines (delta.js): '+$500', '< $500', '$0', '$500 less', '< $500 less'.
@@ -52,6 +52,33 @@ function startingLabel(cardId, picks, startingPriced) {
   return cardOptions(cardId).find(o => o.value === value)?.label ?? String(value)
 }
 
+// The Points-tab picks with every unpicked lever card filled with its code-minimum pick, so the before is priced the way
+// a package is (every card present). Returns the filled picks and the cards that were filled, in LEVER_CARDS order.
+// An unpicked wall, or a Select RSI pick at the code minimum, becomes the standard 2x6 R22 assembly; hrv has no
+// code-minimum pick and stays unpicked.
+function fillCodeMinimum(picks) {
+  const cards = { ...(picks.cards || {}) }
+  let wall = picks.wall
+  const filledCards = []
+  for (const id of LEVER_CARDS) {
+    if (id === 'aboveGroundWalls') {
+      if (isCodeMinimumWall(wall)) {
+        const std = WALL_TYPES.find(t => t.id === STANDARD_TYPE_ID).assemblies.find(a => a.id === codeMinimumId(id))
+        wall = { kind: 'assembly', selection: std.selection }
+        filledCards.push(id)
+      }
+      continue
+    }
+    const unpicked = id === 'dhw' ? cards.dhwElectric === undefined && cards.dhwGas === undefined : cards[id] === undefined
+    const minId = codeMinimumId(id)
+    if (!unpicked || !minId) continue
+    const opt = cardOptions(id).find(o => `${o.pickCard}:${o.value}` === minId)
+    cards[opt.pickCard] = opt.value
+    filledCards.push(id)
+  }
+  return { picks: { ...picks, cards, wall }, filledCards }
+}
+
 export function runOptimize(req) {
   const { selections, wallSelection, houseType, houseFields, baselineChoice, usualHouse, overrides = {}, tierPoints, tierLabel, consider } = req
   const quantities = computeQuantities(houseFields)
@@ -62,12 +89,12 @@ export function runOptimize(req) {
   const startingPts = startingPointsByCard(starting)
 
   const { cards, leftOut, unavailable } = buildCandidates(consider, { wallSelection, quantities, overrides })
-  const pruned = pruneCards(cards)
+  const ids = startingIds(starting, ownWallCandidate(wallSelection) !== null)
+  const pruned = req.prune === false ? cards : pruneCards(cards, ids)
   const searched = Object.keys(pruned)
   const notSearched = [...LEVER_CARDS.filter(id => !searched.includes(id)), 'volume']
   const fixedPoints = notSearched.reduce((s, id) => s + (startingPts[id] || 0), 0)
   const target = tierPoints - fixedPoints
-  const ids = startingIds(starting, ownWallCandidate(wallSelection) !== null)
   const result = optimize({ cards: pruned, target, startingIds: ids })
 
   const baselineCostOf = id => (baseline[id]?.state === 'priced' ? baseline[id].cost : 0)
@@ -112,8 +139,11 @@ export function runOptimize(req) {
     return { pkg, delta, deltaText: deltaWords(delta), totalText: totalWords(delta, baselineName), points: pkg.points + fixedPoints, lines, wallType: wallTypeOfPackage(pkg), picks: packagePicks(pkg), coveredCount, searchedCount, coveredText }
   }
 
-  // The before: the Cost tab's own view of the Points-tab design (spec 5.3).
-  const d = computeDelta(startingPriced, baseline, baselineName)
+  // The before: the Points-tab design priced like a package (spec 5.3). Unpicked lever cards are counted at their code
+  // minimum, so the figure equals the Cost tab's only when every card is picked. Code-minimum fills earn no points,
+  // so the points are the Points tab's own.
+  const { picks: filledPicks, filledCards } = fillCodeMinimum(starting)
+  const d = computeDelta(priceHouse(filledPicks, quantities, overrides, 'design'), baseline, baselineName)
   const beforePoints = Object.values(startingPts).reduce((s, p) => s + p, 0)
   const fullyPriced = d.hasPicks && d.coveredCount === d.pickedCount
   const reachesTarget = beforePoints >= tierPoints - 1e-9
@@ -121,7 +151,8 @@ export function runOptimize(req) {
   if (!reachesTarget) beforeText = `Your current design does not reach ${tierLabel} (${beforePoints.toFixed(1)} points).`
   else if (!fullyPriced) beforeText = 'Your current design has cards we can\'t price yet.'
   else beforeText = `Your current design is ${totalWords(d.headline.exact, baselineName)}.`
-  const before = { exact: d.headline.exact, text: beforeText, points: beforePoints, reachesTarget, fullyPriced }
+  if (filledCards.length > 0) beforeText += ' Unpicked cards counted at the code minimum.'
+  const before = { exact: d.headline.exact, text: beforeText, points: beforePoints, reachesTarget, fullyPriced, filledCards }
 
   const winner = shown(result.winner)
   const runnersUp = result.runnersUp.map(shown)

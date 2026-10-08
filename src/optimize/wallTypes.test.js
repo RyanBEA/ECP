@@ -55,7 +55,7 @@ describe('wallCandidates', () => {
   it('adds the builder\'s own complete wall as a candidate, last, flagged own', () => {
     const own = { wallType: 'wood', assemblyType: 'single', studSpacing: '16"', cavityMaterial: 'Fiberglass Batt', cavityType: '2x6 R20', contInsThickness: 'None', sheathingId: 'osb_11', claddingId: 'vinyl_siding' }
     const c = wallCandidates(new Set(), own)
-    expect(c.at(-1)).toMatchObject({ id: OWN_WALL_ID, typeId: OWN_WALL_ID, own: true, points: getWallPoints(calculateWallRsi(own)) })
+    expect(c.at(-1)).toMatchObject({ id: OWN_WALL_ID, typeId: 'standard', own: true, points: getWallPoints(calculateWallRsi(own)) })
   })
   it('a Select RSI pick or an unfinished wall is not an own-wall candidate', () => {
     expect(ownWallCandidate({ simpleIndex: 3 })).toBeNull()
@@ -71,5 +71,61 @@ describe('wallCandidates', () => {
   })
   it('every curated candidate is priceable', () => {
     for (const c of wallCandidates(allTypes, null)) expect(wallLayers(c.selection).priced, c.id).toBe(true)
+  })
+})
+
+describe('the builder\'s own wall is classed by construction type (final review I1)', () => {
+  const ext = { sheathingId: 'osb_11', claddingId: 'vinyl_siding' }
+  const one = (over) => ({ wallType: 'wood', assemblyType: 'single', studSpacing: '16"', cavityMaterial: 'Fiberglass Batt', cavityType: '2x6 R24', contInsThickness: 'None', ...ext, ...over })
+  it('gets the typeId of its real type, keeping id own and the own flag', () => {
+    const cases = {
+      standard: one({}),
+      standardThinFoam: one({ contInsType: 'XPS', contInsThickness: '1"' }),
+      thickFoam: one({ contInsType: 'XPS', contInsThickness: '2"' }),
+      thickFoamFraction: one({ contInsType: 'Polyiso', contInsThickness: '2-1/2"' }),
+      largeStuds: one({ cavityType: '2x8 R28' }),
+      serviceCavity: one({ hasServiceWall: true, serviceSpacing: '16"', serviceCavityMaterial: 'Fiberglass Batt', serviceCavityType: '2x4 R14' }),
+      doubleStud: { wallType: 'wood', assemblyType: 'doubleStud', studSpacing: '16"', outerStud: '2x4', innerStud: '2x4', plate: '2x10', doubleStudMaterial: 'Dense Pack Cellulose', contInsThickness: 'None', ...ext },
+    }
+    const want = { standard: 'standard', standardThinFoam: 'standard', thickFoam: 'thickFoam', thickFoamFraction: 'thickFoam', largeStuds: 'largeStuds', serviceCavity: 'serviceCavity', doubleStud: 'doubleStud' }
+    for (const [name, sel] of Object.entries(cases)) {
+      const c = ownWallCandidate(sel)
+      expect(c, name).toMatchObject({ id: OWN_WALL_ID, own: true, typeId: want[name] })
+    }
+  })
+  it('a wall with foam thickness but no foam type is not thick foam', () => {
+    expect(ownWallCandidate(one({ contInsThickness: '3"' })).typeId).toBe('standard')
+  })
+  it('an own wall equal to a curated assembly leaves exactly one candidate for it, the own one', () => {
+    const curated = WALL_TYPES.flatMap(t => t.assemblies).find(a => a.id === '2x10_r31')
+    const own = { ...curated.selection }
+    const all = wallCandidates(allTypes, own)
+    const same = all.filter(x => x.label === all.at(-1).label)
+    expect(same).toHaveLength(1)
+    expect(same[0]).toMatchObject({ id: OWN_WALL_ID, own: true, typeId: 'largeStuds' })
+    expect(all.some(x => x.id === '2x10_r31')).toBe(false)
+    // The other large-stud assemblies are untouched.
+    expect(all.filter(x => x.typeId === 'largeStuds').map(x => x.id)).toEqual(['2x8_r28', '2x8_r28_xps1', '2x12_r40', OWN_WALL_ID])
+  })
+  it('treats a missing foam type, a "None" foam type and unset exterior ids as equal to the curated defaults', () => {
+    const curated = WALL_TYPES.flatMap(t => t.assemblies).find(a => a.id === '2x6_r22')
+    const own = { wallType: 'wood', assemblyType: 'single', studSpacing: '16"', cavityMaterial: 'Fiberglass Batt', cavityType: '2x6 R22', contInsType: 'None', contInsThickness: 'None' }
+    const all = wallCandidates(new Set(), own)
+    expect(all.some(x => x.id === curated.id)).toBe(false)
+    expect(all.at(-1)).toMatchObject({ id: OWN_WALL_ID })
+  })
+  it('keeps a curated assembly that differs from the own wall in any listed field', () => {
+    const own = one({ cavityType: '2x6 R22', claddingId: 'fiber_cement' })
+    // Same stud and batt as 2x6_r22 but a different cladding: the curated candidates take the own cladding, so it IS the same wall.
+    expect(wallCandidates(new Set(), own).some(x => x.id === '2x6_r22')).toBe(false)
+    const diff = one({ cavityType: '2x6 R22', studSpacing: '24"' })
+    expect(wallCandidates(new Set(), diff).some(x => x.id === '2x6_r22')).toBe(true)
+  })
+  it('a service wall with an interior layer is a different wall from the curated service assembly', () => {
+    const curated = WALL_TYPES.find(t => t.id === 'serviceCavity').assemblies[0]
+    const own = { ...curated.selection, interiorLayerMaterial: 'osb_11' }
+    const all = wallCandidates(allTypes, own)
+    expect(all.some(x => x.id === curated.id)).toBe(true)
+    expect(all.at(-1)).toMatchObject({ id: OWN_WALL_ID, typeId: 'serviceCavity' })
   })
 })

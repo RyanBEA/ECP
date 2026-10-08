@@ -14,7 +14,7 @@ const design = {
 }
 
 // Test support: OptimizeTab with live state, as App drives it.
-function Harness({ selections = design.selections, wallSelection = design.wallSelection, houseType: initialType = 'singleDetached', fields = {}, spies = {} }) {
+function Harness({ selections = design.selections, wallSelection = design.wallSelection, houseType: initialType = 'singleDetached', fields = {}, spies = {}, stale = false, blockedOnResult = null }) {
   const [houseType] = useState(initialType)
   const [consider, setConsider] = useState(defaultConsider)
   const [request, setRequest] = useState(null)
@@ -23,13 +23,14 @@ function Harness({ selections = design.selections, wallSelection = design.wallSe
   const houseFields = resolveHouseFields(houseType, { [houseType]: fields })
   const cost = useHouseCost({ selections, wallSelection, houseType, houseFields, baselineChoice: 'typicalTier2', usualHouse: {}, overrides: {}, frozenOrder: null })
   const result = useOptimize(request)
-  const blocked = cost.quantities.airflow === null && consider.hrv.size > 0 ? 'Enter the designed airflow on the Cost tab to include ventilation' : null
+  const blockedByAirflow = cost.quantities.airflow === null && consider.hrv.size > 0 ? 'Enter the designed airflow on the Cost tab to include ventilation' : null
+  const blocked = screenState === 'result' && blockedOnResult ? blockedOnResult : blockedByAirflow
   const run = () => { setRequest({ selections, wallSelection, houseType, houseFields, baselineChoice: 'typicalTier2', usualHouse: {}, overrides: {}, tierPoints: 20, tierLabel: 'Tier 3', consider }); setScreen('result') }
   return (
     <OptimizeTab cost={cost} houseType={houseType} houseFields={houseFields} overriddenKeys={[]} baselineChoice="typicalTier2" usualHouse={{}} overrideCount={0}
       onTypeChange={() => {}} onFieldChange={() => {}} onBaselineChoice={() => {}} onEditUsual={() => {}} onResetUsual={() => {}} onViewBaselineCard={() => {}}
       tierLabel="Tier 3" consider={consider} onToggleConsider={(c, v) => setConsider(p => toggleConsider(p, c, v))}
-      result={result} stale={false} blocked={blocked} onRun={run} onApply={p => { spies.onApply?.(p); setApplied(true) }} applied={applied} canRestore={applied} onRestore={() => { spies.onRestore?.(); setApplied(false) }}
+      result={result} stale={stale} blocked={blocked} onRun={run} onApply={p => { spies.onApply?.(p); setApplied(true) }} canRestore={applied} onRestore={() => { spies.onRestore?.(); setApplied(false) }}
       screen={screenState} onScreen={setScreen} />
   )
 }
@@ -99,8 +100,9 @@ describe('OptimizeTab screen 2 (spec 5.2 to 5.4, 6)', () => {
   it('"Show" swaps a runner-up into the package card', () => {
     render(<Harness />)
     go()
-    const shows = screen.queryAllByRole('button', { name: 'Show' })
-    if (shows.length === 0) return
+    const shows = screen.queryAllByRole('button', { name: /^Show / })
+    expect(shows.length).toBeGreaterThan(0)
+    expect(shows[0]).toHaveAccessibleName(/^Show the .+ package$/)
     const before = screen.getByRole('table', { name: 'The package' }).textContent
     fireEvent.click(shows[0])
     expect(screen.getByRole('table', { name: 'The package' }).textContent).not.toBe(before)
@@ -126,5 +128,31 @@ describe('OptimizeTab screen 2 (spec 5.2 to 5.4, 6)', () => {
     expect(screen.getByRole('heading', { level: 2 })).toHaveTextContent('Nothing you\'ve ticked reaches Tier 3 for this house.')
     expect(screen.getByRole('button', { name: 'Change what to consider' })).toBeInTheDocument()
     expect(screen.getByRole('table', { name: 'The package' })).toBeInTheDocument()
+  })
+})
+
+describe('OptimizeTab result screen follow-ups (final review)', () => {
+  const go = () => fireEvent.click(screen.getByRole('button', { name: 'Find the cheapest way to Tier 3' }))
+  it('"Find again" is disabled with the reason shown when the search is blocked, and the stale notice is a status', () => {
+    render(<Harness stale blockedOnResult="Enter the designed airflow on the Cost tab to include ventilation" />)
+    go()
+    expect(screen.getByRole('status')).toHaveTextContent('Your inputs changed.')
+    expect(screen.getByRole('button', { name: 'Find again' })).toBeDisabled()
+    expect(within(screen.getByRole('status')).getByText('Enter the designed airflow on the Cost tab to include ventilation')).toBeInTheDocument()
+  })
+  it('"Find again" works when nothing blocks the search', () => {
+    render(<Harness stale />)
+    go()
+    expect(screen.getByRole('button', { name: 'Find again' })).toBeEnabled()
+  })
+  it('a runner-up row lists only the picks that differ from the winner, with no leading separator', () => {
+    render(<Harness />)
+    go()
+    const details = [...document.querySelectorAll('.alt-detail')].map(n => n.textContent)
+    expect(details.length).toBeGreaterThan(0)
+    for (const d of details) {
+      expect(d.startsWith(';')).toBe(false)
+      expect(d).toMatch(/\d points$/)
+    }
   })
 })

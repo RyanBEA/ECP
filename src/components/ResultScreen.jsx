@@ -5,7 +5,7 @@ import { considerSummary } from '../optimize/considerText'
 import { SECOND_LINE } from '../costing/delta'
 
 // Screen 2 of the Optimize tab (Capability 2 spec 5.2 to 5.4, 6).
-export default function ResultScreen({ result, consider, stale, onRun, onChange, onApply, applied, canRestore, onRestore }) {
+export default function ResultScreen({ result, consider, stale, onRun, onChange, onApply, canRestore, onRestore, blocked }) {
   const [view, setView] = useState(result)
   useEffect(() => { setView(result) }, [result])
   if (!view) return null
@@ -19,9 +19,10 @@ export default function ResultScreen({ result, consider, stale, onRun, onChange,
       </div>
       <div className="cost-card headline-card">
         {stale && (
-          <div className="stale-notice">
+          <div className="stale-notice" role="status">
             <span>Your inputs changed.</span>
-            <button type="button" className="btn" onClick={onRun}>Find again</button>
+            <button type="button" className="btn" disabled={!!blocked} onClick={onRun}>Find again</button>
+            {blocked && <p className="costing-note blocked">{blocked}</p>}
           </div>
         )}
         <h2 className="headline">{headline}</h2>
@@ -66,15 +67,21 @@ export default function ResultScreen({ result, consider, stale, onRun, onChange,
         <div className="cost-card">
           <p className="card-title">Other ways to get there</p>
           <p className="card-sub">The next cheapest packages that use a different wall. Click one to see it in full above.</p>
-          {runnersUp.map((r, i) => (
-            <div key={r.pkg.index} className="alt-row">
-              <div>
-                <div>{r.lines.find(l => l.cardId === 'aboveGroundWalls')?.label}</div>
-                <div className="alt-detail">{r.lines.filter(l => l.state === 'searched' && l.cardId !== 'aboveGroundWalls').map(l => l.label).join('; ')}; {r.points.toFixed(1)} points</div>
+          {runnersUp.map((r, i) => {
+            const wallLabel = r.lines.find(l => l.cardId === 'aboveGroundWalls')?.label
+            const differs = r.lines.filter(l => l.state === 'searched' && l.cardId !== 'aboveGroundWalls'
+              && l.label !== pkg.lines.find(w => w.cardId === l.cardId)?.label).map(l => l.label)
+            const picks = differs.length > 0 ? differs.join('; ') : 'same picks, different wall'
+            return (
+              <div key={r.pkg.index} className="alt-row">
+                <div>
+                  <div>{wallLabel}</div>
+                  <div className="alt-detail">{picks}; {r.points.toFixed(1)} points</div>
+                </div>
+                <div className="alt-cost"><b>{r.deltaText}</b> <button type="button" className="btn" aria-label={`Show the ${wallLabel} package`} onClick={() => setView(view.show(i))}>Show</button></div>
               </div>
-              <div className="alt-cost"><b>{r.deltaText}</b> <button type="button" className="btn" onClick={() => setView(view.show(i))}>Show</button></div>
-            </div>
-          ))}
+            )
+          })}
         </div>
       )}
     </section>

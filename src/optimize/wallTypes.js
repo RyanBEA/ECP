@@ -5,6 +5,7 @@
 // (OSB, vinyl); wallTypes.test.js asserts it.
 import { getBoundaryOptions, calculateWallRsi, getWallPoints } from '../data/ecpData'
 import { describeWall } from '../costing/assumedAssemblies'
+import { inches } from '../costing/wallLayers'
 
 const b = getBoundaryOptions()
 const DEFAULT_EXTERIOR = { sheathingId: b.sheathing.defaults.wood, claddingId: b.cladding.defaults.wood }
@@ -75,19 +76,45 @@ const candidate = (id, typeId, selection, own) => ({
   id, typeId, selection, own, label: describeWall(selection), points: getWallPoints(calculateWallRsi(selection)),
 })
 
+// The construction type of a complete wall-builder selection, by the same rules the curated lists are sorted by.
+function classifyWall(ws) {
+  if (ws.assemblyType === 'doubleStud') return 'doubleStud'
+  if (ws.hasServiceWall) return 'serviceCavity'
+  if (ws.contInsType && inches(ws.contInsThickness) >= 2) return 'thickFoam'
+  const stud = (ws.cavityType || '').split(' ')[0]
+  if (stud === '2x8' || stud === '2x10' || stud === '2x12') return 'largeStuds'
+  return STANDARD_TYPE_ID
+}
+
 // The builder's own Points-tab wall, if it is a complete assembly with an RSI. A Select RSI pick is not one
-// (builders do not speak RSI; the standard type's 2x6 R22 covers the code minimum).
+// (builders do not speak RSI; the standard type's 2x6 R22 covers the code minimum). It is classed by its real
+// construction type so runners-up can offer another type's wall; `own` marks it, and OWN_WALL_ID is its id.
 export function ownWallCandidate(wallSelection) {
   const ws = wallSelection || {}
   if (ws.simpleIndex !== undefined && ws.simpleIndex !== null) return null
   if (!ws.wallType) return null
   const rsi = calculateWallRsi(ws)
   if (rsi === null || rsi === undefined) return null
-  return candidate(OWN_WALL_ID, OWN_WALL_ID, ws, true)
+  return candidate(OWN_WALL_ID, classifyWall(ws), ws, true)
 }
 
+// The fields that make two selections the same wall for the search.
+const SAME_FIELDS = ['wallType', 'assemblyType', 'studSpacing', 'cavityMaterial', 'cavityType', 'contInsType', 'contInsThickness', 'hasServiceWall',
+  'serviceSpacing', 'serviceCavityMaterial', 'serviceCavityType', 'outerStud', 'innerStud', 'plate', 'doubleStudMaterial', 'sheathingId', 'claddingId',
+  'interiorLayerMaterial', 'interiorLayerThickness']  // not in the review's list: a curated wall has no interior layer, so an own service wall with one is a different wall
+const norm = (field, v) => {
+  if (field === 'contInsType') return v === 'None' || v === undefined || v === null ? undefined : v
+  if (field === 'contInsThickness') return v === undefined || v === null ? 'None' : v
+  if (field === 'hasServiceWall') return !!v
+  if (field === 'interiorLayerMaterial' || field === 'interiorLayerThickness') return v || undefined
+  if (field === 'sheathingId') return v || DEFAULT_EXTERIOR.sheathingId
+  if (field === 'claddingId') return v || DEFAULT_EXTERIOR.claddingId
+  return v === null ? undefined : v
+}
+const sameWall = (a, b) => SAME_FIELDS.every(f => norm(f, a[f]) === norm(f, b[f]))
+
 // Candidates for the ticked types (the standard type always), with the builder's own sheathing and cladding
-// when their wall has them, plus the own wall itself last.
+// when their wall has them, plus the own wall itself last. A curated assembly equal to the own wall is dropped.
 export function wallCandidates(tickedTypeIds, wallSelection) {
   const own = ownWallCandidate(wallSelection)
   const exterior = own
@@ -96,7 +123,12 @@ export function wallCandidates(tickedTypeIds, wallSelection) {
   const out = []
   for (const t of WALL_TYPES) {
     if (t.id !== STANDARD_TYPE_ID && !tickedTypeIds.has(t.id)) continue
-    for (const a of t.assemblies) out.push(candidate(a.id, t.id, { ...a.selection, ...exterior }, false))
+    for (const a of t.assemblies) {
+      const selection = { ...a.selection, ...exterior }
+      // The builder's own wall stands in for a curated twin: one candidate per distinct wall.
+      if (own && sameWall(selection, own.selection)) continue
+      out.push(candidate(a.id, t.id, selection, false))
+    }
   }
   if (own) out.push(own)
   return out

@@ -84,6 +84,22 @@ function studRow(cavityMaterial, cavityType, spacing, suffix = '') {
   ] }
 }
 
+// The service wall's interior layer (calculateWallRsi credits it): a sheathing board or a rigid foam with a thickness.
+function interiorLayer(s) {
+  const m = s.interiorLayerMaterial
+  if (!m) return { layers: [] }
+  if (SHEATHING[m]) {
+    const label = ascii(boundary.sheathing.options.find(o => o.id === m)?.label || m)
+    return { layers: [{ component: 'sheathing', option: SHEATHING[m], label: `${label} interior layer` }] }
+  }
+  const ci = ciOptionId(m, s.interiorLayerThickness)
+  if (ci) {
+    const type = m === 'PIC' ? 'Polyiso' : m
+    return { layers: [{ component: 'continuous_insulation', option: ci, label: `${ascii(s.interiorLayerThickness)} ${type} interior layer` }] }
+  }
+  return notPriced('interior layer not priced in this version')
+}
+
 export function wallLayers(sel) {
   const s = sel || {}
   if (s.simpleIndex !== undefined && s.simpleIndex !== null) return notPriced('picked by RSI level')
@@ -112,7 +128,9 @@ export function wallLayers(sel) {
     if (s.hasServiceWall) {
       const svc = studRow(s.serviceCavityMaterial, s.serviceCavityType, s.serviceSpacing, 'service cavity')
       if (svc.priced === false) return svc
-      core = { layers: [...core.layers, ...svc.layers] }
+      const il = interiorLayer(s)
+      if (il.priced === false) return il
+      core = { layers: [...core.layers, ...svc.layers, ...il.layers] }
     }
   }
   // Without a type, continuous insulation adds no RSI (calculateWallRsi), so it adds no layer either.

@@ -26,7 +26,7 @@ export function enumeratePackages(cards) {
 // code minimum as no pick, so an unpicked card maps to its code-minimum candidate (null only where there is none: hrv).
 // Likewise the wall is the code-minimum wall when none is chosen or a Select RSI pick sits at the code minimum RSI.
 // Any other Select RSI pick has no candidate to match, so it maps to null and counts as a change.
-const isCodeMinimumWall = wall => !wall || (wall.kind === 'level' && Math.abs(wall.rsi - MIN_WALL_RSI) < 1e-9)
+export const isCodeMinimumWall = wall => !wall || (wall.kind === 'level' && Math.abs(wall.rsi - MIN_WALL_RSI) < 1e-9)
 export function startingIds(picks, ownWallPresent) {
   const cards = picks?.cards || {}
   const idFor = (cardId, pickCard, value) => (value === undefined ? codeMinimumId(cardId) : `${pickCard}:${value}`)

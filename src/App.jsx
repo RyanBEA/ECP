@@ -492,7 +492,6 @@ export default function App() {
             blocked={optBlocked}
             onRun={runOptimize}
             onApply={applyPackage}
-            applied={savedPicks !== null}
             canRestore={savedPicks !== null}
             onRestore={restorePicks}
             screen={optScreen}

@@ -7,6 +7,7 @@ import { computeQuantities } from '../costing/quantities'
 import { priceHouse, designPicks } from '../costing/priceHouse'
 import { computeDelta } from '../costing/delta'
 import { categories } from '../data/ecpData'
+import { assumedWallSelection } from '../costing/assumedAssemblies'
 
 const idx = (cardId, value) => categories.find(c => c.id === cardId).options.findIndex(o => o.value === value)
 const base = {
@@ -109,11 +110,11 @@ describe('runOptimize (spec 2, 5.2, 5.3, 6)', () => {
   it('says why when the Points-tab design does not reach the Tier or has unpriced cards', () => {
     const low = runOptimize({ ...base, selections: {} , wallSelection: {} })
     expect(low.before.reachesTarget).toBe(false)
-    expect(low.before.text).toBe('Your current design does not reach Tier 3 (0.0 points).')
+    expect(low.before.text).toBe('Your current design does not reach Tier 3 (0.0 points). Unpicked cards counted at the code minimum.')
     // Steel earns too few points for Tier 3, so test the unpriced branch against Tier 2 (11.4 points reach it).
     const steel = runOptimize({ ...base, tierPoints: 10, tierLabel: 'Tier 2', wallSelection: { wallType: 'steel', assemblyType: 'single', studSpacing: '16"', cavityMaterial: 'Fiberglass Batt', cavityType: '2x6 R20', contInsThickness: 'None' } })
     expect(steel.before.fullyPriced).toBe(false)
-    expect(steel.before.text).toBe('Your current design has cards we can\'t price yet.')
+    expect(steel.before.text).toBe('Your current design has cards we can\'t price yet. Unpicked cards counted at the code minimum.')
   })
   it('a Tier 2 target never prints a signed negative in the headline', () => {
     const r = runOptimize({ ...base, tierPoints: 10, tierLabel: 'Tier 2' })
@@ -183,5 +184,70 @@ describe('useOptimize', () => {
     expect(result.current).toBe(first)
     rerender({ req: { ...base } })
     expect(result.current).not.toBe(first)
+  })
+})
+
+describe('final review follow-ups', () => {
+  const sig = r => JSON.stringify([r.winner, ...r.runnersUp].map(x => Object.fromEntries(Object.entries(x.pkg.items).map(([k, v]) => [k, v.id])).aboveGroundWalls
+    + '|' + Object.values(x.pkg.items).map(v => v.id).join(',') + '|' + x.pkg.cost.toFixed(2)))
+
+  // C1: the review's scenario. Own wall 2x6 R24 + 1 in XPS, windows 1.22, 1.5 ACH50, HRV 75, heat pump water heater.
+  const c1 = {
+    ...base,
+    selections: { windowsDoors: idx('windowsDoors', 1.22), airTightness: idx('airTightness', 1.5), hrv: idx('hrv', 75), dhwElectric: idx('dhwElectric', 2.35) },
+    wallSelection: assumedWallSelection(3.96),
+  }
+  it('C1: pruning leaves the runners-up unchanged and a service-cavity runner-up is present', () => {
+    const pruned = runOptimize(c1)
+    const unpruned = runOptimize({ ...c1, prune: false })
+    expect(pruned.reaches).toBe(true)
+    expect(sig(pruned)).toBe(sig(unpruned))
+    expect(pruned.runnersUp.map(r => r.wallType)).toContain('serviceCavity')
+    expect(pruned.count).toBeLessThanOrEqual(unpruned.count)
+    // Runners-up are one per wall construction type, none of them the winner's type.
+    const types = [pruned.winner, ...pruned.runnersUp].map(x => x.wallType)
+    expect(new Set(types).size).toBe(types.length)
+  })
+  it('C1: the builder\'s own wall is classed by its real type, so its type is not offered twice', () => {
+    const r = runOptimize(c1)
+    const own = [r.winner, ...r.runnersUp].filter(x => x.pkg.items.aboveGroundWalls.own)
+    for (const x of own) expect(x.wallType).toBe('standard')
+  })
+
+  // I2: the review's scenario. Own wall 2x10 R31 batt OSB vinyl, 2.0 ACH50, HRV 75, heat pump water heater; below-grade and windows unpicked.
+  const i2 = {
+    ...base,
+    selections: { airTightness: idx('airTightness', 2.0), hrv: idx('hrv', 75), dhwElectric: idx('dhwElectric', 2.35) },
+    wallSelection: { wallType: 'wood', assemblyType: 'single', studSpacing: '16"', cavityMaterial: 'Fiberglass Batt', cavityType: '2x10 R31', contInsThickness: 'None', sheathingId: 'osb_11', claddingId: 'vinyl_siding' },
+  }
+  it('I2: the before is priced like the package, so it equals the winner to the cent when the design is the answer', () => {
+    const r = runOptimize(i2)
+    expect(r.isBefore).toBe(true)
+    expect(r.before.exact).toBeCloseTo(r.winner.delta, 2)
+    expect(r.before.fullyPriced).toBe(true)
+    expect(r.before.filledCards).toEqual(['belowGradeWalls', 'windowsDoors'])
+    expect(r.before.text).toMatch(/^Your current design is .* Typical Tier 2\. Unpicked cards counted at the code minimum\.$/)
+    expect(r.before.points).toBeCloseTo(20, 5)
+    expect(r.before.reachesTarget).toBe(true)
+  })
+  it('I2: with every card picked nothing is filled and the before is the Cost tab\'s figure', () => {
+    const all = { ...base, selections: { ...base.selections, airTightness: idx('airTightness', 2.0) } }
+    const r = runOptimize(all)
+    expect(r.before.filledCards).toEqual([])
+    expect(r.before.text).not.toMatch(/Unpicked/)
+    const quantities = computeQuantities(base.houseFields)
+    const { name, picks } = resolveBaselinePicks(base.baselineChoice, base.houseType, base.usualHouse)
+    const d = computeDelta(priceHouse(designPicks(all.selections, all.wallSelection), quantities, {}, 'design'), priceHouse(picks, quantities, {}, 'baseline'), name)
+    expect(r.before.exact).toBeCloseTo(d.headline.exact, 6)
+  })
+  it('I2: an unpicked wall, or a Select RSI wall at the code minimum, is filled with the standard 2x6 R22 wall; a Select RSI wall above it and hrv are never filled', () => {
+    const all = { ...base, selections: { ...base.selections, airTightness: idx('airTightness', 2.0) } }
+    const none = runOptimize({ ...all, wallSelection: {} })
+    expect(none.before.filledCards).toEqual(['aboveGroundWalls'])
+    const level = categories.find(c => c.id === 'aboveGroundWalls').options.findIndex(o => o.value === 3.96)
+    expect(level).toBeGreaterThanOrEqual(0)
+    expect(runOptimize({ ...all, wallSelection: { simpleIndex: level } }).before.filledCards).toEqual([])
+    const { hrv, ...rest } = all.selections
+    expect(runOptimize({ ...all, selections: rest }).before.filledCards).not.toContain('hrv')
   })
 })

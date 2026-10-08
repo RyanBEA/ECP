@@ -96,3 +96,36 @@ describe('review fixes', () => {
     expect(m.rows.find(r => r.item === 'Plates').design.text).toBe('2x10 top and bottom plates')
   })
 })
+
+describe('service wall interior layer (final review I3)', () => {
+  const cost = sel => priceHouse({ cards: {}, wall: { kind: 'assembly', selection: sel } }, q).aboveGroundWalls.cost
+  it('an OSB interior layer adds a sheathing layer right after the service cavity rows', () => {
+    const wl = wallLayers({ ...svc, interiorLayerMaterial: 'osb_11' })
+    expect(wl.priced).toBe(true)
+    const sheathing = wl.layers.filter(l => l.component === 'sheathing')
+    expect(sheathing).toHaveLength(2)
+    expect(wl.layers[4]).toMatchObject({ component: 'sheathing', option: 'waferboard_osb_7_16in' })
+    expect(wl.layers[4].label).toMatch(/OSB interior layer$/)
+    expect(cost({ ...svc, interiorLayerMaterial: 'osb_11' })).toBeGreaterThan(cost(svc))
+  })
+  it('a 2 in XPS interior layer adds a continuous_insulation layer and raises the line cost', () => {
+    const sel = { ...svc, interiorLayerMaterial: 'XPS', interiorLayerThickness: '2"' }
+    const wl = wallLayers(sel)
+    expect(wl.priced).toBe(true)
+    expect(wl.layers[4]).toMatchObject({ component: 'continuous_insulation', option: 'xps_iv_2in', label: '2 in XPS interior layer' })
+    expect(cost(sel)).toBeGreaterThan(cost(svc))
+    // Still no exterior foam or strapping: the interior layer is not continuous insulation on the outside.
+    expect(wl.layers.some(l => l.component === 'strapping')).toBe(false)
+  })
+  it('an unset interior layer adds nothing, and an interior layer is ignored off a service wall', () => {
+    expect(wallLayers(svc).layers).toHaveLength(8)
+    const plain = { ...svc, hasServiceWall: false, interiorLayerMaterial: 'osb_11' }
+    expect(wallLayers(plain).layers.filter(l => l.component === 'sheathing')).toHaveLength(1)
+  })
+  it('a set material that maps to nothing refuses, rather than pricing the wall without it', () => {
+    expect(wallLayers({ ...svc, interiorLayerMaterial: 'unobtainium' })).toEqual({ priced: false, reason: 'interior layer not priced in this version' })
+    expect(wallLayers({ ...svc, interiorLayerMaterial: 'XPS' })).toEqual({ priced: false, reason: 'interior layer not priced in this version' })
+    expect(wallLayers({ ...svc, interiorLayerMaterial: 'XPS', interiorLayerThickness: '4"' }).priced).toBe(false)
+  })
+})
+
