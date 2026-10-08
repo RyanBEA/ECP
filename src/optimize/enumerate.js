@@ -3,6 +3,7 @@
 // cards, so a package's totals are sums; priceHouse is never called per package.
 import { LEVER_CARDS, codeMinimumId } from './candidates'
 import { OWN_WALL_ID } from './wallTypes'
+import { MIN_WALL_RSI } from '../data/ecpData'
 
 const EPS = 1e-9
 
@@ -23,12 +24,14 @@ export function enumeratePackages(cards) {
 
 // The Points-tab design as candidate ids, so a package can say which cards it changes. The Points tab shows a card's
 // code minimum as no pick, so an unpicked card maps to its code-minimum candidate (null only where there is none: hrv).
-// Likewise the wall is the code-minimum wall when there is no own-wall candidate (none chosen, or a Select RSI pick).
+// Likewise the wall is the code-minimum wall when none is chosen or a Select RSI pick sits at the code minimum RSI.
+// Any other Select RSI pick has no candidate to match, so it maps to null and counts as a change.
+const isCodeMinimumWall = wall => !wall || (wall.kind === 'level' && Math.abs(wall.rsi - MIN_WALL_RSI) < 1e-9)
 export function startingIds(picks, ownWallPresent) {
   const cards = picks?.cards || {}
   const idFor = (cardId, pickCard, value) => (value === undefined ? codeMinimumId(cardId) : `${pickCard}:${value}`)
   return {
-    aboveGroundWalls: ownWallPresent ? OWN_WALL_ID : codeMinimumId('aboveGroundWalls'),
+    aboveGroundWalls: ownWallPresent ? OWN_WALL_ID : isCodeMinimumWall(picks?.wall) ? codeMinimumId('aboveGroundWalls') : null,
     belowGradeWalls: idFor('belowGradeWalls', 'belowGradeWalls', cards.belowGradeWalls),
     windowsDoors: idFor('windowsDoors', 'windowsDoors', cards.windowsDoors),
     airTightness: idFor('airTightness', 'airTightness', cards.airTightness),

@@ -59,6 +59,18 @@ describe('runOptimize (spec 2, 5.2, 5.3, 6)', () => {
     const air = r.winner.lines.find(l => l.cardId === 'airTightness')
     if (air.label.startsWith('untested')) expect(air.changed).toBe(false)
   })
+  it('a Select RSI wall above the code minimum is a change when the package puts an assembly in its place', () => {
+    const level = categories.find(c => c.id === 'aboveGroundWalls').options.findIndex(o => o.value === 3.96)
+    expect(level).toBeGreaterThanOrEqual(0)
+    // A low target: the other cards earn 11.4 points, so the cheapest package drops the wall to the code-minimum assembly.
+    // That is a change from the RSI 3.96 pick, not "the current design".
+    const r = runOptimize({ ...base, tierPoints: 2, tierLabel: 'a low target', wallSelection: { simpleIndex: level } })
+    const wall = r.winner.lines.find(l => l.cardId === 'aboveGroundWalls')
+    expect(wall.label).toMatch(/R22/)
+    expect(wall.changed).toBe(true)
+    expect(wall.startingLabel).toMatch(/^RSI 3\.96/)
+    expect(r.isBefore).toBe(false)
+  })
   it('heated volume reduces the target and is never changed', () => {
     const withVolume = { ...base, selections: { ...base.selections, volume: idx('volume', 350) } }
     const r = runOptimize(withVolume)

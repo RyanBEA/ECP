@@ -73,7 +73,11 @@ describe('startingIds and packagePicks', () => {
   it('maps Points-tab picks to candidate ids, the own wall when present', () => {
     const picks = { cards: { windowsDoors: 1.22, airTightness: 'untested', dhwGas: 0.83 }, wall: { kind: 'assembly', selection: {} } }
     expect(startingIds(picks, true)).toEqual({ aboveGroundWalls: 'own', belowGradeWalls: 'belowGradeWalls:2.98', windowsDoors: 'windowsDoors:1.22', airTightness: 'airTightness:untested', hrv: null, dhw: 'dhwGas:0.83' })
-    expect(startingIds({ cards: {}, wall: { kind: 'level', rsi: 3.96 } }, false).aboveGroundWalls).toBe('2x6_r22')
+  })
+  it('maps a Select RSI wall at the code minimum to the code-minimum assembly, any other level to null (a change)', () => {
+    expect(startingIds({ cards: {}, wall: { kind: 'level', rsi: 2.97 } }, false).aboveGroundWalls).toBe('2x6_r22')
+    expect(startingIds({ cards: {}, wall: { kind: 'level', rsi: 3.96 } }, false).aboveGroundWalls).toBeNull()
+    expect(startingIds({ cards: {}, wall: null }, false).aboveGroundWalls).toBe('2x6_r22')
   })
   it('maps an unpicked card to its code-minimum candidate (hrv has none)', () => {
     expect(startingIds({}, false)).toEqual({ aboveGroundWalls: '2x6_r22', belowGradeWalls: 'belowGradeWalls:2.98', windowsDoors: 'windowsDoors:1.61', airTightness: 'airTightness:untested', hrv: null, dhw: 'dhwElectric:electricStorage' })
