@@ -73,7 +73,7 @@ How a search runs (`runOptimize`):
 - `state` is `searched`, `leftOut`, `unavailable` or `fixed` (heated volume).
 - **`delta: null`** means the card is searched but the baseline has no priced pick for it. `deltaText` reads "not priced", `note` says the baseline has no priced pick, and the line is excluded from the total.
 - **`coveredText`** is "Covers N of the M cards in the package" when any searched line has `delta: null`, otherwise empty.
-- **A left-out card** keeps the builder's Points-tab pick and its priced delta against the baseline (the Cost tab's own line). If that pick is unpriced it reads "not priced" with `delta: null`; if there is no pick it reads "left out by you" at 0.
+- **A left-out card** shows one of three things (`useOptimize.js`). Its Points-tab pick is priced and the baseline has a priced pick: the priced delta against the baseline, the Cost tab's own line. The pick is priced but the baseline has no priced pick: "not priced" with `delta: null`. The pick is unpriced or absent: "left out by you" at `delta: 0`, so an unpriced pick counts as $0 with no warning.
 - `changed`, `startingLabel` and `startingDeltaText` are set only when the package differs from the Points-tab pick on that card ("you have: U 1.22, +$7,000").
 - Below-grade lines name the assumed foundation assembly rather than an RSI alone.
 
@@ -111,7 +111,7 @@ Nothing here is persisted.
 Ordered by how much it matters.
 
 1. **Placeholder prices.** Double stud and service-cavity walls rest on 12 invented rows (plates, deep blown-in cavities) added to `stand-in-costs.json`; the optimizer's answer is only as good as those. HRV above the largest priced size is unavailable, and airtightness prices are placeholders (one row per level).
-2. **Unpriced lines leave the total quietly in one case.** A searched line with `delta: null` is excluded from the total and lowers `coveredCount`, so `coveredText` says so. A left-out card whose Points-tab pick is unpriced is also excluded from the total, but it is not a searched line, so `coveredText` does not mention it.
+2. **Unpriced left-out cards leave the total quietly.** A left-out card with `delta: null` (the baseline has no priced pick) is excluded from the total and `coveredText` does not mention it, because the line is not searched. A left-out card whose own pick is unpriced counts as $0 with no warning. (A searched line with `delta: null` does lower `coveredCount`, so `coveredText` says so.)
 3. **`show()` keeps the true cheapest headline**, so a displayed alternative sits under the cheapest package's sentence. Revisit with real copy.
 4. **`deltaWords` in `useOptimize.js` duplicates the private `lineDeltaText` in `delta.js`** (the "$500 less" wording). Export one and delete the other.
 5. **No persistence of "what to consider".** Ticks reset on reload; the spec leaves saving them with the usual house until testing shows it is wanted.
