@@ -7,7 +7,7 @@ import { priceHouse, designPicks } from '../costing/priceHouse'
 import { computeDelta } from '../costing/delta'
 import { cardPoints, wallPoints } from '../costing/baselines'
 import { formatDelta, roundDisplay, ROUNDING_UNIT } from '../costing/units'
-import { LEVER_CARDS, CARD_NAMES, cardOptions, buildCandidates } from './candidates'
+import { LEVER_CARDS, CARD_NAMES, cardOptions, buildCandidates, codeMinimumId } from './candidates'
 import { pruneCards } from './prune'
 import { optimize, startingIds, packagePicks, wallTypeOfPackage } from './enumerate'
 import { ownWallCandidate } from './wallTypes'
@@ -40,11 +40,15 @@ function startingPointsByCard(picks) {
   }
 }
 // Builder words for a Points-tab pick on a card, from the same labels the candidates use.
+// An unpicked card is the card's code minimum on the Points tab, so it is named as that option (null only for hrv).
 function startingLabel(cardId, picks, startingPriced) {
-  if (cardId === 'aboveGroundWalls') return startingPriced.aboveGroundWalls.state === 'unselected' ? null : startingPriced.aboveGroundWalls.description
+  if (cardId === 'aboveGroundWalls') return startingPriced.aboveGroundWalls.state === 'unselected' ? '2x6 R22, code minimum wall' : startingPriced.aboveGroundWalls.description
   const c = picks.cards || {}
   const value = cardId === 'dhw' ? (c.dhwElectric ?? c.dhwGas) : c[cardId]
-  if (value === undefined) return null
+  if (value === undefined) {
+    const minId = codeMinimumId(cardId)
+    return minId ? (cardOptions(cardId).find(o => `${o.pickCard}:${o.value}` === minId)?.label ?? null) : null
+  }
   return cardOptions(cardId).find(o => o.value === value)?.label ?? String(value)
 }
 

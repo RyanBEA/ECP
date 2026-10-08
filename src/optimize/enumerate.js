@@ -1,7 +1,7 @@
 // src/optimize/enumerate.js
 // Brute-force search over the pruned candidates (Capability 2 spec 2 steps 3 to 5). Points and costs add across
 // cards, so a package's totals are sums; priceHouse is never called per package.
-import { LEVER_CARDS } from './candidates'
+import { LEVER_CARDS, codeMinimumId } from './candidates'
 import { OWN_WALL_ID } from './wallTypes'
 
 const EPS = 1e-9
@@ -21,17 +21,20 @@ export function enumeratePackages(cards) {
   return acc.map((p, index) => ({ ...p, index }))
 }
 
-// The Points-tab design as candidate ids, so a package can say which cards it changes.
+// The Points-tab design as candidate ids, so a package can say which cards it changes. The Points tab shows a card's
+// code minimum as no pick, so an unpicked card maps to its code-minimum candidate (null only where there is none: hrv).
+// Likewise the wall is the code-minimum wall when there is no own-wall candidate (none chosen, or a Select RSI pick).
 export function startingIds(picks, ownWallPresent) {
   const cards = picks?.cards || {}
-  const idFor = (pickCard, value) => (value === undefined ? null : `${pickCard}:${value}`)
+  const idFor = (cardId, pickCard, value) => (value === undefined ? codeMinimumId(cardId) : `${pickCard}:${value}`)
   return {
-    aboveGroundWalls: ownWallPresent ? OWN_WALL_ID : null,
-    belowGradeWalls: idFor('belowGradeWalls', cards.belowGradeWalls),
-    windowsDoors: idFor('windowsDoors', cards.windowsDoors),
-    airTightness: idFor('airTightness', cards.airTightness),
-    hrv: idFor('hrv', cards.hrv),
-    dhw: cards.dhwElectric !== undefined ? idFor('dhwElectric', cards.dhwElectric) : idFor('dhwGas', cards.dhwGas),
+    aboveGroundWalls: ownWallPresent ? OWN_WALL_ID : codeMinimumId('aboveGroundWalls'),
+    belowGradeWalls: idFor('belowGradeWalls', 'belowGradeWalls', cards.belowGradeWalls),
+    windowsDoors: idFor('windowsDoors', 'windowsDoors', cards.windowsDoors),
+    airTightness: idFor('airTightness', 'airTightness', cards.airTightness),
+    hrv: idFor('hrv', 'hrv', cards.hrv),
+    dhw: cards.dhwElectric !== undefined ? idFor('dhw', 'dhwElectric', cards.dhwElectric)
+      : cards.dhwGas !== undefined ? idFor('dhw', 'dhwGas', cards.dhwGas) : codeMinimumId('dhw'),
   }
 }
 

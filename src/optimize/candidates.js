@@ -19,6 +19,15 @@ const CODE_MIN = {
   airTightness: { value: 'untested', label: 'untested, prescriptive air-barrier detailing' },
   hrv: null,
 }
+// The candidate id of a card's code-minimum option. The Points tab shows the code minimum as no pick at all (those
+// values have no card button), so an unpicked card is this candidate. hrv has no code-minimum option: null.
+const STANDARD_WALL_ASSEMBLY_ID = '2x6_r22'
+export function codeMinimumId(cardId) {
+  if (cardId === 'aboveGroundWalls') return STANDARD_WALL_ASSEMBLY_ID
+  if (cardId === 'dhw') return 'dhwElectric:electricStorage'
+  const min = CODE_MIN[cardId]
+  return min ? `${cardId}:${min.value}` : null
+}
 const LABEL = {
   belowGradeWalls: v => `RSI ${v}`,
   windowsDoors: v => `U ${v} (${v <= 1.22 ? 'triple' : 'double'} glazed)`,

@@ -45,6 +45,7 @@ describe('Optimize tab in App (spec 5, 6, 7, 8)', () => {
     const gasPicked = /gas/.test(dhwRow.textContent)
     fireEvent.click(screen.getByRole('button', { name: 'Put this on the Points tab' }))
     expect(screen.queryByText('Your inputs changed.')).toBeNull()
+    expect(screen.getByRole('heading', { level: 2 })).toHaveTextContent(/Your current design is the cheapest way/)
     expect(screen.getByRole('button', { name: 'Restore my design' })).toBeInTheDocument()   // the snapshot refresh keeps the restore offer
     tab('Points')
     if (gasPicked) expect(isPicked('dhwElectric', '2\\.35')).toBe(false)

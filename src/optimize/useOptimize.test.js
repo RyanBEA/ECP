@@ -8,7 +8,6 @@ import { priceHouse, designPicks } from '../costing/priceHouse'
 import { computeDelta } from '../costing/delta'
 import { categories } from '../data/ecpData'
 
-const ownAch = categories.find(c => c.id === 'airTightness').options[0].value
 const idx = (cardId, value) => categories.find(c => c.id === cardId).options.findIndex(o => o.value === value)
 const base = {
   selections: { windowsDoors: idx('windowsDoors', 1.22), dhwElectric: idx('dhwElectric', 2.35), belowGradeWalls: idx('belowGradeWalls', 3.46), hrv: idx('hrv', 65) },
@@ -44,6 +43,21 @@ describe('runOptimize (spec 2, 5.2, 5.3, 6)', () => {
     for (const l of searched.filter(x => !x.changed)) expect(l.startingLabel).toBeNull()
     const win = r.winner.lines.find(l => l.cardId === 'windowsDoors')
     if (win.changed) { expect(win.startingLabel).toBe('U 1.22 (triple glazed)'); expect(win.startingDeltaText).toMatch(/\$/) }
+  })
+  it('an unpicked card is its code minimum, so the starting pick of a changed line is named that way', () => {
+    // Windows unpicked and only U 1.22 ticked: the line changes from the code-minimum windows. Same for hrv, which has no code minimum.
+    const { windowsDoors, hrv, ...rest } = base.selections
+    let consider = base.consider
+    for (const o of cardOptions('windowsDoors')) if (o.value !== 1.22) consider = toggleConsider(consider, 'windowsDoors', o.value)
+    for (const o of cardOptions('hrv')) if (o.value !== 65) consider = toggleConsider(consider, 'hrv', o.value)
+    const r = runOptimize({ ...base, selections: rest, consider })
+    const win = r.winner.lines.find(l => l.cardId === 'windowsDoors')
+    expect(win).toMatchObject({ changed: true, startingLabel: 'U 1.61 (double glazed), code minimum' })
+    const vent = r.winner.lines.find(l => l.cardId === 'hrv')
+    expect(vent).toMatchObject({ changed: true, startingLabel: 'not picked' })
+    // Cards left unpicked on the Points tab and kept at their code minimum are not changes.
+    const air = r.winner.lines.find(l => l.cardId === 'airTightness')
+    if (air.label.startsWith('untested')) expect(air.changed).toBe(false)
   })
   it('heated volume reduces the target and is never changed', () => {
     const withVolume = { ...base, selections: { ...base.selections, volume: idx('volume', 350) } }
@@ -102,16 +116,15 @@ describe('runOptimize (spec 2, 5.2, 5.3, 6)', () => {
     expect(totalWords(0, 'X')).toBe('about the same as X')
   })
   it('names the current design as the answer when it is already the cheapest way (isBefore)', () => {
-    // Keep only the design's own values: the own wall (plus the always-ticked standard wall), 1.22, the first airtightness option, 65, 2.35, 3.46.
-    // The design must pick airtightness: an unpicked card reads as 'not picked', so the optimizer's untested option would count as a change.
-    const own = { ...base, selections: { ...base.selections, airTightness: idx('airTightness', ownAch) } }
+    // Keep only the design's own values: the own wall (plus the always-ticked standard wall), 1.22, untested (no pick), 65, 2.35, 3.46.
+    // An unpicked airtightness card is the code minimum, so keeping only 'untested' is the design's own value.
     let consider = defaultConsider()
     for (const t of ['thickFoam', 'largeStuds', 'serviceCavity', 'doubleStud']) consider = toggleConsider(consider, 'aboveGroundWalls', t)
-    const keep = { windowsDoors: 1.22, airTightness: ownAch, hrv: 65, dhw: 2.35, belowGradeWalls: 3.46 }
+    const keep = { windowsDoors: 1.22, airTightness: 'untested', hrv: 65, dhw: 2.35, belowGradeWalls: 3.46 }
     for (const [cardId, value] of Object.entries(keep)) {
       for (const o of cardOptions(cardId)) if (o.value !== value) consider = toggleConsider(consider, cardId, o.value)
     }
-    const r = runOptimize({ ...own, consider })
+    const r = runOptimize({ ...base, consider })
     expect(r.isBefore).toBe(true)
     expect(r.headline).toBe('Your current design is the cheapest way to Tier 3 we found.')
   })
