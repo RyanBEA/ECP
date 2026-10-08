@@ -1,10 +1,14 @@
 // src/optimize/useOptimize.test.js
 import { renderHook } from '@testing-library/react'
-import { runOptimize, useOptimize } from './useOptimize'
-import { defaultConsider, toggleConsider } from './candidates'
-import { resolveHouseFields } from '../costing/useHouseCost'
+import { runOptimize, useOptimize, deltaWords, totalWords } from './useOptimize'
+import { defaultConsider, toggleConsider, cardOptions } from './candidates'
+import { resolveHouseFields, resolveBaselinePicks } from '../costing/useHouseCost'
+import { computeQuantities } from '../costing/quantities'
+import { priceHouse, designPicks } from '../costing/priceHouse'
+import { computeDelta } from '../costing/delta'
 import { categories } from '../data/ecpData'
 
+const ownAch = categories.find(c => c.id === 'airTightness').options[0].value
 const idx = (cardId, value) => categories.find(c => c.id === cardId).options.findIndex(o => o.value === value)
 const base = {
   selections: { windowsDoors: idx('windowsDoors', 1.22), dhwElectric: idx('dhwElectric', 2.35), belowGradeWalls: idx('belowGradeWalls', 3.46), hrv: idx('hrv', 65) },
@@ -31,14 +35,15 @@ describe('runOptimize (spec 2, 5.2, 5.3, 6)', () => {
     expect(r.before.points).toBeCloseTo(11.1 + 4.6 + 3.8 + 0.8 + 2.2, 5)
     expect(r.before.reachesTarget).toBe(true)
     expect(r.before.fullyPriced).toBe(true)
-    expect(r.before.text).toMatch(/Your current design is \+\$[\d,]+\./)
+    expect(r.before.text).toMatch(/Your current design is \+\$[\d,]+ over Typical Tier 2\./)
   })
   it('marks changed lines and names the builder\'s current pick', () => {
     const r = runOptimize(base)
+    const searched = r.winner.lines.filter(l => l.state === 'searched')
+    for (const l of searched.filter(x => x.changed)) { expect(typeof l.startingLabel).toBe('string'); expect(l.startingLabel.length).toBeGreaterThan(0) }
+    for (const l of searched.filter(x => !x.changed)) expect(l.startingLabel).toBeNull()
     const win = r.winner.lines.find(l => l.cardId === 'windowsDoors')
     if (win.changed) { expect(win.startingLabel).toBe('U 1.22 (triple glazed)'); expect(win.startingDeltaText).toMatch(/\$/) }
-    const same = r.winner.lines.filter(l => l.state === 'searched' && !l.changed)
-    for (const l of same) expect(l.startingLabel).toBeNull()
   })
   it('heated volume reduces the target and is never changed', () => {
     const withVolume = { ...base, selections: { ...base.selections, volume: idx('volume', 350) } }
@@ -56,6 +61,24 @@ describe('runOptimize (spec 2, 5.2, 5.3, 6)', () => {
     expect(hrv).toMatchObject({ state: 'leftOut', points: 2.2, label: 'HRV, 65% SRE' })
     expect(r.fixedPoints).toBe(2.2)
     expect(r.leftOut).toEqual(['hrv'])
+    // The kept pick is priced like the Cost tab prices it, and the total includes it.
+    const quantities = computeQuantities(base.houseFields)
+    const { name, picks } = resolveBaselinePicks(base.baselineChoice, base.houseType, base.usualHouse)
+    const baseline = priceHouse(picks, quantities, {}, 'baseline')
+    const startingPriced = priceHouse(designPicks(base.selections, base.wallSelection), quantities, {}, 'design')
+    const costTabHrv = computeDelta(startingPriced, baseline, name).lines.find(l => l.categoryId === 'hrv')
+    expect(hrv.delta).toBeCloseTo(costTabHrv.delta, 6)
+    expect(r.winner.delta).toBeCloseTo(r.winner.lines.reduce((sum, l) => sum + l.delta, 0), 6)
+  })
+  it('a left-out card that costs more than the baseline adds its delta to the package total', () => {
+    let consider = base.consider
+    for (const o of cardOptions('dhw')) consider = toggleConsider(consider, 'dhw', o.value)
+    const r = runOptimize({ ...base, consider })
+    const dhw = r.winner.lines.find(l => l.cardId === 'dhw')
+    expect(dhw.state).toBe('leftOut')
+    expect(dhw.delta).not.toBe(0)
+    expect(dhw.deltaText).not.toBe('left out by you')
+    expect(r.winner.delta).toBeCloseTo(r.winner.lines.reduce((sum, l) => sum + l.delta, 0), 6)
   })
   it('says why when the Points-tab design does not reach the Tier or has unpriced cards', () => {
     const low = runOptimize({ ...base, selections: {} , wallSelection: {} })
@@ -66,13 +89,31 @@ describe('runOptimize (spec 2, 5.2, 5.3, 6)', () => {
     expect(steel.before.fullyPriced).toBe(false)
     expect(steel.before.text).toBe('Your current design has cards we can\'t price yet.')
   })
-  it('a package cheaper than the baseline reads as less (review focus 4)', () => {
-    // Code minimum baseline against a Tier 2 target: the cheapest 10-point package costs more than code minimum,
-    // so flip it: baseline Typical Tier 2 and a Tier 2 target can come in under the baseline.
+  it('a Tier 2 target never prints a signed negative in the headline', () => {
     const r = runOptimize({ ...base, tierPoints: 10, tierLabel: 'Tier 2' })
-    if (r.winner.delta < 0) expect(r.winner.deltaText).toMatch(/less$/)
-    else expect(r.winner.deltaText).toMatch(/^\+\$|^\$0$|^< \$/)
     expect(r.headline).not.toMatch(/\+\$-/)
+  })
+  it('wording helpers round and sign money like the Cost tab', () => {
+    expect(deltaWords(-700)).toBe('$500 less')
+    expect(deltaWords(-100)).toBe('< $500 less')
+    expect(deltaWords(0)).toBe('$0')
+    expect(deltaWords(2600)).toBe('+$2,500')
+    expect(totalWords(-700, 'Typical Tier 2')).toBe('$500 less than Typical Tier 2')
+    expect(totalWords(0, 'X')).toBe('about the same as X')
+  })
+  it('names the current design as the answer when it is already the cheapest way (isBefore)', () => {
+    // Keep only the design's own values: the own wall (plus the always-ticked standard wall), 1.22, the first airtightness option, 65, 2.35, 3.46.
+    // The design must pick airtightness: an unpicked card reads as 'not picked', so the optimizer's untested option would count as a change.
+    const own = { ...base, selections: { ...base.selections, airTightness: idx('airTightness', ownAch) } }
+    let consider = defaultConsider()
+    for (const t of ['thickFoam', 'largeStuds', 'serviceCavity', 'doubleStud']) consider = toggleConsider(consider, 'aboveGroundWalls', t)
+    const keep = { windowsDoors: 1.22, airTightness: ownAch, hrv: 65, dhw: 2.35, belowGradeWalls: 3.46 }
+    for (const [cardId, value] of Object.entries(keep)) {
+      for (const o of cardOptions(cardId)) if (o.value !== value) consider = toggleConsider(consider, cardId, o.value)
+    }
+    const r = runOptimize({ ...own, consider })
+    expect(r.isBefore).toBe(true)
+    expect(r.headline).toBe('Your current design is the cheapest way to Tier 3 we found.')
   })
   it('when nothing reaches, reaches is false and the headline says so', () => {
     let consider = base.consider
@@ -84,13 +125,26 @@ describe('runOptimize (spec 2, 5.2, 5.3, 6)', () => {
     expect(r.headline).toBe('Nothing you\'ve ticked reaches Tier 3 for this house.')
     expect(r.winner).not.toBeNull()
   })
-  it('show() swaps a runner-up into the winner slot and lists the old winner as a runner-up', () => {
+  it('show() swaps a runner-up into the winner slot, and keeps working on the swapped result', () => {
     const r = runOptimize(base)
-    if (r.runnersUp.length === 0) return
-    const swapped = r.show(0)
-    expect(swapped.winner.pkg.index).toBe(r.runnersUp[0].pkg.index)
-    expect(swapped.runnersUp.map(s => s.pkg.index)).toContain(r.winner.pkg.index)
-    expect(swapped.runnersUp.length).toBe(r.runnersUp.length)
+    expect(r.runnersUp.length).toBeGreaterThan(0)
+    const first = r.show(0)
+    expect(first.winner.pkg.index).toBe(r.runnersUp[0].pkg.index)
+    expect(first.runnersUp.map(s => s.pkg.index)).toContain(r.winner.pkg.index)
+    expect(first.runnersUp.length).toBe(r.runnersUp.length)
+    const second = first.show(0)
+    expect(second.winner.pkg.index).toBe(first.runnersUp[0].pkg.index)
+    expect(second.runnersUp.map(s => s.pkg.index)).toContain(first.winner.pkg.index)
+    expect(second.headline).toBe(first.headline)
+  })
+  it('a card the baseline has no priced pick for is not priced, and the package says how many cards it covers', () => {
+    const mini = { ...base, houseType: 'miniHome', houseFields: resolveHouseFields('miniHome', { miniHome: { foundationHeightFt: 8 } }) }
+    const r = runOptimize(mini)
+    const below = r.winner.lines.find(l => l.cardId === 'belowGradeWalls')
+    expect(below.state).toBe('searched')
+    expect(below.delta).toBeNull()
+    expect(below.deltaText).toBe('not priced')
+    expect(r.coveredText).toMatch(/Covers 5 of the 6 cards/)
   })
 })
 

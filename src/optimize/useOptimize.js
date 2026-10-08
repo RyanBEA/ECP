@@ -19,7 +19,7 @@ export function deltaWords(delta) {
   const r = roundDisplay(delta)
   return r === 0 ? `< ${money(ROUNDING_UNIT)} less` : `${money(Math.abs(r))} less`
 }
-function totalWords(delta, baselineName) {
+export function totalWords(delta, baselineName) {
   if (delta === 0) return `about the same as ${baselineName}`
   const r = roundDisplay(delta)
   if (r === 0) return `less than ${money(ROUNDING_UNIT)} different from ${baselineName}`
@@ -75,24 +75,37 @@ export function runOptimize(req) {
     for (const id of LEVER_CARDS) {
       const item = pkg.items[id]
       if (item) {
-        const delta = item.cost - baselineCostOf(id)
+        const baselinePriced = baseline[id]?.state === 'priced'
+        const delta = baselinePriced ? item.cost - baselineCostOf(id) : null
         const changed = pkg.changes.includes(id)
         const sc = startingCostOf(id)
         // Below-grade walls name the assumed foundation assembly, not an RSI alone (controller ruling).
         const label = id === 'belowGradeWalls' ? item.description : item.label
-        lines.push({ cardId: id, name: CARD_NAMES[id], state: 'searched', label, points: item.points, delta, deltaText: deltaWords(delta), changed,
+        lines.push({ cardId: id, name: CARD_NAMES[id], state: 'searched', label, points: item.points, delta, deltaText: baselinePriced ? deltaWords(delta) : 'not priced', changed,
+          note: baselinePriced ? null : `${baselineName} has no priced pick for this card`,
           startingLabel: changed ? (startingLabel(id, starting, startingPriced) ?? 'not picked') : null,
-          startingDeltaText: changed && sc !== null ? deltaWords(sc - baselineCostOf(id)) : null })
+          startingDeltaText: changed && sc !== null && baselinePriced ? deltaWords(sc - baselineCostOf(id)) : null })
       } else if (leftOut.includes(id)) {
-        lines.push({ cardId: id, name: CARD_NAMES[id], state: 'leftOut', label: startingLabel(id, starting, startingPriced) ?? 'not picked', points: startingPts[id] || 0, delta: 0, deltaText: 'left out by you', changed: false, startingLabel: null, startingDeltaText: null })
+        // The builder keeps the Points-tab pick; when it is priced, its cost against the baseline counts (the Cost tab's own line).
+        const sc = startingCostOf(id)
+        const baselinePriced = baseline[id]?.state === 'priced'
+        let delta = 0
+        let deltaText = 'left out by you'
+        if (sc !== null && baselinePriced) { delta = sc - baselineCostOf(id); deltaText = deltaWords(delta) }
+        else if (sc !== null) { delta = null; deltaText = 'not priced' }
+        lines.push({ cardId: id, name: CARD_NAMES[id], state: 'leftOut', label: startingLabel(id, starting, startingPriced) ?? 'not picked', points: startingPts[id] || 0, delta, deltaText, changed: false, startingLabel: null, startingDeltaText: null })
       } else {
         const u = unavailable.find(x => x.cardId === id)
         lines.push({ cardId: id, name: CARD_NAMES[id], state: 'unavailable', label: u?.reason ?? 'not priced', points: startingPts[id] || 0, delta: 0, deltaText: '', changed: false, startingLabel: null, startingDeltaText: null })
       }
     }
     lines.push({ cardId: 'volume', name: CARD_NAMES.volume, state: 'fixed', label: 'Not changed; a property of your project', points: startingPts.volume || 0, delta: 0, deltaText: 'no cost', changed: false, startingLabel: null, startingDeltaText: null })
-    const delta = lines.reduce((s, l) => s + l.delta, 0)
-    return { pkg, delta, deltaText: deltaWords(delta), totalText: totalWords(delta, baselineName), points: pkg.points + fixedPoints, lines, wallType: wallTypeOfPackage(pkg), picks: packagePicks(pkg) }
+    const delta = lines.reduce((s, l) => s + (typeof l.delta === 'number' ? l.delta : 0), 0)
+    const searchedLines = lines.filter(l => l.state === 'searched')
+    const searchedCount = searchedLines.length
+    const coveredCount = searchedLines.filter(l => typeof l.delta === 'number').length
+    const coveredText = coveredCount < searchedCount ? `Covers ${coveredCount} of the ${searchedCount} cards in the package` : ''
+    return { pkg, delta, deltaText: deltaWords(delta), totalText: totalWords(delta, baselineName), points: pkg.points + fixedPoints, lines, wallType: wallTypeOfPackage(pkg), picks: packagePicks(pkg), coveredCount, searchedCount, coveredText }
   }
 
   // The before: the Cost tab's own view of the Points-tab design (spec 5.3).
@@ -103,7 +116,7 @@ export function runOptimize(req) {
   let beforeText
   if (!reachesTarget) beforeText = `Your current design does not reach ${tierLabel} (${beforePoints.toFixed(1)} points).`
   else if (!fullyPriced) beforeText = 'Your current design has cards we can\'t price yet.'
-  else beforeText = `Your current design is ${d.headline.exact >= 0 ? formatDelta(d.headline.exact) : deltaWords(d.headline.exact)}.`
+  else beforeText = `Your current design is ${totalWords(d.headline.exact, baselineName)}.`
   const before = { exact: d.headline.exact, text: beforeText, points: beforePoints, reachesTarget, fullyPriced }
 
   const winner = shown(result.winner)
@@ -114,15 +127,21 @@ export function runOptimize(req) {
   else if (isBefore) headline = `Your current design is the cheapest way to ${tierLabel} we found.`
   else headline = `Cheapest way to ${tierLabel} for this house: ${winner.totalText}.`
 
-  const out = { reaches: result.reaches, winner, runnersUp, before, target, tierPoints, tierLabel, fixedPoints, leftOut, unavailable, searched, count: result.count, baselineName, headline, isBefore }
-  // "Show" on a runner-up (spec 5.4): swap it into the winner slot; the old winner joins the runners-up, cheapest first.
-  out.show = i => {
-    const next = runnersUp[i]
-    if (!next) return out
-    const rest = [winner, ...runnersUp.filter((_, j) => j !== i)].sort((a, b) => a.pkg.cost - b.pkg.cost)
-    return { ...out, winner: next, runnersUp: rest, isBefore: false, headline: `Cheapest way to ${tierLabel} for this house: ${winner.totalText}.`, shownAlternative: true }
+  // Every result, first or swapped, is built here so its show() closes over its own winner and runners-up.
+  const finish = (win, rest, extra = {}) => {
+    const out = { reaches: result.reaches, winner: win, runnersUp: rest, before, target, tierPoints, tierLabel, fixedPoints, leftOut, unavailable, searched, count: result.count, baselineName, headline, isBefore,
+      coveredCount: win ? win.coveredCount : 0, searchedCount: win ? win.searchedCount : 0, coveredText: win ? win.coveredText : '', ...extra }
+    // "Show" on a runner-up (spec 5.4): swap it into the winner slot; the old winner joins the runners-up, cheapest first.
+    // The headline keeps the true cheapest package's figure (the first winner's), since the sentence is still "Cheapest way".
+    out.show = i => {
+      const next = rest[i]
+      if (!next) return out
+      const others = [win, ...rest.filter((_, j) => j !== i)].sort((a, b) => a.pkg.cost - b.pkg.cost)
+      return finish(next, others, { isBefore: false, shownAlternative: true, headline: result.reaches ? `Cheapest way to ${tierLabel} for this house: ${winner.totalText}.` : headline })
+    }
+    return out
   }
-  return out
+  return finish(winner, runnersUp)
 }
 
 export function useOptimize(request) {
