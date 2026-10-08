@@ -23,8 +23,8 @@ import { useOptimize } from './optimize/useOptimize'
 import { defaultConsider, toggleConsider } from './optimize/candidates'
 import { MORE_THAN_5 } from './costing/quantities'
 
-const APP_VERSION = '1.6.0-cost-ui-2'
-const APP_UPDATED = '2026-10-05'
+const APP_VERSION = '1.7.0-cost-optimize'
+const APP_UPDATED = '2026-10-08'
 
 export default function App() {
   // Track dark mode - default to system preference
