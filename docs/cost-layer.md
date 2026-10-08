@@ -10,6 +10,7 @@ Those files are design history; section 13 says where they are. Where this file 
 code disagree, the code is right and this file needs fixing.
 
 Everything here was read from the code on 2026-10-08. File paths are relative to the repo root.
+See also `docs/optimize-tab.md`: the Optimize tab (Capability 2), built on branch `cost-optimize` on top of this layer.
 
 ---
 

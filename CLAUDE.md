@@ -32,7 +32,7 @@ ECP Calculator is a React web app for calculating Energy Conservation Points (EC
 npm install              # Install dependencies (once)
 npm run dev              # Dev server at localhost:5173
 npm run build            # Production build to dist/
-npm test                 # Run all tests (Vitest, 729 tests on cost-ui-2)
+npm test                 # Run all tests (Vitest, 817 tests on cost-optimize)
 npm run generate         # Rebuild JSON from YAML materials
 npm run generate:audit   # Generate + compare against previous JSON
 ```
@@ -82,7 +82,7 @@ Two tabs, Points (unchanged, guarded by `variantParity.test.jsx`) and Cost. Pure
 `src/costing/`; the price seam is `src/costSystem/client.js` (synchronous stand-in; becomes the
 Volta cost system client after D2); stand-in prices in `src/costing/data/stand-in-costs.json`
 (rebuild with `npm run build:costs`); persistence in `src/costing/persist.js`. Costs never print.
-Prototype; nothing pushed. Capability 2 (Optimize tab) is built on branch `cost-optimize` off this one.
+Prototype; nothing pushed. Capability 2 (Optimize tab) is built on branch `cost-optimize` off this one; on that branch there is a third tab, Optimize, and `docs/optimize-tab.md` is its as-built note.
 
 ## Skills
 
