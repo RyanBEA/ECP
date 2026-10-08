@@ -1,4 +1,4 @@
-// Wall selection -> priced layers (spec 4.5). Wood single stud only in this version.
+// Wall selection -> priced layers (spec 4.5; Capability 2 spec 3 adds double stud and service cavity).
 // Price option ids are the ones in optionMap.js WALL_LAYER_OPTIONS (Task 4 new-id table, ruling R12): every wood
 // single-stud value main's wall builder offers maps to a priced id.
 import { getBoundaryOptions } from '../data/ecpData'
@@ -39,29 +39,18 @@ export const inches = t => {
 const ascii = s => (s || '').replace(/"/g, ' in')
 const notPriced = reason => ({ priced: false, reason })
 
-export function wallLayers(sel) {
-  const s = sel || {}
-  if (s.simpleIndex !== undefined && s.simpleIndex !== null) return notPriced('picked by RSI level')
-  if (!s.wallType) return notPriced('no wall chosen')
-  if (s.wallType === 'steel') return notPriced('steel walls are not priced in this version')
-  if (s.wallType === 'icf') return notPriced('ICF walls are not priced in this version')
-  if (s.wallType !== 'wood') return notPriced('wall type not priced in this version')
-  if (s.assemblyType === 'doubleStud') return notPriced('double stud walls are not priced in this version')
-  if (s.hasServiceWall) return notPriced('service walls are not priced in this version')
-  if (!s.cavityType || !s.studSpacing || !s.cavityMaterial) return notPriced('wall not finished')
-  const oc = s.studSpacing.replace('"', '')
-  // The builder's own table decides the stud; a combination it does not offer has no RSI and no price.
-  const entry = wallData.wood.spacings[oc]?.materials[s.cavityMaterial]?.[s.cavityType]
-  if (!entry) return notPriced('wall not finished')
-  const cav = CAVITY[s.cavityMaterial]?.[s.cavityType]
-  if (!cav) return notPriced(`${s.cavityMaterial} is not priced in this version`)
-  const stud = entry.stud
-  const layers = [
-    { component: 'framing', option: `stud_${stud}_${oc}oc`, label: `${stud} studs @ ${oc} in o.c.` },
-    { component: 'cavity_insulation', option: cav, label: `${s.cavityType} ${CAVITY_WORD[s.cavityMaterial]}` },
-  ]
-  // Without a type, continuous insulation adds no RSI (calculateWallRsi), so it adds no layer either.
-  const ciIn = s.contInsType ? inches(s.contInsThickness) : 0
+// Blown-in cavity of a double stud wall, keyed by plate: the price id names the cavity depth.
+const DEEP_CAVITY = {
+  'Loose Fill Cellulose': { '2x8': 'loose_fill_cellulose_8in', '2x10': 'loose_fill_cellulose_10in', '2x12': 'loose_fill_cellulose_12in' },
+  'Dense Pack Cellulose': { '2x8': 'dense_pack_cellulose_8in', '2x10': 'dense_pack_cellulose_10in', '2x12': 'dense_pack_cellulose_12in' },
+  'Loose Fill Fiberglass': { '2x8': 'loose_fill_fiberglass_8in', '2x10': 'loose_fill_fiberglass_10in', '2x12': 'loose_fill_fiberglass_12in' },
+}
+const PLATE_IN = { '2x8': '8', '2x10': '10', '2x12': '12' }
+
+// Exterior layers shared by every wood wall: continuous insulation (with strapping from 1.5 in), sheathing,
+// air/vapour barrier, cladding, interior gypsum. Returns a notPriced result or the layers to append.
+function exteriorLayers(s, ciIn) {
+  const layers = []
   if (ciIn > 0) {
     const ci = ciOptionId(s.contInsType, s.contInsThickness)
     if (!ci) return notPriced(`${s.contInsType} is not priced in this version`)
@@ -79,5 +68,56 @@ export function wallLayers(sel) {
   if (!cl) return notPriced('cladding not priced')
   layers.push({ component: 'cladding', option: cl, label: ascii(boundary.cladding.options.find(o => o.id === clId)?.label || clId) })
   layers.push({ component: 'interior_finish', option: 'gypsum_1_2in', label: '1/2 in gypsum' })
-  return { priced: true, layers }
+  return { layers }
+}
+
+// A stud row and its batt or blown-in fill from the wood table; `suffix` words the service cavity.
+function studRow(cavityMaterial, cavityType, spacing, suffix = '') {
+  const oc = (spacing || '').replace('"', '')
+  const entry = wallData.wood.spacings[oc]?.materials[cavityMaterial]?.[cavityType]
+  if (!entry) return notPriced('wall not finished')
+  const cav = CAVITY[cavityMaterial]?.[cavityType]
+  if (!cav) return notPriced(`${cavityMaterial} is not priced in this version`)
+  return { layers: [
+    { component: 'framing', option: `stud_${entry.stud}_${oc}oc`, label: suffix ? `${entry.stud} ${suffix} studs @ ${oc} in o.c.` : `${entry.stud} studs @ ${oc} in o.c.` },
+    { component: 'cavity_insulation', option: cav, label: `${cavityType} ${CAVITY_WORD[cavityMaterial]}${suffix ? ` (${suffix})` : ''}` },
+  ] }
+}
+
+export function wallLayers(sel) {
+  const s = sel || {}
+  if (s.simpleIndex !== undefined && s.simpleIndex !== null) return notPriced('picked by RSI level')
+  if (!s.wallType) return notPriced('no wall chosen')
+  if (s.wallType === 'steel') return notPriced('steel walls are not priced in this version')
+  if (s.wallType === 'icf') return notPriced('ICF walls are not priced in this version')
+  if (s.wallType !== 'wood') return notPriced('wall type not priced in this version')
+
+  let core
+  if (s.assemblyType === 'doubleStud') {
+    const oc = (s.studSpacing || '').replace('"', '')
+    if (!s.outerStud || !s.innerStud || !s.plate || !s.doubleStudMaterial || !wallData.wood.spacings[oc]) return notPriced('wall not finished')
+    if (s.outerStud !== s.innerStud) return notPriced('double stud walls with different stud sizes are not priced in this version')
+    const cav = DEEP_CAVITY[s.doubleStudMaterial]?.[s.plate]
+    if (!cav) return notPriced(`${s.doubleStudMaterial} is not priced in this version`)
+    core = { layers: [
+      { component: 'framing', option: `stud_${s.outerStud}_${oc}oc`, quantityFactor: 2, label: `${s.outerStud} outer and inner studs @ ${oc} in o.c. (two rows)` },
+      { component: 'double_stud_plate', option: `plate_${s.plate}`, label: `${s.plate} top and bottom plates` },
+      { component: 'cavity_insulation', option: cav, label: `${PLATE_IN[s.plate]} in ${CAVITY_WORD[s.doubleStudMaterial]}` },
+    ] }
+  } else {
+    if (!s.cavityType || !s.studSpacing || !s.cavityMaterial) return notPriced('wall not finished')
+    core = studRow(s.cavityMaterial, s.cavityType, s.studSpacing)
+    if (core.priced === false) return core
+    if (s.hasServiceWall) {
+      const svc = studRow(s.serviceCavityMaterial, s.serviceCavityType, s.serviceSpacing, 'service cavity')
+      if (svc.priced === false) return svc
+      core = { layers: [...core.layers, ...svc.layers] }
+    }
+  }
+  // Without a type, continuous insulation adds no RSI (calculateWallRsi), so it adds no layer either.
+  // A service wall is scored without its continuous insulation (calculateWallRsi's service path), so it is priced without it too.
+  const ciIn = s.contInsType && !s.hasServiceWall ? inches(s.contInsThickness) : 0
+  const ext = exteriorLayers(s, ciIn)
+  if (ext.priced === false) return ext
+  return { priced: true, layers: [...core.layers, ...ext.layers] }
 }

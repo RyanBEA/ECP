@@ -71,7 +71,7 @@ function component(categoryId, spec, quantity, overrides, side) {
 
 function finish(categoryId, q, specs, description, assumed, overrides, side) {
   const { unit, quantity } = lineOf(categoryId, q)
-  const components = specs.map(s => component(categoryId, s, s.quantity ?? quantity, overrides, side))
+  const components = specs.map(s => component(categoryId, s, s.quantity ?? quantity * (s.quantityFactor ?? 1), overrides, side))
   if (components.some(c => c === null)) return unpriced(categoryId, q, 'notPriced', description, { reason: 'no price for one of the parts', assumed })
   const costOf = c => (c.material + c.labour) * c.quantity
   const inLine = components.filter(c => c.unit === unit).reduce((s, c) => s + costOf(c), 0)

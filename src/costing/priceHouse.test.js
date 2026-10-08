@@ -32,7 +32,7 @@ describe('priceHouse', () => {
   it('marks unsupported walls not priced with the reason', () => {
     const r = priceHouse({ cards: {}, wall: { kind: 'assembly', selection: { ...builtWall, assemblyType: 'doubleStud' } } }, q, {}, 'design')
     expect(r.aboveGroundWalls.state).toBe('notPriced')
-    expect(r.aboveGroundWalls.reason).toMatch(/double stud/)
+    expect(r.aboveGroundWalls.reason).toMatch(/wall not finished/)
   })
   it('marks missing design cards unselected and mini-home below grade not applicable', () => {
     const r = priceHouse({ cards: {}, wall: null }, q, {}, 'design')

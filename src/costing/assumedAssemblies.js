@@ -31,13 +31,24 @@ const CAVITY_WORD = { 'Fiberglass Batt': 'batt', 'Mineral Wool Batt': 'batt', 'L
 const CLAD_WORD = { vinyl_siding: 'vinyl', vinyl_insulated: 'insulated vinyl', wood_bevel_200: 'wood siding', wood_bevel_250: 'wood siding', fiber_cement: 'fibre cement', metal_siding: 'metal', brick_veneer: 'brick', stucco_19: 'stucco' }
 const SHEATH_WORD = { osb_11: 'OSB', osb_9_5: 'OSB', plywood_sw_12_5: 'plywood', plywood_sw_9_5: 'plywood', gypsum_12_7: 'gypsum sheathing' }
 export function describeWall(s) {
-  if (!s || !s.cavityType) return 'wall'
-  const ci = s.contInsType && s.contInsThickness && s.contInsThickness !== 'None' ? ` + ${s.contInsThickness.replace('"', ' in')} ${s.contInsType}` : ''
-  const cavity = CAVITY_WORD[s.cavityMaterial] || 'batt'
-  const oc = s.studSpacing && s.studSpacing !== '16"' ? ` @ ${s.studSpacing.replace('"', ' in')}` : ''
+  if (!s) return 'wall'
   const shId = s.sheathingId || b.sheathing.defaults.wood
   const clId = s.claddingId || b.cladding.defaults.wood
-  return `${s.cavityType} ${cavity}${oc}${ci}, ${SHEATH_WORD[shId] || shId}, ${CLAD_WORD[clId] || clId}`
+  const exterior = `${SHEATH_WORD[shId] || shId}, ${CLAD_WORD[clId] || clId}`
+  if (s.assemblyType === 'doubleStud') {
+    if (!s.outerStud || !s.innerStud || !s.plate || !s.doubleStudMaterial) return 'wall'
+    const ci = s.contInsType && s.contInsThickness && s.contInsThickness !== 'None' ? ` + ${s.contInsThickness.replace('"', ' in')} ${s.contInsType}` : ''
+    return `${s.outerStud} + ${s.innerStud} double stud on a ${s.plate} plate, ${CAVITY_WORD[s.doubleStudMaterial] || 'blown-in'}${ci}, ${exterior}`
+  }
+  if (!s.cavityType) return 'wall'
+  const cavity = CAVITY_WORD[s.cavityMaterial] || 'batt'
+  const oc = s.studSpacing && s.studSpacing !== '16"' ? ` @ ${s.studSpacing.replace('"', ' in')}` : ''
+  if (s.hasServiceWall) {
+    const svc = s.serviceCavityType ? ` + ${s.serviceCavityType} service cavity` : ' + service cavity'
+    return `${s.cavityType} ${cavity}${oc}${svc}, ${exterior}`
+  }
+  const ci = s.contInsType && s.contInsThickness && s.contInsThickness !== 'None' ? ` + ${s.contInsThickness.replace('"', ' in')} ${s.contInsType}` : ''
+  return `${s.cavityType} ${cavity}${oc}${ci}, ${exterior}`
 }
 
 // A wall in words (rulings R43, R45): a Select RSI pick is 'RSI <level>'; an assembly is its computed RSI to

@@ -21,7 +21,7 @@ describe('wallLayers', () => {
     expect(wallLayers({ ...wood, contInsThickness: 'None' }).layers.map(l => l.component)).not.toContain('continuous_insulation')
   })
   it('refuses unsupported wall types with a reason', () => {
-    expect(wallLayers({ ...wood, assemblyType: 'doubleStud' })).toEqual({ priced: false, reason: 'double stud walls are not priced in this version' })
+    expect(wallLayers({ ...wood, assemblyType: 'doubleStud' })).toEqual({ priced: false, reason: 'wall not finished' })
     expect(wallLayers({ ...wood, hasServiceWall: true }).priced).toBe(false)
     expect(wallLayers({ wallType: 'icf', icfFormThickness: '2.5"' }).priced).toBe(false)
     expect(wallLayers({ wallType: 'steel' }).priced).toBe(false)
