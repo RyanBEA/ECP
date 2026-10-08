@@ -78,11 +78,11 @@ product decisions that hold, module map, data shapes, state, tests, and the prot
 the real build. It supersedes the design specs and execution ledgers in the project repo
 (`/srv/clients/BTZx/cost-DB-and-ECP/25_Working/ECP_Tool/`, specs kept as history, plans archived).
 
-Two tabs, Points (unchanged, guarded by `variantParity.test.jsx`) and Cost. Pure modules in
+Three tabs on this branch: Points (unchanged, guarded by `variantParity.test.jsx`), Cost, and Optimize (Capability 2; its as-built note is `docs/optimize-tab.md`). Pure modules in
 `src/costing/`; the price seam is `src/costSystem/client.js` (synchronous stand-in; becomes the
 Volta cost system client after D2); stand-in prices in `src/costing/data/stand-in-costs.json`
 (rebuild with `npm run build:costs`); persistence in `src/costing/persist.js`. Costs never print.
-Prototype; nothing pushed. Capability 2 (Optimize tab) is built on branch `cost-optimize` off this one; on that branch there is a third tab, Optimize, and `docs/optimize-tab.md` is its as-built note.
+Prototype; nothing pushed. Optimize is built on branch `cost-optimize` off `cost-ui-2`; its search code is in `src/optimize/`.
 
 ## Skills
 
