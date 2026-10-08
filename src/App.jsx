@@ -17,7 +17,11 @@ import { useHouseCost, resolveHouseFields } from './costing/useHouseCost'
 import { loadPersisted, savePersisted } from './costing/persist'
 import { getPresetPicks } from './costing/baselines'
 import { overrideKey, lineOverrideKey } from './costing/priceHouse'
-import { applySelect, isCategoryDisabled, totalCardPoints, wallPointsFor } from './costing/usePicks'
+import { applySelect, isCategoryDisabled, totalCardPoints, wallPointsFor, picksToSelections } from './costing/usePicks'
+import OptimizeTab from './components/OptimizeTab'
+import { useOptimize } from './optimize/useOptimize'
+import { defaultConsider, toggleConsider } from './optimize/candidates'
+import { MORE_THAN_5 } from './costing/quantities'
 
 const APP_VERSION = '1.6.0-cost-ui-2'
 const APP_UPDATED = '2026-10-05'
@@ -48,9 +52,16 @@ export default function App() {
   const handleProjectChange = (field) => (e) =>
     setProjectInfo(prev => ({ ...prev, [field]: e.target.value }))
 
+  // --- Optimize tab state (Capability 2 spec 4, 6, 7). Nothing here is persisted. ---
+  const [consider, setConsider] = useState(defaultConsider)
+  const [optScreen, setOptScreen] = useState('consider')
+  const [optRequest, setOptRequest] = useState(null)      // the snapshot the result was computed from
+  const [savedPicks, setSavedPicks] = useState(null)      // Points-tab picks before "Put this on the Points tab"
+  const optimizeResult = useOptimize(optRequest)
+
   // Points selection logic is shared with the baseline editor through usePicks (spec 5): the same functions as
   // main's handleSelect, wallPoints, totalPoints and isDisabled, so Points behaves exactly as on main.
-  const handleSelect = (categoryId, optionIndex) => setSelections(prev => applySelect(prev, categoryId, optionIndex))
+  const handleSelect = (categoryId, optionIndex) => { setSavedPicks(null); setSelections(prev => applySelect(prev, categoryId, optionIndex)) }
   const wallPoints = useMemo(() => wallPointsFor(wallSelection), [wallSelection])
   const totalPoints = useMemo(() => totalCardPoints(selections) + wallPoints, [selections, wallPoints])
   const isDisabled = category => isCategoryDisabled(selections, category)
@@ -98,6 +109,38 @@ export default function App() {
   const { houseType, baselineChoice, usualHouse, overrides, fieldOverrides } = persisted
   const houseFields = useMemo(() => resolveHouseFields(houseType, fieldOverrides), [houseType, fieldOverrides])
   const cost = useHouseCost({ selections, wallSelection, houseType, houseFields, baselineChoice, usualHouse, overrides, frozenOrder })
+
+  const optStale = optRequest !== null && (
+    optRequest.selections !== selections || optRequest.wallSelection !== wallSelection || optRequest.houseType !== houseType
+    || optRequest.houseFields !== houseFields || optRequest.baselineChoice !== baselineChoice || optRequest.usualHouse !== usualHouse
+    || optRequest.overrides !== overrides || optRequest.tierPoints !== selectedTier.points || optRequest.consider !== consider)
+  const optBlocked = houseFields.bedrooms === MORE_THAN_5 && !cost.quantities.airflow && consider.hrv.size > 0
+    ? 'Enter the designed airflow on the Cost tab to include ventilation' : null
+  const runOptimize = () => {
+    setOptRequest({ selections, wallSelection, houseType, houseFields, baselineChoice, usualHouse, overrides, tierPoints: selectedTier.points, tierLabel: selectedTier.label, consider })
+    setOptScreen('result')
+  }
+  // Spec 7: replace the Points-tab picks with the package's; cards the search left out keep their current pick.
+  const applyPackage = shown => {
+    setSavedPicks({ selections, wallSelection })
+    const { selections: ps, wallSelection: pw } = picksToSelections(shown.picks)
+    const next = { ...selections }
+    for (const line of shown.lines) {
+      if (line.state !== 'searched') continue
+      if (line.cardId === 'aboveGroundWalls') continue
+      const pickCards = line.cardId === 'dhw' ? ['dhwElectric', 'dhwGas'] : [line.cardId]
+      for (const pc of pickCards) { if (ps[pc] !== undefined) next[pc] = ps[pc]; else delete next[pc] }
+    }
+    setSelections(next)
+    if (shown.picks.wall) setWallSelection(pw)
+    // Applying is the tool's own action, not a change to the builder's inputs: refresh the snapshot so the result is not stale.
+    setOptRequest(prev => (prev ? { ...prev, selections: next, wallSelection: shown.picks.wall ? pw : prev.wallSelection } : prev))
+  }
+  const restorePicks = () => {
+    if (!savedPicks) return
+    setSelections(savedPicks.selections); setWallSelection(savedPicks.wallSelection); setSavedPicks(null)
+    setOptRequest(prev => (prev ? { ...prev, selections: savedPicks.selections, wallSelection: savedPicks.wallSelection } : prev))
+  }
 
   // The footer button is enabled whenever any card has a pick (spec 2.2).
   const anyPick = Object.keys(selections).length > 0 || Boolean(wallSelection.wallType)
@@ -274,7 +317,7 @@ export default function App() {
               <WallBuilder
                 key={category.id}
                 selection={wallSelection}
-                onSelect={setWallSelection}
+                onSelect={ws => { setSavedPicks(null); setWallSelection(ws) }}
               />
             )
           }
@@ -421,6 +464,40 @@ export default function App() {
         )}
         {activeTab === 'cost' && viewCard && (
           <BaselineCardView picks={viewCard.picks} baselineName={viewCard.baselineName} cardId={viewCard.cardId} onClose={() => setViewCard(null)} />
+        )}
+      </div>
+
+      <div className="tab-panel" id="panel-optimize" role="tabpanel" aria-labelledby="tab-optimize" hidden={activeTab !== 'optimize'}>
+        {activeTab === 'optimize' && (
+          <OptimizeTab
+            cost={cost}
+            houseType={houseType}
+            houseFields={houseFields}
+            overriddenKeys={Object.keys(fieldOverrides[houseType] || {})}
+            baselineChoice={baselineChoice}
+            usualHouse={usualHouse}
+            overrideCount={cost.overrideCount}
+            onTypeChange={onTypeChange}
+            onFieldChange={onFieldChange}
+            onBaselineChoice={v => patch({ baselineChoice: v })}
+            onEditUsual={cardId => { changeTab('cost'); onEditUsual(cardId) }}
+            onResetUsual={onResetUsual}
+            onViewBaselineCard={cardId => { changeTab('cost'); onViewBaselineCard(cardId) }}
+            wallSelection={wallSelection}
+            tierLabel={selectedTier.label}
+            consider={consider}
+            onToggleConsider={(c, v) => setConsider(prev => toggleConsider(prev, c, v))}
+            result={optimizeResult}
+            stale={optStale}
+            blocked={optBlocked}
+            onRun={runOptimize}
+            onApply={applyPackage}
+            applied={savedPicks !== null}
+            canRestore={savedPicks !== null}
+            onRestore={restorePicks}
+            screen={optScreen}
+            onScreen={setOptScreen}
+          />
         )}
       </div>
 

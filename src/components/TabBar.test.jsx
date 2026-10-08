@@ -34,7 +34,7 @@ describe('TabBar keyboard and ids (R35)', () => {
     fireEvent.keyDown(screen.getByRole('tab', { name: 'Cost' }), { key: 'ArrowLeft' })
     expect(onChange).toHaveBeenLastCalledWith('points')
     fireEvent.keyDown(screen.getByRole('tab', { name: 'Cost' }), { key: 'ArrowRight' })
-    expect(onChange).toHaveBeenLastCalledWith('points')
+    expect(onChange).toHaveBeenLastCalledWith('optimize')
     expect(onChange).toHaveBeenCalledTimes(3)
     rerender(<TabBar active="cost" onChange={onChange} disabled />)
     fireEvent.keyDown(screen.getByRole('tab', { name: 'Cost' }), { key: 'ArrowLeft' })

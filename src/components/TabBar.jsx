@@ -1,6 +1,6 @@
 import React, { useRef } from 'react'
 
-const TABS = [['points', 'Points'], ['cost', 'Cost']]
+const TABS = [['points', 'Points'], ['cost', 'Cost'], ['optimize', 'Optimize']]
 
 export default function TabBar({ active, onChange, disabled = false }) {
   const refs = useRef({})
@@ -15,7 +15,7 @@ export default function TabBar({ active, onChange, disabled = false }) {
     refs.current[nextId]?.focus()
   }
   return (
-    <div className="tab-bar" role="tablist" aria-label="Points and Cost">
+    <div className="tab-bar" role="tablist" aria-label="Points, Cost and Optimize">
       {TABS.map(([id, label], index) => (
         <button key={id} id={`tab-${id}`} ref={el => { refs.current[id] = el }} type="button" role="tab"
           aria-selected={active === id} aria-controls={`panel-${id}`} tabIndex={active === id ? 0 : -1} className={`tab ${active === id ? 'active' : ''}`}
