@@ -28,13 +28,13 @@ export const SPECIFICS = {
 
 const COMPONENT_NAMES = {
   interior_finish: 'Interior finish', air_vapour_barrier: 'Air/vapour barrier', framing: 'Framing', cavity_insulation: 'Cavity insulation',
-  sheathing: 'Sheathing', continuous_insulation: 'Continuous insulation', strapping: 'Strapping', cladding: 'Cladding',
+  double_stud_plate: 'Plates', sheathing: 'Sheathing', continuous_insulation: 'Continuous insulation', strapping: 'Strapping', cladding: 'Cladding',
   foundation_assembly: 'Whole assembly', windows: 'Windows', doors: 'Exterior doors', airtightness: 'Air sealing and blower-door test',
   hrv: 'HRV unit', water_heater: 'Water heater', venting: 'Venting', condensate_drain: 'Condensate drain', gas_branch: 'Gas branch line',
   receptacle_120v: '120 V receptacle', circuit_240v: '240 V circuit',
 }
 // Inside to outside, the order of the Points cross-section (drywall at the top, cladding at the bottom).
-const WALL_ORDER = ['interior_finish', 'air_vapour_barrier', 'framing', 'cavity_insulation', 'sheathing', 'continuous_insulation', 'strapping', 'cladding']
+const WALL_ORDER = ['interior_finish', 'air_vapour_barrier', 'framing', 'cavity_insulation', 'double_stud_plate', 'sheathing', 'continuous_insulation', 'strapping', 'cladding']
 export const HEATER_WORDS = {
   elec_storage: 'electric storage tank, code minimum', heat_pump: 'heat pump water heater, EF 2.35',
   rdc_079: 'commercial storage water heater, UEF 0.79', res_083: 'residential storage water heater, UEF 0.83',
@@ -94,9 +94,9 @@ function pricedRows(line) {
   return keys.map(k => {
     const { design: d, baseline: b, component } = byComp.get(k)
     const same = isSame(d, b)
-    // key stays the component name: the price override keys are built from it (overrideKey in priceHouse).
+    // id is unique per row (component plus occurrence, for React keys and per-row UI state); key stays the component name: the price override keys are built from it (overrideKey in priceHouse).
     return {
-      key: component, item: COMPONENT_NAMES[component] || component.replace(/_/g, ' '), sub: rowSub(d || b), same,
+      id: k.includes('#') ? k : `${k}#0`, key: component, item: COMPONENT_NAMES[component] || component.replace(/_/g, ' '), sub: rowSub(d || b), same,
       design: cell(d), baseline: cell(b), diff: same ? 0 : rowCost(d) - rowCost(b), inLine: (d || b).unit === line.design.unit,
     }
   })

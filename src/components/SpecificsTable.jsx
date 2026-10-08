@@ -39,7 +39,7 @@ function ReadWide({ model, baselineName }) {
         ))}
         {hasSpec && <tr className="group"><td colSpan={4}>Priced, supplied and installed</td></tr>}
         {model.rows.map(r => (
-          <tr key={r.key} className={r.same ? 'same' : 'differs'} aria-label={r.item}>
+          <tr key={r.id ?? r.key} className={r.same ? 'same' : 'differs'} aria-label={r.item}>
             <td>{r.item}{r.sub && <small>{r.sub}</small>}</td>
             <td><Cell cell={r.design} /></td>
             <td>{r.same ? 'same' : <Cell cell={r.baseline} />}</td>
@@ -59,15 +59,15 @@ function ReadWide({ model, baselineName }) {
 }
 
 function ReadNarrow({ model, baselineName }) {
-  const two = (key, item, right, d, b) => (
-    <div key={key} data-row={key} className="narrow-row differs">
+  const two = (key, item, right, d, b, id) => (
+    <div key={id ?? key} data-row={key} className="narrow-row differs">
       <div className="narrow-top"><span>{item}</span>{right}</div>
       <div className="narrow-side"><span className="who who-design">This design</span><span>{d}</span></div>
       <div className="narrow-side"><span className="who who-baseline">{baselineName}</span><span>{b}</span></div>
     </div>
   )
-  const one = (key, item, text) => (
-    <div key={key} data-row={key} className="narrow-row same"><span><b>{item}</b> {text}</span><span>same</span></div>
+  const one = (key, item, text, id) => (
+    <div key={id ?? key} data-row={key} className="narrow-row same"><span><b>{item}</b> {text}</span><span>same</span></div>
   )
   const cellText = c => (c ? `${c.text}, ${c.price}` : 'none')
   const f = model.footer
@@ -76,7 +76,7 @@ function ReadNarrow({ model, baselineName }) {
       {model.specRows.length > 0 && <p className="narrow-group">Specification</p>}
       {model.specRows.map(r => (r.same ? one(`spec-${r.key}`, r.item, r.design) : two(`spec-${r.key}`, r.item, null, r.design, r.baseline)))}
       {model.specRows.length > 0 && <p className="narrow-group">Priced, supplied and installed</p>}
-      {model.rows.map(r => (r.same ? one(r.key, r.item, cellText(r.design)) : two(r.key, r.item, <Diff value={r.diff} same={false} />, cellText(r.design), cellText(r.baseline))))}
+      {model.rows.map(r => (r.same ? one(r.key, r.item, cellText(r.design), r.id) : two(r.key, r.item, <Diff value={r.diff} same={false} />, cellText(r.design), cellText(r.baseline), r.id)))}
       <div className="narrow-total">
         <span /><span className="h">This design</span><span className="h">{baselineName}</span>
         {f.kind === 'perSqFt' && <><span>Per sq ft</span><span>{`$${f.designPerUnit.toFixed(2)}`}</span><span>{`$${f.baselinePerUnit.toFixed(2)}`}</span></>}
@@ -116,7 +116,7 @@ function EditTable({ model, line, baselineName, narrow, onOverride, onLineOverri
     </label>
   )
 
-  const editsBoth = r => r.same && !sideOnly[r.key]
+  const editsBoth = r => r.same && !sideOnly[r.id ?? r.key]
   // The override keys to clear on reset: the key that supplied the value, or on a same row edited as one,
   // every distinct key supplying either side (R37).
   const resetTargets = (r, side, field, cell) => {
@@ -148,9 +148,9 @@ function EditTable({ model, line, baselineName, narrow, onOverride, onLineOverri
   }
   const subOf = r => (r.same ? r.design.text : `${r.design?.text ?? 'none'} vs ${r.baseline?.text ?? 'none'}`)
   const bothToggle = r => (r.same
-    ? (sideOnly[r.key]
-      ? <button type="button" className="link-button" onClick={() => setSideOnly(p => ({ ...p, [r.key]: false }))}>apply to both</button>
-      : <button type="button" className="link-button" onClick={() => setSideOnly(p => ({ ...p, [r.key]: true }))}>this house only</button>)
+    ? (sideOnly[r.id ?? r.key]
+      ? <button type="button" className="link-button" onClick={() => setSideOnly(p => ({ ...p, [r.id ?? r.key]: false }))}>apply to both</button>
+      : <button type="button" className="link-button" onClick={() => setSideOnly(p => ({ ...p, [r.id ?? r.key]: true }))}>this house only</button>)
     : null)
 
   const wide = (
@@ -161,7 +161,7 @@ function EditTable({ model, line, baselineName, narrow, onOverride, onLineOverri
       </thead>
       <tbody>
         {model.rows.map(r => (
-          <tr key={r.key} className={r.same ? 'same' : 'differs'} aria-label={r.item}>
+          <tr key={r.id ?? r.key} className={r.same ? 'same' : 'differs'} aria-label={r.item}>
             <td>{r.item}<small>{subOf(r)}</small></td>
             <td className="r">{input(r, 'design', 'material')}</td><td className="r">{input(r, 'design', 'labour')}</td>
             {editsBoth(r)
@@ -175,7 +175,7 @@ function EditTable({ model, line, baselineName, narrow, onOverride, onLineOverri
   const blocks = (
     <div className="specifics-narrow edit">
       {model.rows.map(r => (
-        <div key={r.key} className={`edit-block ${r.same ? 'same' : 'differs'}`} aria-label={r.item}>
+        <div key={r.id ?? r.key} className={`edit-block ${r.same ? 'same' : 'differs'}`} aria-label={r.item}>
           <div className="edit-top">{r.item}<small>{subOf(r)}</small></div>
           <div className="edit-side"><span className="who who-design">{editsBoth(r) ? 'Both houses' : 'This design'}</span>{input(r, 'design', 'material')}{input(r, 'design', 'labour')}</div>
           {!editsBoth(r) && r.baseline && <div className="edit-side"><span className="who who-baseline">{baselineName}</span>{input(r, 'baseline', 'material')}{input(r, 'baseline', 'labour')}</div>}

@@ -80,4 +80,19 @@ describe('review fixes', () => {
   it('a double stud wall with a service cavity is not priced, rather than priced as a bare double stud wall', () => {
     expect(wallLayers({ ...ds, hasServiceWall: true })).toEqual({ priced: false, reason: 'double stud walls with a service cavity are not priced in this version' })
   })
+  it('gives every Layers row a unique id, component plus occurrence', () => {
+    const sc = scenario({ wallSelection: svc })
+    const m = buildSpecifics(sc.line('aboveGroundWalls'), sc.ctx)
+    const ids = m.rows.map(r => r.id)
+    expect(new Set(ids).size).toBe(ids.length)
+    expect(ids).toEqual(expect.arrayContaining(['framing#0', 'framing#1', 'cavity_insulation#0', 'cavity_insulation#1']))
+    expect(m.rows.every(r => r.key === r.id.split('#')[0])).toBe(true)
+  })
+  it('lists the double stud plate row, named Plates, right after Cavity insulation', () => {
+    const sc = scenario({ wallSelection: ds })
+    const m = buildSpecifics(sc.line('aboveGroundWalls'), sc.ctx)
+    const items = m.rows.map(r => r.item)
+    expect(items.indexOf('Plates')).toBe(items.indexOf('Cavity insulation') + 1)
+    expect(m.rows.find(r => r.item === 'Plates').design.text).toBe('2x10 top and bottom plates')
+  })
 })
