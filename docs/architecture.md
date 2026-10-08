@@ -210,6 +210,8 @@ App
 
 ## Cross-References
 
+- [Cost Layer (as built)](cost-layer.md) — the Cost tab and everything under `src/costing/` and `src/costSystem/` on branch `cost-ui-2`; read it before touching cost code
+
 - [Data Layer Reference](data-layer.md) — ecpData.js exports, lookup tables, calculation formulas, point tables
 - [Data Pipeline](data-pipeline.md) — YAML-to-JSON build pipeline, adding materials, updating thresholds
 - [Common Tasks](common-tasks.md) — Operational runbook: deploy, update text, bust cache, run tests
