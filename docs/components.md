@@ -29,7 +29,7 @@ Root component. Owns all application state. No props.
 
 ### Rendering
 
-A temporary `<RecruitingBanner />` sits between the intro section and the categories. Then iterates `categories` array. If `category.type === 'wallBuilder'`, renders `<WallBuilder>`. Otherwise renders `<CategoryCard>`.
+Iterates `categories` array. If `category.type === 'wallBuilder'`, renders `<WallBuilder>`. Otherwise renders `<CategoryCard>`.
 
 Footer contains an optional **Project details** block (three text inputs: Project / Address, Permit Number, Applicant) held in `projectInfo` state, plus a "Save / Print" button that calls `window.print()`, disabled when `totalPoints === 0`. The project fields are never required; whatever is entered is printed on the summary. A disclaimer (`src/data/disclaimer.js`, shared with `PrintSummary`) states the output is not an official compliance document and is subject to AHJ approval. A short usage notice (`USAGE_NOTICE`) sits directly under the Save / Print button. After the footer, renders a hidden `<PrintSummary>` component (visible only in `@media print`).
 
@@ -393,7 +393,7 @@ When `total >= target`, adds `.complete` class (switches to green styling).
 
 ## RecruitingBanner (`src/components/RecruitingBanner.jsx`)
 
-Temporary, dismissible invitation to the cost-feature usability sessions. Remove after the recruiting window (the comment at the top of the component lists what to delete).
+Temporary, dismissible invitation to the cost-feature usability sessions. **Not rendered** since v1.2.2 (round 1 recruiting closed 2026-10-14); the component, its test and its CSS are kept for later rounds. To show it again, import it in `App.jsx`, render `<RecruitingBanner />` between the intro section and the categories, and update its copy and `RECRUITING_END_DATE`. To remove it for good, delete the component, its test, its CSS block in App.css and this section.
 
 ### Props
 

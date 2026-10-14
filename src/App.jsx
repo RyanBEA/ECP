@@ -4,12 +4,11 @@ import CategoryCard from './components/CategoryCard'
 import WallBuilder from './components/WallBuilder'
 import PointsCounter from './components/PointsCounter'
 import PrintSummary from './components/PrintSummary'
-import RecruitingBanner from './components/RecruitingBanner'
 import { DISCLAIMER, USAGE_NOTICE } from './data/disclaimer'
 import { buildPrintEvent, sendPrintEvent } from './utils/printEvent'
 
-const APP_VERSION = '1.2.1'
-const APP_UPDATED = '2026-10-07'
+const APP_VERSION = '1.2.2'
+const APP_UPDATED = '2026-10-14'
 
 export default function App() {
   // Track dark mode - default to system preference
@@ -155,8 +154,6 @@ export default function App() {
           applying for your building permit.
         </p>
       </section>
-
-      <RecruitingBanner />
 
       <main className="categories-container">
         {categories.map(category => {
