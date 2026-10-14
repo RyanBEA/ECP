@@ -44,3 +44,8 @@ img/
 
 # Telemetry CSV pulls (contain usage data; never commit)
 telemetry-exports/
+
+# Stand-in price table (contains LEEP cost rows; not for the public repo).
+# Rebuild locally with npm run build:costs; hosted builds restore it from
+# STAND_IN_COSTS_GZ_B64 (scripts/restore-stand-in-costs.js).
+src/costing/data/stand-in-costs.json
