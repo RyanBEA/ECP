@@ -380,6 +380,13 @@ describe('Points add across both wall builders', () => {
     expect(parseFloat(counter())).toBeCloseTo(aboveOnly + 1.4, 5)
   })
 
+  it('a below-grade builder assembly reaches the Cost tab at the level it meets (3.12 -> RSI 3.09)', () => {
+    render(<App />)
+    pick('bg-foundationType', 'concrete')
+    fireEvent.click(screen.getByRole('tab', { name: 'Cost' }))
+    expect(document.getElementById('panel-cost').textContent).toMatch(/RSI 3\.09, assumed/)
+  })
+
   it('the below-grade category renders as the builder card, not a plain option card', () => {
     render(<App />)
     const below = screen.getByRole('heading', { name: 'Below Grade Walls' }).closest('.wall-builder')

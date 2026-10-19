@@ -1,4 +1,4 @@
-import React, { useState, useRef } from 'react'
+import React, { useState, useRef, useEffect } from 'react'
 import {
   categories,
   foundationTypes,
@@ -172,7 +172,10 @@ export function foundationAssumptions(foundationType) {
 }
 
 export default function BelowGradeWallBuilder({ selection, onSelect }) {
-  const [mode, setMode] = useState('builder')
+  // A simple-mode pick can arrive from outside (an Optimize package applied to the Points tab): show Select RSI for it.
+  const hasSimplePick = selection?.simpleIndex !== undefined && selection?.simpleIndex !== null
+  const [mode, setMode] = useState(hasSimplePick ? 'simple' : 'builder')
+  useEffect(() => { if (hasSimplePick) setMode('simple') }, [hasSimplePick])
   const svgRef = useRef(null)
   const [exporting, setExporting] = useState(false)
 

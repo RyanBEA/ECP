@@ -21,6 +21,14 @@ const pick = (id, value) => fireEvent.change(document.getElementById(id), { targ
 const lastCall = spy => spy.mock.calls[spy.mock.calls.length - 1][0]
 
 describe('BelowGradeWallBuilder', () => {
+  it('switches to Select RSI when a simple-mode pick arrives from outside (an applied Optimize package)', () => {
+    const { rerender } = render(<BelowGradeWallBuilder selection={{}} onSelect={() => {}} />)
+    expect(screen.getByRole('button', { name: 'Build Assembly' })).toHaveClass('active')
+    rerender(<BelowGradeWallBuilder selection={{ simpleIndex: 2 }} onSelect={() => {}} />)
+    expect(screen.getByRole('button', { name: 'Select RSI' })).toHaveClass('active')
+    expect(document.getElementById('bg-foundationType')).toBeNull()
+  })
+
   it('starts in builder mode with a Select... foundation type and a prompt', () => {
     render(<Harness />)
     expect(screen.getByText('Below Grade Walls')).toBeInTheDocument()

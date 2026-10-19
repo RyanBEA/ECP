@@ -36,7 +36,7 @@ ECP Calculator is a React web app for calculating Energy Conservation Points (EC
 npm install              # Install dependencies (once)
 npm run dev              # Dev server at localhost:5173
 npm run build            # Production build to dist/
-npm test                 # Run all tests (Vitest, 1044 tests on cost-ui-2 with the below-grade builder)
+npm test                 # Run all tests (Vitest, 1046 tests on cost-ui-2 with the below-grade builder)
 npm run generate         # Rebuild JSON from YAML materials
 npm run generate:audit   # Generate + compare against previous JSON
 ```
