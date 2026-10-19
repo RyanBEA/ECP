@@ -36,7 +36,7 @@ ECP Calculator is a React web app for calculating Energy Conservation Points (EC
 npm install              # Install dependencies (once)
 npm run dev              # Dev server at localhost:5173
 npm run build            # Production build to dist/
-npm test                 # Run all tests (Vitest, 838 tests on cost-optimize)
+npm test                 # Run all tests (Vitest, 1044 tests on cost-ui-2 with the below-grade builder)
 npm run generate         # Rebuild JSON from YAML materials
 npm run generate:audit   # Generate + compare against previous JSON
 ```
@@ -108,6 +108,12 @@ Three tabs on this branch: Points (unchanged, guarded by `variantParity.test.jsx
 Volta cost system client after D2); stand-in prices in `src/costing/data/stand-in-costs.json`
 (rebuild with `npm run build:costs`); persistence in `src/costing/persist.js`. Costs never print.
 Prototype; nothing pushed. Optimize is built on branch `cost-optimize` off `cost-ui-2`; its search code is in `src/optimize/`.
+
+The below-grade wall builder (from Mark's `cost-layer` branch; his stand-in costing panels there were left out) keeps its own
+`belowGradeSelection` in App, like `wallSelection`. Cost and Optimize still read the `belowGradeWalls` card from `selections`, so App
+passes them `withBelowGrade(selections, belowGradeSelection)` (`src/costing/usePicks.js`): simple mode is its option index, builder mode
+the highest level its 2-decimal RSI meets, priced as the assumed assembly for that level. Applying an Optimize package puts a searched
+below-grade level into the builder's simple mode.
 
 ## Skills
 

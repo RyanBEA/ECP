@@ -75,7 +75,7 @@ Each one names who decided and when. Do not re-open these without Ryan.
 - A live cost line stays in view while editing and updates with each pick. (D5)
 
 **Walls**
-- A wall built layer by layer on Points is priced from its own layers. A wall picked by RSI level is priced as a common assembly BEA assumes for that level, and the Basic view says so with a "Go to Points" link. Below-grade walls are always priced as an assumed assembly because there is no foundation builder yet. "BEA's assumed assembly" must not appear in user text; the phrase is gone, but "assumed assembly" still leads one line description (section 11).
+- A wall built layer by layer on Points is priced from its own layers. A wall picked by RSI level is priced as a common assembly BEA assumes for that level, and the Basic view says so with a "Go to Points" link. Below-grade walls are always priced as an assumed assembly: a foundation built in the below-grade wall builder is priced at the RSI level it reaches, not from its own layers. "BEA's assumed assembly" must not appear in user text; the phrase is gone, but "assumed assembly" still leads one line description (section 11).
 - Wood single-stud walls are priced. Double stud, service wall, steel and ICF show "not priced in this version" and drop out of the headline. (Capability 2 adds double stud and service cavity on its own branch.)
 - Which real assembly each RSI level maps to is separate work; the current table stands as a placeholder. (Ryan 2026-10-02)
 - Adjacent RSI levels may invert in price; that is a fact about the data, not a bug, and the test that forbade it was dropped. (R17)
