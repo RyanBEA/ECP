@@ -3,7 +3,7 @@ import React, { useState } from 'react'
 import CostTab from '../CostTab'
 import { useHouseCost, resolveHouseFields } from '../../costing/useHouseCost'
 
-export function Harness({ selections = {}, wallSelection = {}, initialType = 'singleDetached', usualHouse = {}, initialChoice = 'typicalTier2', overrides: initialOverrides = {}, spies = {}, narrow }) {
+export function Harness({ selections = {}, wallSelection = {}, initialType = 'singleDetached', usualHouse = {}, initialChoice = 'typicalTier2', overrides: initialOverrides = {}, spies = {}, narrow, variant }) {
   const [houseType, setHouseType] = useState(initialType)
   const [fieldOverrides, setFieldOverrides] = useState({})
   const [baselineChoice, setBaselineChoice] = useState(initialChoice)
@@ -29,6 +29,6 @@ export function Harness({ selections = {}, wallSelection = {}, initialType = 'si
       onViewBaselineCard={spies.onViewBaselineCard || (() => {})} onGoToPoints={spies.onGoToPoints || (() => {})}
       onOverride={spies.onOverride || setOverride} onLineOverride={spies.onLineOverride || (() => {})}
       onResetAllOverrides={() => setOverrides({})} onResetCategoryOverrides={spies.onResetCategoryOverrides}
-      openLine={openLine} onOpenLine={setOpenLine} onFreezeOrder={setFrozenOrder} notice="" narrow={narrow} />
+      openLine={openLine} onOpenLine={setOpenLine} onFreezeOrder={setFrozenOrder} notice="" narrow={narrow} variant={variant} />
   )
 }

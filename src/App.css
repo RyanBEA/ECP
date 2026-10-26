@@ -1380,3 +1380,8 @@ h1, h2, h3, h4, h5, h6 {
 .alt-row:first-of-type { border-top: 0; }
 .alt-detail { color: var(--text-secondary); font-size: 0.78rem; }
 .alt-cost { white-space: nowrap; display: flex; gap: 0.5rem; align-items: center; }
+
+/* Variant table (round 1) */
+.variant-table td small { display: block; color: var(--text-secondary); font-size: 0.7rem; }
+.variant-table tr.differs td:first-child { box-shadow: inset 3px 0 0 var(--viz-design); }
+.variant-foot { justify-content: flex-end; margin-top: 0.5rem; }

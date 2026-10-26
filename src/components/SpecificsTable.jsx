@@ -15,7 +15,7 @@ const lower = s => (/^[A-Z][a-z]/.test(s) ? s.charAt(0).toLowerCase() + s.slice(
 const Diff = ({ value, same }) => (same ? <span className="diff">-</span> : <span className={`diff ${diffClass(value)}`}>{signedDollars(value)}</span>)
 const Cell = ({ cell }) => (cell ? <><span className="opt">{cell.text}</span><span className="price">{cell.price}</span></> : <span className="opt">none</span>)
 
-function Legend({ baselineName }) {
+export function Legend({ baselineName }) {
   return (
     <p className="specifics-legend">
       <span className="key key-design">This design</span><span className="key key-baseline">{baselineName}</span>

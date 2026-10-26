@@ -61,6 +61,12 @@ Stateless button for a single selectable threshold option.
 
 ---
 
+## VariantTable (`src/components/VariantTable.jsx`)
+
+Round 1 Cost tab variants. `VariantTable({ variant, model, line, baselineName })` renders one three-column table (`This design` / baseline / `Difference`) for an open category line: variant `'a'` one row per assembly (first column `Item`), `'b'` one row per trade (`Trade`), from `variantRows()`. Footer has `Per sq ft installed` (walls) and the `total` row, then `model.lineNote` and the legend. `CategoryLine` uses it instead of the Layers disclosure when its `variant` prop is `'a'` or `'b'`; `'c'` keeps today's tree. `LineSummary` takes `tiles` and `quantity` props (default true) and exports `QuantityLine`.
+
+---
+
 ## CategoryCard (`src/components/CategoryCard.jsx`)
 
 Stateless card for a standard (non-wall) category. Renders category info + an OptionButton grid.

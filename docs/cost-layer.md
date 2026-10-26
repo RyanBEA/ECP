@@ -362,6 +362,9 @@ fixed at 10 whatever the header Tier shows.
 
 - **Wide (900 px and up):** a 250 px sidebar (House card, Compared with card, Prices footnote with override count and "reset all") beside the statement (headline card, seven lines, Total, "Costs are not printed."). An open line becomes its own card with a sticky header; the list splits around it.
 - **Narrow (below 900 px):** the sidebar becomes two `Disclosure` strips above the headline; the Prices footnote moves to the bottom; 44 px minimum targets; the specifics table stacks per row; the editor is a page.
+- **Cost tab variants (round 1, hidden switch `ecp.costVariant`, `?variant=a|b|c|reset`):** an open line shows either today's tree (C, the default) or a three-column table (`VariantTable`) in place of the Layers disclosure; totals are identical across variants.
+- **Variant A (assemblies):** one row per category (`Per sq ft installed`, `Windows and doors`, `Heater, installed with its parts`, ...) from `variantRows('a', ...)`, then the footer totals.
+- **Variant B (trades):** one row per trade (Framer, Insulator, Drywaller, Siding, ...) from `variantRows('b', ...)`; a line price in use is explained by the line note under the table. C is today's tree. `Use my own prices` opens the edit table under A and B; `Done` returns to the variant table.
 - **Empty state:** headline "$0", a prompt to pick on Points, and a sentence saying what the baseline means.
 - **Dialogs:** the usual-house editor (title "Your usual house", live line under the title) and the one-card view. Scrolling lives in `.dialog-body` so a scrollbar click does not close the dialog (I3-5); the dialog opens in `useLayoutEffect` so a child's scroll-to-card works (I3-3). Height uses `100dvh` with a `100vh` fallback.
 - **Theme:** sun/moon icon toggle; warm stone light palette; `--viz-*` tokens have dark values.

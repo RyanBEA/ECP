@@ -1,9 +1,10 @@
 import React, { useMemo } from 'react'
 import Disclosure from './Disclosure'
-import LineSummary from './LineSummary'
+import LineSummary, { QuantityLine } from './LineSummary'
+import VariantTable from './VariantTable'
 import SpecificsTable from './SpecificsTable'
 import { ChevronIcon, PencilIcon } from './icons'
-import { buildSpecifics } from '../costing/specifics'
+import { buildSpecifics, basicViewText, OVERHEAD_SENTENCE } from '../costing/specifics'
 export { houseNoun } from '../costing/houseText'
 
 // One category on the Cost tab (spec rev 3 section 4): the line, its Basic view, and its specifics behind one
@@ -14,7 +15,7 @@ function SmallPrint({ text, baselineName }) {
   return <small className="line-small">{text.slice(0, cut)}<span className="dot" aria-hidden="true" /> {text.slice(cut + 3)}</small>
 }
 
-export default function CategoryLine({ line, ctx, sentences, narrow, open, onToggle, specOpen, onToggleSpec, editing, onToggleEdit, onChangeHouse, onGoToPoints, tableProps }) {
+export default function CategoryLine({ line, ctx, sentences, narrow, open, onToggle, specOpen, onToggleSpec, editing, onToggleEdit, onChangeHouse, onGoToPoints, tableProps, variant = 'c' }) {
   const openable = line.state === 'priced'
   const model = useMemo(() => (open && openable ? buildSpecifics(line, ctx) : null), [open, openable, line, ctx])
   const deltaCls = `line-delta ${line.delta < 0 ? 'neg' : ''} ${line.delta > 0 ? 'pos' : ''} ${line.delta === 0 ? 'z' : ''}`
@@ -27,7 +28,20 @@ export default function CategoryLine({ line, ctx, sentences, narrow, open, onTog
       {openable
         ? <button type="button" className="line-row" aria-expanded={open} onClick={onToggle}><ChevronIcon />{text}<span className={deltaCls}>{deltaText}</span></button>
         : <div className="line-row static"><span className="chevron-space" aria-hidden="true" />{text}<span className={deltaCls}>{deltaText}</span></div>}
-      {open && model && (
+      {open && model && variant !== 'c' && (
+        <div className="line-detail">
+          <LineSummary tiles={false} quantity={false} line={line} ctx={ctx} sentences={sentences} onChangeHouse={onChangeHouse} onGoToPoints={onGoToPoints} />
+          {editing
+            ? <SpecificsTable model={model} line={line} baselineName={ctx.baselineName} narrow={narrow} editing {...tableProps} />
+            : <VariantTable variant={variant} model={model} line={line} baselineName={ctx.baselineName} />}
+          <QuantityLine quantity={basicViewText(line, ctx, sentences).quantity} onChangeHouse={onChangeHouse} />
+          <p className="costing-note">Supplied and installed. {OVERHEAD_SENTENCE}</p>
+          <div className="specifics-head variant-foot">
+            <button type="button" className={`btn edit-prices ${editing ? 'primary' : ''}`} onClick={onToggleEdit}>{editing ? 'Done' : <><PencilIcon /> Use my own prices</>}</button>
+          </div>
+        </div>
+      )}
+      {open && model && variant === 'c' && (
         <div className="line-detail">
           <LineSummary line={line} ctx={ctx} sentences={sentences} onChangeHouse={onChangeHouse} onGoToPoints={onGoToPoints} />
           <Disclosure className="specifics-disclosure" label={model.label} summary={model.summary} open={specOpen} onToggle={onToggleSpec}>
