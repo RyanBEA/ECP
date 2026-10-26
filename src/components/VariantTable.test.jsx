@@ -23,7 +23,9 @@ describe('VariantTable', () => {
   it('A walls: one row, per sq ft figures match the test-house file', () => {
     renderVariant('a', 'aboveGroundWalls')
     const w = house.lines.aboveGroundWalls
-    const perSqFt = screen.getAllByRole('row').find(r => r.textContent.startsWith('Per sq ft installed'))
+    const perSqFtRows = screen.getAllByRole('row').filter(r => r.textContent.startsWith('Per sq ft installed'))
+    expect(perSqFtRows).toHaveLength(1)
+    const perSqFt = perSqFtRows[0]
     const cells = within(perSqFt).getAllByRole('cell').map(c => c.textContent)
     expect(cells[1]).toBe(`$${w.designPerSqFt.toFixed(2)}`)
     expect(cells[2]).toBe(`$${w.baselinePerSqFt.toFixed(2)}`)

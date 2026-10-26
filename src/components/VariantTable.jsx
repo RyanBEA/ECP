@@ -34,7 +34,7 @@ export default function VariantTable({ variant, model, line, baselineName }) {
           ))}
         </tbody>
         <tfoot>
-          {per && (
+          {per && variant === 'b' && (
             <tr>
               <td>Per sq ft installed</td><td>{perSqFt(f.designPerUnit)}</td><td>{perSqFt(f.baselinePerUnit)}</td>
               <td className="r"><Diff value={f.designPerUnit - f.baselinePerUnit} total={false} same={false} /></td>
