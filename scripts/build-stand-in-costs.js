@@ -18,9 +18,13 @@
 //              dense-pack row.
 //   sheathing  per inch of thickness by material, from that material's LEEP rows (OSB); plywood and gypsum
 //              sheathing scale from OSB by a stated factor.
+// Env STAND_IN_ESCALATION=<leep-escalation-factors.json> replaces every LEEP row's material/labour with its BCPI-escalated
+// value (join on source + description; a miss or null throws); LEEP and LEEP-derived rows then carry escalated: true.
 // Cladding has no LEEP rows at all, so every cladding keeps one flat invented placeholder (PH_WALL below).
 // Non-wall cards (windows, doors, airtightness, HRV, below-grade, water heating) are flat invented placeholders.
 import fs from 'node:fs'
+import os from 'node:os'
+import { execFileSync } from 'node:child_process'
 import path from 'node:path'
 import { fileURLToPath } from 'node:url'
 import { WALL_LAYER_OPTIONS, CARD_OPTIONS, HRV_SIZE_CLASSES, WATER_HEATER_SIZES } from '../src/costing/optionMap.js'
@@ -28,7 +32,7 @@ import { WALL_LAYER_OPTIONS, CARD_OPTIONS, HRV_SIZE_CLASSES, WATER_HEATER_SIZES 
 const here = path.dirname(fileURLToPath(import.meta.url))
 const HTAP = process.env.STAND_IN_HTAP || '/srv/clients/BTZx/cost-DB-and-ECP/25_Working/made-up-numbers-db/htap-walls-mapped.json'
 const WALL_DATA = path.join(here, '..', 'src', 'data', 'generated', 'wall-data.json')
-const OUT = path.join(here, '..', 'src', 'costing', 'data', 'stand-in-costs.json')
+const OUT = process.env.STAND_IN_OUT || path.join(here, '..', 'src', 'costing', 'data', 'stand-in-costs.json')
 const SQFT_PER_M2 = 10.76391042
 const RSI_PER_R = 1 / 5.678
 
@@ -40,9 +44,18 @@ const toM2 = p => ({ material: r2(p.material * SQFT_PER_M2), labour: r2(p.labour
 const REGION = { ON: 'ON', MB: 'MB', 'BC-Van': 'BC', 'BC-Kam': 'BC' }
 const REGION_ORDER = ['ON', 'MB', 'BC']
 const SQFT_UNITS = new Set(['sf applied', 'sf wall'])
-const leepRows = JSON.parse(fs.readFileSync(HTAP, 'utf8')).rows.filter(r =>
+const ESCALATED = Boolean(process.env.STAND_IN_ESCALATION)
+let leepRows = JSON.parse(fs.readFileSync(HTAP, 'utf8')).rows.filter(r =>
   r.source.startsWith('LEEP-') && REGION[r.region] && r.kind === 'atomic' && r.labour > 0 &&
   SQFT_UNITS.has(r.units) && typeof r.target_id === 'string' && r.target_id.startsWith('wall.'))
+if (ESCALATED) {
+  const factors = new Map(JSON.parse(fs.readFileSync(process.env.STAND_IN_ESCALATION, 'utf8')).map(f => [`${f.source}\u0000${f.description}`, f]))
+  leepRows = leepRows.map(r => {
+    const f = factors.get(`${r.source}\u0000${r.description}`)
+    if (!f || typeof f.material_escalated !== 'number' || typeof f.labour_escalated !== 'number') throw new Error(`no escalation factor for ${r.source} / ${r.description}`)
+    return { ...r, material: f.material_escalated, labour: f.labour_escalated }
+  })
+}
 const byTarget = {}
 for (const r of leepRows) (byTarget[r.target_id] ||= []).push(r)
 
@@ -216,8 +229,9 @@ const rows = []
 for (const o of WALL_LAYER_OPTIONS) {
   const base = { category: 'aboveGroundWalls', component: o.component, option: o.option, fuel: null, size: null, sizeUnit: null, unit: 'm2' }
   const h = leepFor(o.component, o.option)
-  if (h) { rows.push({ ...base, ...toM2(h), priced_item: h.priced_item, source: h.source }); continue }
-  if (DERIVE[o.component]) { rows.push({ ...base, ...toM2(DERIVE[o.component](o.option)), priced_item: o.label, source: 'placeholder' }); continue }
+  const esc = ESCALATED ? { escalated: true } : {}
+  if (h) { rows.push({ ...base, ...toM2(h), priced_item: h.priced_item, source: h.source, ...esc }); continue }
+  if (DERIVE[o.component]) { rows.push({ ...base, ...toM2(DERIVE[o.component](o.option)), priced_item: o.label, source: 'placeholder', ...esc }); continue }
   if (!PH_WALL[o.component]) throw new Error(`no LEEP row and no placeholder rule for ${o.component}/${o.option}`)
   const [m, l] = PH_WALL[o.component]
   rows.push({ ...base, material: m, labour: l, priced_item: o.label, source: 'placeholder' })
@@ -237,8 +251,46 @@ for (const o of CARD_OPTIONS) {
     rows.push({ ...o, sizeUnit: null, unit, material: m, labour: l, priced_item: `${o.component} ${o.option}`.replace(/_/g, ' '), source: 'placeholder' })
   }
 }
+// The 12 double-stud rows below were hand-added to the old table in commit 19c13ba ("price double stud and service-cavity
+// walls with placeholder rows"); this script never generated them. Copied verbatim from that table, appended after the other rows.
+// The 9 cavity rows name a `parent`: this build's own derived cavity row for the same material at the matching plate depth
+// (8 in -> 2x8, 10 in -> 2x10, 12 in -> 2x12). With STAND_IN_ESCALATION they are scaled by parent escalated / parent
+// unescalated (material and labour separately) and flagged escalated. The 3 plate rows are flat invented placeholders
+// and are never escalated.
+const DOUBLE_STUD_ROWS = [
+ {"category": "aboveGroundWalls", "component": "cavity_insulation", "option": "dense_pack_cellulose_8in", "fuel": null, "size": null, "sizeUnit": null, "unit": "m2", "material": 20.47, "labour": 12.66, "priced_item": "dense-pack cellulose, 8 in double stud cavity", "source": "placeholder", "parent": "dense_pack_cellulose_2x8"},
+ {"category": "aboveGroundWalls", "component": "cavity_insulation", "option": "dense_pack_cellulose_10in", "fuel": null, "size": null, "sizeUnit": null, "unit": "m2", "material": 25.7, "labour": 15.89, "priced_item": "dense-pack cellulose, 10 in double stud cavity", "source": "placeholder", "parent": "dense_pack_cellulose_2x10"},
+ {"category": "aboveGroundWalls", "component": "cavity_insulation", "option": "dense_pack_cellulose_12in", "fuel": null, "size": null, "sizeUnit": null, "unit": "m2", "material": 30.78, "labour": 19.03, "priced_item": "dense-pack cellulose, 12 in double stud cavity", "source": "placeholder", "parent": "dense_pack_cellulose_2x12"},
+ {"category": "aboveGroundWalls", "component": "cavity_insulation", "option": "loose_fill_cellulose_8in", "fuel": null, "size": null, "sizeUnit": null, "unit": "m2", "material": 11.01, "labour": 3.61, "priced_item": "loose-fill cellulose, 8 in double stud cavity", "source": "placeholder", "parent": "loose_fill_cellulose_2x8"},
+ {"category": "aboveGroundWalls", "component": "cavity_insulation", "option": "loose_fill_cellulose_10in", "fuel": null, "size": null, "sizeUnit": null, "unit": "m2", "material": 13.81, "labour": 4.53, "priced_item": "loose-fill cellulose, 10 in double stud cavity", "source": "placeholder", "parent": "loose_fill_cellulose_2x10"},
+ {"category": "aboveGroundWalls", "component": "cavity_insulation", "option": "loose_fill_cellulose_12in", "fuel": null, "size": null, "sizeUnit": null, "unit": "m2", "material": 16.55, "labour": 5.43, "priced_item": "loose-fill cellulose, 12 in double stud cavity", "source": "placeholder", "parent": "loose_fill_cellulose_2x12"},
+ {"category": "aboveGroundWalls", "component": "cavity_insulation", "option": "loose_fill_fiberglass_8in", "fuel": null, "size": null, "sizeUnit": null, "unit": "m2", "material": 12.73, "labour": 4.19, "priced_item": "loose-fill fiberglass, 8 in double stud cavity", "source": "placeholder", "parent": "loose_fill_fiberglass_2x8"},
+ {"category": "aboveGroundWalls", "component": "cavity_insulation", "option": "loose_fill_fiberglass_10in", "fuel": null, "size": null, "sizeUnit": null, "unit": "m2", "material": 15.98, "labour": 5.26, "priced_item": "loose-fill fiberglass, 10 in double stud cavity", "source": "placeholder", "parent": "loose_fill_fiberglass_2x10"},
+ {"category": "aboveGroundWalls", "component": "cavity_insulation", "option": "loose_fill_fiberglass_12in", "fuel": null, "size": null, "sizeUnit": null, "unit": "m2", "material": 19.14, "labour": 6.3, "priced_item": "loose-fill fiberglass, 12 in double stud cavity", "source": "placeholder", "parent": "loose_fill_fiberglass_2x12"},
+ {"category": "aboveGroundWalls", "component": "double_stud_plate", "option": "plate_2x8", "fuel": null, "size": null, "sizeUnit": null, "unit": "m2", "material": 2.9, "labour": 2.1, "priced_item": "2x8 top and bottom plates, double stud wall", "source": "placeholder"},
+ {"category": "aboveGroundWalls", "component": "double_stud_plate", "option": "plate_2x10", "fuel": null, "size": null, "sizeUnit": null, "unit": "m2", "material": 3.6, "labour": 2.3, "priced_item": "2x10 top and bottom plates, double stud wall", "source": "placeholder"},
+ {"category": "aboveGroundWalls", "component": "double_stud_plate", "option": "plate_2x12", "fuel": null, "size": null, "sizeUnit": null, "unit": "m2", "material": 4.3, "labour": 2.5, "priced_item": "2x12 top and bottom plates, double stud wall", "source": "placeholder"}
+]
+
+// Unescalated rows, for the parent ratio: built by running this script again without the env var.
+const rawRows = !ESCALATED ? rows : (() => {
+  const tmp = path.join(fs.mkdtempSync(path.join(os.tmpdir(), 'stand-in-raw-')), 'raw.json')
+  const env = { ...process.env, STAND_IN_OUT: tmp }
+  delete env.STAND_IN_ESCALATION
+  execFileSync(process.execPath, [fileURLToPath(import.meta.url)], { env, stdio: 'ignore' })
+  return JSON.parse(fs.readFileSync(tmp, 'utf8'))
+})()
+const rowKey = r => `${r.component}/${r.option}`
+const find = (list, k) => list.find(r => rowKey(r) === k)
+for (const { parent, ...row } of DOUBLE_STUD_ROWS) {
+  if (!parent || !ESCALATED) { rows.push(row); continue }
+  const esc = find(rows, `cavity_insulation/${parent}`), raw = find(rawRows, `cavity_insulation/${parent}`)
+  if (!esc || !raw) throw new Error(`no parent row cavity_insulation/${parent} for ${row.option}`)
+  rows.push({ ...row, material: r2(row.material * esc.material / raw.material), labour: r2(row.labour * esc.labour / raw.labour), escalated: true })
+}
 fs.mkdirSync(path.dirname(OUT), { recursive: true })
 fs.writeFileSync(OUT, JSON.stringify(rows, null, 1))
 const bySource = rows.reduce((acc, r) => ({ ...acc, [r.source]: (acc[r.source] || 0) + 1 }), {})
 console.log(`wrote ${rows.length} rows to ${OUT}`)
 console.log(Object.entries(bySource).map(([s, n]) => `  ${s}: ${n}`).join('\n'))
+console.log(`escalated: ${ESCALATED ? 'yes' : 'no'}`)
