@@ -16,6 +16,7 @@ import { DISCLAIMER, USAGE_NOTICE } from './data/disclaimer'
 import { buildPrintEvent, sendPrintEvent } from './utils/printEvent'
 import { useHouseCost, resolveHouseFields } from './costing/useHouseCost'
 import { loadPersisted, savePersisted } from './costing/persist'
+import { readVariant } from './costing/variant'
 import { getPresetPicks } from './costing/baselines'
 import { overrideKey, lineOverrideKey } from './costing/priceHouse'
 import { applySelect, isCategoryDisabled, totalCardPoints, wallPointsFor, picksToSelections, belowGradePointsFor, belowGradeIndexFor, withBelowGrade } from './costing/usePicks'
@@ -77,6 +78,7 @@ export default function App() {
 
   // --- Cost tab state (spec 2, 3, 5, 7.3, 8.4). Design picks stay as above and are never persisted. ---
   const [activeTab, setActiveTab] = useState('points')
+  const [variant] = useState(() => readVariant())
   const [persisted, setPersisted] = useState(() => loadPersisted())
   useEffect(() => { savePersisted(persisted) }, [persisted])
   // Merge a partial blob, or a function of the previous blob returning one, into the persisted state.
@@ -448,6 +450,7 @@ export default function App() {
           ) : (
             <CostTab
               cost={cost}
+              variant={variant}
               houseType={houseType}
               houseFields={houseFields}
               overriddenKeys={Object.keys(fieldOverrides[houseType] || {})}

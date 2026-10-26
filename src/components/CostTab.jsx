@@ -29,7 +29,7 @@ function changedCountFor(line) {
 export default function CostTab(props) {
   const { cost, houseType, houseFields, overriddenKeys, baselineChoice, usualHouse, overrideCount, onTypeChange, onFieldChange, onBaselineChoice, onEditUsual, onResetUsual,
     onViewBaselineCard = () => {}, onGoToPoints = () => {}, onOverride, onLineOverride, onResetAllOverrides, onResetCategoryOverrides = () => {},
-    openLine, onOpenLine, onFreezeOrder, notice } = props
+    openLine, onOpenLine, onFreezeOrder, notice, variant = 'c' } = props
   const narrowNow = useNarrow()
   const narrow = props.narrow ?? narrowNow
   // The line whose specifics are open is App state beside openLine (R45); without the props, CostTab keeps it.
@@ -137,7 +137,7 @@ export default function CostTab(props) {
         </div>
         <div className="category-lines">
           {delta.lines.map(line => (
-            <CategoryLine key={line.categoryId} line={line} ctx={ctx} sentences={sentences} narrow={narrow}
+            <CategoryLine key={line.categoryId} line={line} ctx={ctx} sentences={sentences} narrow={narrow} variant={variant}
               open={!openGone && openLine === line.categoryId} onToggle={() => toggle(line.categoryId)}
               specOpen={specLine === line.categoryId} onToggleSpec={() => toggleSpec(line.categoryId)}
               editing={editLine === line.categoryId} onToggleEdit={() => toggleEdit(line.categoryId)}
