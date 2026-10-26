@@ -2,6 +2,7 @@ import { render, screen, fireEvent, within } from '@testing-library/react'
 import SpecificsTable from './SpecificsTable'
 import { scenario } from '../costing/__testing__/scenario'
 import { buildSpecifics } from '../costing/specifics'
+import standIn from '../costing/data/stand-in-costs.json'
 
 const setup = (args, id) => { const s = scenario(args); const line = s.line(id); return { line, model: buildSpecifics(line, s.ctx), name: s.ctx.baselineName } }
 const walls = (overrides = {}) => setup({ wallSelection: { simpleIndex: 4 }, overrides }, 'aboveGroundWalls')
@@ -56,7 +57,7 @@ describe('SpecificsTable edit', () => {
     const onOverride = vi.fn()
     renderTable(walls(), { editing: true, onOverride })
     const framing = screen.getByRole('spinbutton', { name: 'This design framing material' })
-    expect(framing).toHaveValue(0.63)
+    expect(framing).toHaveValue(Number((standIn.find(r => r.component === 'framing' && r.option === 'stud_2x6_16oc').material / 10.76391042).toFixed(2)))
     fireEvent.change(framing, { target: { value: '2.5' } })
     fireEvent.keyDown(framing, { key: 'Enter' })
     expect(onOverride).toHaveBeenCalledWith('both', 'framing', 'stud_2x6_16oc', 'material', 2.5)
