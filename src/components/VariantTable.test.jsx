@@ -43,6 +43,17 @@ describe('VariantTable', () => {
     expect(screen.getAllByRole('columnheader')[0]).toHaveTextContent('Trade')
     expect(screen.getByTestId('variant-b-aboveGroundWalls')).toBeInTheDocument()
   })
+  it('B walls: trade rows carry the unit, footer stays plain', () => {
+    renderVariant('b', 'aboveGroundWalls')
+    const w = house.lines.aboveGroundWalls
+    const framer = within(row('Framer')).getAllByRole('cell').map(c => c.textContent)
+    expect(framer[1]).toBe('$16.49 / sq ft')
+    const foot = screen.getAllByRole('row').find(r => r.textContent.startsWith('Per sq ft installed'))
+    const cells = within(foot).getAllByRole('cell').map(c => c.textContent)
+    expect(cells[1]).toBe(`$${w.designPerSqFt.toFixed(2)}`)
+    expect(cells[2]).toBe(`$${w.baselinePerSqFt.toFixed(2)}`)
+    expect(cells[1]).not.toMatch(/sq ft/)
+  })
   it.each(['a', 'b'])('no Layers, no disclosure text under %s', v => {
     renderVariant(v, 'aboveGroundWalls')
     expect(screen.queryByText(/^Layers/)).toBeNull()

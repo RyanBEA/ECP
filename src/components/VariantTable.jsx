@@ -19,6 +19,8 @@ export default function VariantTable({ variant, model, line, baselineName }) {
   const { kind, rows, footer: f } = variantRows(variant, model, line)
   const per = kind === 'perSqFt'
   const money = v => (v === null ? 'none' : per ? perSqFt(v) : dollars(v))
+  // B trade rows say what the number is per: same text as priceText ("$16.49 / sq ft"); the unit may wrap inside the cell.
+  const rowMoney = v => (v !== null && per && variant === 'b' ? `${perSqFt(v)} / sq ft` : money(v))
   return (
     <div className="specifics variant-table" data-testid={`variant-${variant}-${model.categoryId}`}>
       <table className="specifics-table variant">
@@ -27,8 +29,8 @@ export default function VariantTable({ variant, model, line, baselineName }) {
           {rows.map(r => (
             <tr key={r.key} aria-label={r.item} className={r.same ? 'same' : 'differs'}>
               <td>{r.item}{r.sub && <small>{r.sub}</small>}</td>
-              <td>{money(r.design)}</td>
-              <td>{r.same ? 'same' : money(r.baseline)}</td>
+              <td>{rowMoney(r.design)}</td>
+              <td>{r.same ? 'same' : rowMoney(r.baseline)}</td>
               <td className="r"><Diff value={r.diff} total={r.diffIsTotal} same={r.same} /></td>
             </tr>
           ))}
