@@ -1,0 +1,232 @@
+{
+  "builtFrom": "67f27d877855",
+  "escalated": true,
+  "wallIndex": 7,
+  "picks": {
+    "windowsDoors": 1,
+    "dhwElectric": 0
+  },
+  "headline": "+$15,000 more than Typical Tier 2, before HST.",
+  "secondLine": "For comparing options. Placeholder and LEEP prices brought to 2026 with Statistics Canada construction price indexes; not a quote.",
+  "lines": {
+    "aboveGroundWalls": {
+      "designPerSqFt": 22.24,
+      "baselinePerSqFt": 19.15,
+      "quantityText": "x 1,882 sq ft",
+      "designCost": 41869.07,
+      "baselineCost": 36043.67,
+      "diff": 5825.4,
+      "rows": [
+        {
+          "item": "Interior finish",
+          "designText": "1/2 in gypsum",
+          "baselineText": "1/2 in gypsum",
+          "same": true,
+          "designPrice": "$1.15 / sq ft",
+          "baselinePrice": "$1.15 / sq ft",
+          "designQuantity": 1882.44,
+          "baselineQuantity": 1882.44,
+          "designMaterial": 0.53,
+          "designLabour": 0.62,
+          "baselineMaterial": 0.53,
+          "baselineLabour": 0.62,
+          "diff": 0
+        },
+        {
+          "item": "Air/vapour barrier",
+          "designText": "6 mil poly",
+          "baselineText": "6 mil poly",
+          "same": true,
+          "designPrice": "$0.76 / sq ft",
+          "baselinePrice": "$0.76 / sq ft",
+          "designQuantity": 1882.44,
+          "baselineQuantity": 1882.44,
+          "designMaterial": 0.21,
+          "designLabour": 0.55,
+          "baselineMaterial": 0.21,
+          "baselineLabour": 0.55,
+          "diff": 0
+        },
+        {
+          "item": "Framing",
+          "designText": "2x6 studs @ 16 in o.c.",
+          "baselineText": "2x6 studs @ 16 in o.c.",
+          "same": true,
+          "designPrice": "$6.20 / sq ft",
+          "baselinePrice": "$6.20 / sq ft",
+          "designQuantity": 1882.44,
+          "baselineQuantity": 1882.44,
+          "designMaterial": 2.71,
+          "designLabour": 3.48,
+          "baselineMaterial": 2.71,
+          "baselineLabour": 3.48,
+          "diff": 0
+        },
+        {
+          "item": "Cavity insulation",
+          "designText": "2x6 R24 fiberglass batt",
+          "baselineText": "2x6 R24 fiberglass batt",
+          "same": true,
+          "designPrice": "$2.73 / sq ft",
+          "baselinePrice": "$2.73 / sq ft",
+          "designQuantity": 1882.44,
+          "baselineQuantity": 1882.44,
+          "designMaterial": 2.18,
+          "designLabour": 0.55,
+          "baselineMaterial": 2.18,
+          "baselineLabour": 0.55,
+          "diff": 0
+        },
+        {
+          "item": "Sheathing",
+          "designText": "7/16 in (11 mm) OSB",
+          "baselineText": "7/16 in (11 mm) OSB",
+          "same": true,
+          "designPrice": "$4.57 / sq ft",
+          "baselinePrice": "$4.57 / sq ft",
+          "designQuantity": 1882.44,
+          "baselineQuantity": 1882.44,
+          "designMaterial": 3.02,
+          "designLabour": 1.55,
+          "baselineMaterial": 3.02,
+          "baselineLabour": 1.55,
+          "diff": 0
+        },
+        {
+          "item": "Continuous insulation",
+          "designText": "2 in XPS",
+          "baselineText": "1 in XPS",
+          "same": false,
+          "designPrice": "$4.43 / sq ft",
+          "baselinePrice": "$2.63 / sq ft",
+          "designQuantity": 1882.44,
+          "baselineQuantity": 1882.44,
+          "designMaterial": 3.44,
+          "designLabour": 0.99,
+          "baselineMaterial": 1.64,
+          "baselineLabour": 0.99,
+          "diff": 3392.76
+        },
+        {
+          "item": "Strapping",
+          "designText": "1x3 strapping over the continuous insulation",
+          "baselineText": "",
+          "same": false,
+          "designPrice": "$1.29 / sq ft",
+          "baselinePrice": "",
+          "designQuantity": 1882.44,
+          "baselineQuantity": 0,
+          "designMaterial": 0.73,
+          "designLabour": 0.56,
+          "baselineMaterial": 0,
+          "baselineLabour": 0,
+          "diff": 2432.64
+        },
+        {
+          "item": "Cladding",
+          "designText": "Vinyl/Metal Siding (hollow-backed)",
+          "baselineText": "Vinyl/Metal Siding (hollow-backed)",
+          "same": true,
+          "designPrice": "$1.11 / sq ft",
+          "baselinePrice": "$1.11 / sq ft",
+          "designQuantity": 1882.44,
+          "baselineQuantity": 1882.44,
+          "designMaterial": 0.46,
+          "designLabour": 0.65,
+          "baselineMaterial": 0.46,
+          "baselineLabour": 0.65,
+          "diff": 0
+        }
+      ]
+    },
+    "windowsDoors": {
+      "designCost": 30476.84,
+      "baselineCost": 23433,
+      "diff": 7043.84,
+      "rows": [
+        {
+          "item": "Windows",
+          "designText": "U 1.22",
+          "baselineText": "U 1.61",
+          "same": false,
+          "designPrice": "$79.43 / sq ft",
+          "baselinePrice": "$61.32 / sq ft",
+          "designQuantity": 344.66,
+          "baselineQuantity": 344.66,
+          "designMaterial": 70.61,
+          "designLabour": 8.83,
+          "baselineMaterial": 52.49,
+          "baselineLabour": 8.83,
+          "diff": 6243.84
+        },
+        {
+          "item": "Exterior doors",
+          "designText": "U 1.22",
+          "baselineText": "U 1.61",
+          "same": false,
+          "designPrice": "2 x $1,550",
+          "baselinePrice": "2 x $1,150",
+          "designQuantity": 2,
+          "baselineQuantity": 2,
+          "designMaterial": 1300,
+          "designLabour": 250,
+          "baselineMaterial": 900,
+          "baselineLabour": 250,
+          "diff": 800
+        }
+      ]
+    },
+    "dhw": {
+      "designCost": 4000,
+      "baselineCost": 1800,
+      "diff": 2200,
+      "rows": [
+        {
+          "item": "Water heater",
+          "designText": "heat pump water heater, EF 2.35",
+          "baselineText": "electric storage tank, code minimum",
+          "same": false,
+          "designPrice": "$3,300",
+          "baselinePrice": "$1,350",
+          "designQuantity": 1,
+          "baselineQuantity": 1,
+          "designMaterial": 2900,
+          "designLabour": 400,
+          "baselineMaterial": 950,
+          "baselineLabour": 400,
+          "diff": 1950
+        },
+        {
+          "item": "Condensate drain",
+          "designText": "condensate drain",
+          "baselineText": "",
+          "same": false,
+          "designPrice": "$250",
+          "baselinePrice": "",
+          "designQuantity": 1,
+          "baselineQuantity": 0,
+          "designMaterial": 130,
+          "designLabour": 120,
+          "baselineMaterial": 0,
+          "baselineLabour": 0,
+          "diff": 250
+        },
+        {
+          "item": "240 V circuit",
+          "designText": "240 V circuit",
+          "baselineText": "240 V circuit",
+          "same": true,
+          "designPrice": "$450",
+          "baselinePrice": "$450",
+          "designQuantity": 1,
+          "baselineQuantity": 1,
+          "designMaterial": 200,
+          "designLabour": 250,
+          "baselineMaterial": 200,
+          "baselineLabour": 250,
+          "diff": 0
+        }
+      ]
+    }
+  }
+}

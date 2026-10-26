@@ -19,7 +19,7 @@ const isZero = x => Math.round(x * 100) === 0
 const cards = n => `card${n === 1 ? '' : 's'}`
 
 // Proof-of-concept price source (spec 3.2, standing rule 3).
-export const SECOND_LINE = 'For comparing options. Placeholder and LEEP 2013-2016 prices; not a quote.'
+export const SECOND_LINE = 'For comparing options. Placeholder and LEEP prices brought to 2026 with Statistics Canada construction price indexes; not a quote.'
 
 function lineFor(id, d, b, baselineName) {
   const line = { categoryId: id, name: NAMES[id], delta: 0, design: d, baseline: b }
