@@ -45,4 +45,15 @@ describe('readVariant', () => {
     const boom = () => { throw new Error('denied') }
     expect(readVariant('?variant=b', { getItem: boom, setItem: boom, removeItem: boom })).toBe('b')
   })
+  it('window.localStorage access throwing is survived', () => {
+    const desc = Object.getOwnPropertyDescriptor(window, 'localStorage')
+    Object.defineProperty(window, 'localStorage', { configurable: true, get() { throw new Error('SecurityError') } })
+    try {
+      expect(readVariant('?variant=b')).toBe('b')
+      expect(readVariant('')).toBe('c')
+    } finally {
+      if (desc) Object.defineProperty(window, 'localStorage', desc)
+      else delete window.localStorage
+    }
+  })
 })
