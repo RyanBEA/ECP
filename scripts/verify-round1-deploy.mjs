@@ -17,7 +17,9 @@ const WALL = house.lines.aboveGroundWalls
 const DESIGN = `$${WALL.designPerSqFt.toFixed(2)}`
 const BASELINE = `$${WALL.baselinePerSqFt.toFixed(2)}`
 const VERSION = 'v1.9.0-round1-variants'
-const SECOND_LINE = house.secondLine
+// Hard-coded from the plan's global constraints; the JSON must agree.
+const SECOND_LINE = 'For comparing options. Placeholder and LEEP prices brought to 2026 with Statistics Canada construction price indexes; not a quote.'
+const FRAMER_B = '$16.49 / sq ft'
 mkdirSync(OUT, { recursive: true })
 
 const assert = (cond, msg) => { if (!cond) throw new Error(`FAIL: ${msg}`) }
@@ -40,6 +42,9 @@ const perSqFtRows = (page, v) =>
 async function checkFigures(page, v, shot) {
   const table = page.locator(`[data-testid="variant-${v}-aboveGroundWalls"]`)
   await table.waitFor({ timeout: 10000 })
+  const heads = (await table.locator('thead th').allInnerTexts()).map(t => t.trim())
+  const expectHeads = [v === 'a' ? 'Item' : 'Trade', 'This design', 'Typical Tier 2', 'Difference']
+  assert(JSON.stringify(heads) === JSON.stringify(expectHeads), `variant ${v}: column headers are ${JSON.stringify(heads)}, expected ${JSON.stringify(expectHeads)}`)
   const rows = perSqFtRows(page, v)
   const n = await rows.count()
   assert(n === 1, `variant ${v}: expected exactly 1 "Per sq ft installed" row, found ${n}`)
@@ -49,6 +54,8 @@ async function checkFigures(page, v, shot) {
   if (v === 'b') {
     const inFooter = await table.locator('tfoot tr').filter({ hasText: 'Per sq ft installed' }).count()
     assert(inFooter === 1, 'variant b: "Per sq ft installed" row is not in the footer')
+    const framer = (await table.locator('tbody tr[aria-label="Framer"] td').allInnerTexts()).map(t => t.trim())
+    assert(framer[1] === FRAMER_B, `variant b: Framer design cell is "${framer[1]}", expected "${FRAMER_B}"`)
   } else {
     const inFooter = await table.locator('tfoot tr').filter({ hasText: 'Per sq ft installed' }).count()
     assert(inFooter === 0, 'variant a: "Per sq ft installed" row should be in the body, not the footer')
@@ -56,16 +63,19 @@ async function checkFigures(page, v, shot) {
   if (shot) await page.locator('.line-detail').first().screenshot({ path: path.join(OUT, shot) })
 }
 async function checkCopy(page) {
-  const body = await page.evaluate(() => document.body.innerText)
-  assert(body.includes(VERSION), `footer does not contain ${VERSION}`)
-  const second = await page.locator('.costing-note').filter({ hasText: SECOND_LINE.slice(0, 30) }).first().innerText()
-  assert(second.trim().startsWith(SECOND_LINE), `Cost tab second line is "${second}", expected to start with SECOND_LINE`)
+  assert(SECOND_LINE === house.secondLine, `JSON secondLine "${house.secondLine}" differs from the plan's SECOND_LINE`)
+  const ver = (await page.locator('.app-version').first().innerText()).trim()
+  assert(ver.includes(VERSION), `footer version element reads "${ver}", expected ${VERSION}`)
+  const second = (await page.locator('.headline-card .headline + .costing-note').first().innerText()).trim()
+  assert(second === SECOND_LINE, `Cost tab headline second line is "${second}", expected exactly "${SECOND_LINE}"`)
 }
 
 const browser = await chromium.launch({ executablePath: process.env.CHROME_PATH || '/usr/bin/google-chrome' })
 try {
   const health = await fetch(`${BASE}/api/health`)
   assert(health.status === 200, `/api/health returned ${health.status}`)
+  const hj = await health.json().catch(() => null)
+  assert(hj && hj.ok, `/api/health body is ${JSON.stringify(hj)}, expected JSON with ok truthy`)
 
   // B, then reload without the parameter in the same context
   const ctxB = await browser.newContext({ viewport: { width: 1280, height: 1000 } })
@@ -90,9 +100,13 @@ try {
   // reset -> C
   const ctxC = await browser.newContext({ viewport: { width: 1280, height: 1000 } })
   const pc = await ctxC.newPage()
+  await pc.goto(`${BASE}/?variant=b`); await pc.waitForTimeout(1000)
+  await pickHouse(pc); await openWalls(pc)
+  await pc.locator('[data-testid="variant-b-aboveGroundWalls"]').waitFor({ timeout: 10000 })
   await pc.goto(`${BASE}/?variant=reset`); await pc.waitForTimeout(800)
   await pc.goto(`${BASE}/`); await pc.waitForTimeout(1000)
   await pickHouse(pc); await openWalls(pc)
+  assert(await pc.locator('[data-testid="variant-b-aboveGroundWalls"]').count() === 0, 'after reset, variant B table is still present')
   assert(await pc.getByRole('button', { name: /Layers/ }).count() > 0, 'after reset, no Layers button (not variant C)')
   await ctxC.close()
 
