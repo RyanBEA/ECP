@@ -42,7 +42,8 @@ const perSqFtRows = (page, v) =>
 async function checkFigures(page, v, shot) {
   const table = page.locator(`[data-testid="variant-${v}-aboveGroundWalls"]`)
   await table.waitFor({ timeout: 10000 })
-  const heads = (await table.locator('thead th').allInnerTexts()).map(t => t.trim())
+  // textContent, not innerText: the headers are uppercased by CSS
+  const heads = (await table.locator('thead th').allTextContents()).map(t => t.trim())
   const expectHeads = [v === 'a' ? 'Item' : 'Trade', 'This design', 'Typical Tier 2', 'Difference']
   assert(JSON.stringify(heads) === JSON.stringify(expectHeads), `variant ${v}: column headers are ${JSON.stringify(heads)}, expected ${JSON.stringify(expectHeads)}`)
   const rows = perSqFtRows(page, v)
