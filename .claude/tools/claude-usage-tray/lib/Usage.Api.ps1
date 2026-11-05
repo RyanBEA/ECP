@@ -6,6 +6,8 @@ $script:Version           = '0.1.0'
 $script:UsageUrl          = 'https://api.anthropic.com/api/oauth/usage'
 $script:AnthropicBeta     = 'oauth-2025-04-20'
 $script:RequestTimeoutSec = 5
+$script:SshTimeoutSec     = 10
+$script:FetchInProgress   = $false
 $script:MaxResponseBytes  = 1048576
 $script:AuthBackoffSec    = 300
 $script:MaxBackoffSec     = 3600
@@ -77,15 +79,61 @@ function Get-LocalCredentialText {
     return (Get-Content $path -Raw -ErrorAction Stop)
 }
 
+function Invoke-NativeWithTimeout {
+    # Run an external program with a HARD wall-clock deadline. On timeout the
+    # whole process tree is killed. Everything in this tray runs on the WinForms
+    # UI thread, so an unbounded native call freezes the icon and any open menu.
+    param(
+        [Parameter(Mandatory)][string]$FilePath,
+        [string[]]$Arguments = @(),
+        [Parameter(Mandatory)][int]$TimeoutMs
+    )
+    $psi = New-Object System.Diagnostics.ProcessStartInfo
+    $psi.FileName               = $FilePath
+    foreach ($a in $Arguments) { $psi.ArgumentList.Add($a) }
+    $psi.UseShellExecute        = $false
+    $psi.CreateNoWindow         = $true
+    $psi.RedirectStandardOutput = $true
+    $psi.RedirectStandardError  = $true
+    $psi.RedirectStandardInput  = $true
+
+    $p = [System.Diagnostics.Process]::Start($psi)
+    $p.StandardInput.Close()
+    # Drain both pipes asynchronously: a synchronous ReadToEnd would itself
+    # block past the deadline, and an undrained stderr can fill and deadlock.
+    $outTask = $p.StandardOutput.ReadToEndAsync()
+    $errTask = $p.StandardError.ReadToEndAsync()
+    try {
+        if (-not $p.WaitForExit($TimeoutMs)) {
+            try { $p.Kill($true) } catch { }
+            [void]$p.WaitForExit(2000)
+            return @{ TimedOut = $true; ExitCode = $null; Output = $null; Pid = $p.Id }
+        }
+        $p.WaitForExit()   # flush async readers after exit
+        [void]$errTask.Wait(1000)
+        return @{ TimedOut = $false; ExitCode = $p.ExitCode; Output = $outTask.Result; Pid = $p.Id }
+    } finally { $p.Dispose() }
+}
+
 function Get-SshCredentialText {
     # Read the credentials file from a machine where Claude Code actually runs
     # and therefore keeps its token fresh. READ ONLY. BatchMode: never prompt -
-    # a prompt would hang the hidden tray process.
+    # a prompt would hang the hidden tray process. ConnectTimeout only bounds
+    # the TCP handshake: a link that drops AFTER connecting (sleep, Wi-Fi/VPN
+    # change) left ssh blocked for days. ServerAlive* lets ssh notice; the hard
+    # process deadline guarantees it regardless.
     param([string]$SshHost)
-    $out = & ssh -o BatchMode=yes -o ConnectTimeout=5 -o StrictHostKeyChecking=accept-new `
-                 $SshHost 'cat ~/.claude/.credentials.json' 2>$null
-    if ($LASTEXITCODE -ne 0 -or -not $out) { return $null }
-    return ($out -join "`n")
+    $r = Invoke-NativeWithTimeout -FilePath 'ssh' -TimeoutMs ($script:SshTimeoutSec * 1000) -Arguments @(
+        '-n', '-o', 'BatchMode=yes', '-o', 'ConnectTimeout=5',
+        '-o', 'ServerAliveInterval=3', '-o', 'ServerAliveCountMax=2',
+        '-o', 'StrictHostKeyChecking=accept-new',
+        $SshHost, 'cat ~/.claude/.credentials.json')
+    if ($r.TimedOut) {
+        Write-TrayLog "SSH read from $SshHost timed out after $($script:SshTimeoutSec)s - killed"
+        return $null
+    }
+    if ($r.ExitCode -ne 0 -or [string]::IsNullOrWhiteSpace($r.Output)) { return $null }
+    return $r.Output
 }
 
 function Get-StoredCredential {
@@ -120,6 +168,15 @@ function Get-StoredCredential {
 
 function Invoke-UsageFetch {
     # Updates $script:State in place. Returns nothing.
+    # Re-entrancy guard: blocking waits on the STA UI thread still pump some
+    # messages, so a timer tick or click can re-enter mid-fetch (observed: three
+    # stacked ssh processes). One fetch at a time.
+    if ($script:FetchInProgress) { return }
+    $script:FetchInProgress = $true
+    try { Invoke-UsageFetchCore } finally { $script:FetchInProgress = $false }
+}
+
+function Invoke-UsageFetchCore {
     if ((Get-Date) -lt $script:State.BackoffUntil) {
         Write-TrayLog ('Skipping fetch - backing off until {0:HH:mm:ss}' -f $script:State.BackoffUntil)
         return

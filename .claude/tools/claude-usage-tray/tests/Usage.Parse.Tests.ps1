@@ -224,4 +224,20 @@ Assert-Equal -Expected 'OLD' -Actual (Select-FreshestCredential @($null, $older,
 Assert-Null -Value (Select-FreshestCredential @()) -Name 'no candidates yields null'
 Assert-Null -Value (Select-FreshestCredential @($null)) -Name 'all sources failed yields null'
 
+Write-Host "`nInvoke-NativeWithTimeout" -ForegroundColor Cyan
+# Regression: ssh hung for 2 days after connect (ConnectTimeout only bounds the
+# TCP handshake), freezing the tray's UI thread with its menu stuck on screen.
+$pwshExe = (Get-Process -Id $PID).Path
+$ok = Invoke-NativeWithTimeout -FilePath $pwshExe -Arguments @('-NoProfile','-Command','"a";"b"') -TimeoutMs 15000
+Assert-Equal -Expected $false -Actual $ok.TimedOut -Name 'fast command does not time out'
+Assert-Equal -Expected 0      -Actual $ok.ExitCode -Name 'fast command exit code is captured'
+Assert-Equal -Expected "a`nb" -Actual ($ok.Output.Trim() -replace "`r`n", "`n") -Name 'stdout is captured'
+
+$sw = [System.Diagnostics.Stopwatch]::StartNew()
+$hang = Invoke-NativeWithTimeout -FilePath $pwshExe -Arguments @('-NoProfile','-Command','Start-Sleep 60') -TimeoutMs 1500
+$sw.Stop()
+Assert-Equal -Expected $true -Actual $hang.TimedOut -Name 'hung command times out'
+Assert-True  -Condition ($sw.Elapsed.TotalSeconds -lt 10) -Name "hung command returns promptly (took $([int]$sw.Elapsed.TotalSeconds)s)"
+Assert-True  -Condition ($null -eq (Get-Process -Id $hang.Pid -ErrorAction SilentlyContinue)) -Name 'hung process is killed, not orphaned'
+
 exit (Invoke-TestSummary)
